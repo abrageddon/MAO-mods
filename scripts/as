@@ -1,0 +1,139 @@
+#!/bin/bash
+#
+# Copyright 2009 Google Inc. All Rights Reserved.
+# Author: eraman@google.com (Easwaran Raman)
+# Wrapper to as that calls mao if required before calling original as
+#
+# This script makes the following assumption when invoked with a MAO option
+# 1. as takes only one input file
+# 2. That input file is the last argument to as
+# The above two assumptions hold good if as is invoked by the gcc driver
+
+save_temps=0
+mao_help=0
+as_args=( )
+mao_args=( )
+invoke_mao=0
+output_file='a.out'
+input_files=()
+wrapper_help=0
+
+
+#######################################
+# Parse arguments to as to separate mao and as arguments,
+# identify input and output files and recognize --save-temps
+#
+# Globals:
+#   save_temps
+#   invoke_mao
+#   input_files
+#   output_file
+#   as_args
+#   mao_args
+# Arguments:
+#   Original arguments to the as script
+# Returns:
+#   None
+#######################################
+
+function parse_args() {
+  while [[ $# -gt 0 ]]; do
+    if [[ "$1" == '--save-temps' ]]; then
+      save_temps=1
+      shift 1
+    elif [[ "$1" == '--help' ]]; then
+      wrapper_help=1
+      shift 1
+    elif [[  "$1" == '--mao' ]]; then
+      invoke_mao=1
+      mao_args[${#mao_args[@]}]="--mao=$2"
+      shift 2
+    elif [[  "${1:0:6}" == '--mao=' ]]; then
+      invoke_mao=1
+      #This is already of the form --mao=foo
+      mao_args[${#mao_args[@]}]="$1"
+      shift 1
+    elif [[  "${1:0:2}" == '-o' ]]; then
+      #The option could be either -ofoo -o foo
+      if [[ "$1" == '-o' ]]; then
+        output_file="$2"
+        shift 2
+      else
+        #This is of the form -ofoo
+        output_file="${1:2}"
+        shift 1
+      fi
+    elif [[ $# -eq 1 ]]; then
+      #We are assuming that the last argument is the input file
+      #This is true when as is invoked by gcc
+      input_files=("${@}")
+      break;
+    else
+      mao_args[${#mao_args[@]}]="$1"
+      as_args[${#as_args[@]}]="$1"
+      shift 1
+    fi
+  done
+}
+
+
+function main()  {
+  local dir_name="`dirname $0`"
+  local mao_bin="${dir_name}/mao"
+  local as_bin="${dir_name}/as-orig"
+  local mao_output_file='a.mao.s'
+
+  #Abort if mao or the real as does not exist
+  if [[ ! -x "${as_bin}" ]]; then
+    echo "$0: Unable to execute the assembler ${as_bin}"
+    exit 1
+  fi
+  if [[ ! -x "${mao_bin}" ]]; then
+    echo "$0: Unable to execute  ${mao_bin}"
+    exit 1
+  fi
+
+  original_args=("${@}")
+  parse_args "${@}"
+
+  if [[ ${wrapper_help} = 1 ]]; then
+    "${mao_bin}" --mao=-h
+    echo -e "\nAssembler specific options:\n"
+    "${as_bin}" --help
+    exit 0
+  fi
+
+  if [[ "$output_file" != "a.out" ]]; then
+    mao_output_file="${output_file}.mao.s"
+  fi
+
+  if [[ ${invoke_mao} = 1 ]]; then
+    "${mao_bin}" "${mao_args[@]}" "${input_files[@]}" --mao=ASM=o["${mao_output_file}"]
+    result=$?
+    if [[ ${result} != 0 ]]; then
+      echo "$0: Execution of ${mao_bin} failed with error code ${result}"
+      exit ${result}
+    fi
+    #If --mao=-h or --mao=--help is called, as-orig should not be invoked
+    if [[ ${mao_help} = 1 ]]; then
+      exit 0
+    fi
+
+    "${as_bin}" "${as_args[@]}" "${mao_output_file}" -o "${output_file}"
+    result=$?
+    if [[ ${result} != 0 ]]; then
+      exit ${result}
+    fi
+
+    if [[ ${save_temps} = 0 ]]; then
+      rm -f "${mao_output_file}"
+    fi
+  else
+    #If --mao is not passed, invoke as with the original arguments
+    "${as_bin}" "${original_args[@]}"
+    exit $?
+  fi
+}
+
+main "${@}"
+

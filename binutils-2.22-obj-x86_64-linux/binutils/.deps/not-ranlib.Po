@@ -1,0 +1,1 @@
+not-ranlib.o: ../../binutils-2.22/binutils/not-ranlib.c
