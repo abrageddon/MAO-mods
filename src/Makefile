@@ -50,6 +50,7 @@ CFLAGS=						\
 	-I$(BINUTILSRC)				\
 	-I$(BINUTILSRC)/include			\
 	-I$(BINUTILOBJ)/include			\
+	-I../llvm/include/			\
 	-DLOCALEDIR="\"$(LOCALEDIR)\""		\
 	-DHAVE_DECL_BASENAME=1                  \
 	-g -O0 -Wall -Werror -fno-exceptions
@@ -121,56 +122,58 @@ CCSRCS=						\
 	MaoLiveness.cc                          \
 	MaoReachingDefs.cc                      \
 	SymbolTable.cc
+		
 
-PLUGIN_CCSRCS=					\
-	$(PLUGINSRC)/MaoAddAdd.cc		\
-	$(PLUGINSRC)/MaoAdd2Inc.cc		\
-	$(PLUGINSRC)/MaoBackBranchAlign.cc	\
-	$(PLUGINSRC)/MaoBranchSeparator.cc	\
-	$(PLUGINSRC)/MaoDCE.cc			\
-	$(PLUGINSRC)/MaoEnableFunctionHijacking.cc \
-	$(PLUGINSRC)/MaoInc2Add.cc		\
-	$(PLUGINSRC)/MaoInsertPrefNta.cc	\
-	$(PLUGINSRC)/MaoLoop16.cc		\
-	$(PLUGINSRC)/MaoMissDisp.cc		\
-	$(PLUGINSRC)/MaoNopinizer.cc		\
-	$(PLUGINSRC)/MaoNopKiller.cc		\
-	$(PLUGINSRC)/MaoPrefAlias.cc		\
-	$(PLUGINSRC)/MaoPrefetchNta.cc		\
-	$(PLUGINSRC)/MaoRatFinder.cc		\
-	$(PLUGINSRC)/MaoRedundantTestElim.cc	\
-	$(PLUGINSRC)/MaoRedundantMemMove.cc	\
-	$(PLUGINSRC)/MaoScheduler.cc		\
-	$(PLUGINSRC)/MaoTestDF.cc		\
-	$(PLUGINSRC)/MaoTestPlugin.cc		\
-	$(PLUGINSRC)/MaoUOpsFuse.cc		\
-	$(PLUGINSRC)/MaoZee.cc			\
-#	$(PLUGINSRC)/MaoInstructionBuilder.cc	
+PLUGIN_CCSRCS=#$(PLUGINSRC)/MaoInstructionBuilder.cc					\
+#	$(PLUGINSRC)/MaoAddAdd.cc		\
+#	$(PLUGINSRC)/MaoAdd2Inc.cc		\
+#	$(PLUGINSRC)/MaoBackBranchAlign.cc	\
+#	$(PLUGINSRC)/MaoBranchSeparator.cc	\
+#	$(PLUGINSRC)/MaoDCE.cc			\
+#	$(PLUGINSRC)/MaoEnableFunctionHijacking.cc \
+#	$(PLUGINSRC)/MaoInc2Add.cc		\
+#	$(PLUGINSRC)/MaoInsertPrefNta.cc	\
+#	$(PLUGINSRC)/MaoLoop16.cc		\
+#	$(PLUGINSRC)/MaoMissDisp.cc		\
+#	$(PLUGINSRC)/MaoNopinizer.cc		\
+#	$(PLUGINSRC)/MaoNopKiller.cc		\
+#	$(PLUGINSRC)/MaoPrefAlias.cc		\
+#	$(PLUGINSRC)/MaoPrefetchNta.cc		\
+#	$(PLUGINSRC)/MaoRatFinder.cc		\
+#	$(PLUGINSRC)/MaoRedundantTestElim.cc	\
+#	$(PLUGINSRC)/MaoRedundantMemMove.cc	\
+#	$(PLUGINSRC)/MaoScheduler.cc		\
+#	$(PLUGINSRC)/MaoTestDF.cc		\
+#	$(PLUGINSRC)/MaoTestPlugin.cc		\
+#	$(PLUGINSRC)/MaoUOpsFuse.cc		\
+#	$(PLUGINSRC)/MaoZee.cc			\
+		
 
 
-PLUGINS=MaoAddAdd				\
-	MaoAdd2Inc				\
-	MaoBackBranchAlign			\
-	MaoBranchSeparator	  		\
-	MaoDCE					\
-	MaoEnableFunctionHijacking		\
-	MaoInsertPrefNta			\
-	MaoInc2Add				\
-	MaoLoop16				\
-	MaoMissDisp				\
-	MaoNopinizer				\
-	MaoNopKiller				\
-	MaoPrefAlias				\
-	MaoPrefetchNta				\
-	MaoRatFinder				\
-	MaoRedundantTestElim			\
-	MaoRedundantMemMove			\
-	MaoScheduler				\
-	MaoTestDF				\
-	MaoTestPlugin				\
-	MaoUOpsFuse				\
-	MaoZee					\
-#	MaoInstructionBuilder
+PLUGINS=#MaoInstructionBuilder						\
+#	MaoAddAdd				\
+#	MaoAdd2Inc				\
+#	MaoBackBranchAlign			\
+#	MaoBranchSeparator	  		\
+#	MaoDCE					\
+#	MaoEnableFunctionHijacking		\
+#	MaoInsertPrefNta			\
+#	MaoInc2Add				\
+#	MaoLoop16				\
+#	MaoMissDisp				\
+#	MaoNopinizer				\
+#	MaoNopKiller				\
+#	MaoPrefAlias				\
+#	MaoPrefetchNta				\
+#	MaoRatFinder				\
+#	MaoRedundantTestElim			\
+#	MaoRedundantMemMove			\
+#	MaoScheduler				\
+#	MaoTestDF				\
+#	MaoTestPlugin				\
+#	MaoUOpsFuse				\
+#	MaoZee					\
+	
 
 GAS_OBJS=$(patsubst %.c,$(OBJDIR)/%.o,$(notdir $(GAS_SRC)))
 GAS_CONFIG_OBJS=$(patsubst %.c,$(OBJDIR)/%.o,$(notdir $(GAS_CONFIG_SRC)))
@@ -178,6 +181,27 @@ OPCODES_OBJS=$(patsubst %.c,$(OBJDIR)/%.o,$(notdir $(OPCODES_SRC)))
 BINUTILS_OBJS=$(GAS_OBJS) $(GAS_CONFIG_OBJS) $(OPCODES_OBJS)
 PLUGIN_OBJS=$(patsubst %.cc,$(OBJDIR)/%.o,$(notdir $(PLUGIN_CCSRCS)))
 PLUGIN_TARGETS=$(patsubst %,$(BINDIR)/%-$(TARGET).$(DYNLIBEXT),$(PLUGINS))
+
+# MultiCompiler ==================================
+MC_OBJDIR=../obj-$(TARGET)
+MC_PLUGINS=MaoNOPInsertion
+MC_SRCS=$(patsubst %,$(PLUGINSRC)/%.cc,$(notdir $(MC_PLUGINS)))
+MC_OBJS=$(patsubst %,$(MC_OBJDIR)/%.o,$(notdir $(MC_PLUGINS)))
+MC_TARGETS=$(patsubst %,$(BINDIR)/%-$(TARGET).$(DYNLIBEXT),$(MC_PLUGINS))
+
+
+RNG_SRCDIR=../llvm/lib/MultiCompiler
+RNG_SRCS=AESCounterModeRNG.cpp			\
+		AESRandomNumberGenerator.cpp	\
+		MultiCompilerOptions.cpp		\
+		Rand48.cpp						\
+		Random.cpp						\
+		SkeinBlock.cpp					\
+		Skein.cpp						\
+		SkeinPBKDF2.cpp
+RNG_OBJS=$(patsubst %.cpp,$(MC_OBJDIR)/%.o,$(notdir $(RNG_SRCS)))
+
+#end MultiCompiler ==================================
 
 OBJS=							\
 	$(BINUTILS_OBJS)				\
@@ -189,7 +213,7 @@ CCDEPS=$(patsubst %.cc,$(OBJDIR)/%.d,$(CCSRCS))
 PLUGINDEPS=$(patsubst %.cc,$(OBJDIR)/%.d,$(PLUGIN_CCSRCS))
 DEPS=$(CDEPS) $(CCDEPS) $(PLUGINDEPS)
 
-all: mao-$(DEVPREFIX)$(TARGET) $(PLUGIN_TARGETS)
+all: mao-$(DEVPREFIX)$(TARGET) $(PLUGIN_TARGETS) $(MC_TARGETS)
 
 # C source rule
 $(OBJDIR)/%.o : %.c stamp-obj-$(TARGET) $(OBJDIR)/gen-opcodes.h
@@ -229,6 +253,26 @@ $(PLUGIN_OBJS) : $(OBJDIR)/%.o : $(PLUGINSRC)/%.cc stamp-obj-$(TARGET) $(OBJDIR)
             < $(OBJDIR)/$*.P >> $(OBJDIR)/$*.d;			\
 	rm -f $(OBJDIR)/$*.P
 	$(CC) $(CFLAGS) $(CCEXTRAFLAGS) -fPIC -c -o $@ $<
+
+
+# MultiCompiler ===================
+
+$(RNG_OBJS) : $(MC_OBJDIR)/%.o : $(RNG_SRCDIR)/%.cpp
+	$(CC) $(CFLAGS) $(CCEXTRAFLAGS) -DMAO_MULTI_COMPILER -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -fPIC -c -o $@ $<
+	
+$(MC_OBJS) : $(MC_OBJDIR)/%.o : $(PLUGINSRC)/%.cc stamp-obj-$(TARGET) $(OBJDIR)/gen-opcodes.h
+	@$(MAKEDEPEND) -MQ $@;					\
+	cp $(OBJDIR)/$*.P $(OBJDIR)/$*.d;			\
+	sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//'	\
+	    -e '/^$$/ d' -e 's/$$/ :/' -e 's/^ *//'		\
+            < $(OBJDIR)/$*.P >> $(OBJDIR)/$*.d;			\
+	rm -f $(OBJDIR)/$*.P
+	$(CC) $(CFLAGS) $(CCEXTRAFLAGS) -fPIC -c -o $@ $<	
+	
+$(MC_TARGETS) : $(BINDIR)/%-$(TARGET).$(DYNLIBEXT) : $(MC_OBJDIR)/%.o  $(RNG_OBJS)
+	$(CC) $(CFLAGS) $(DYNFLAGS) -lm -o $@ $< $(RNG_OBJS)
+	
+#end MultiCompiler =====================
 
 $(GAS_OBJS) : $(OBJDIR)/%.o : $(BINUTILSRC)/gas/%.c
 	$(CC) $(CFLAGS) -c -o $@ $<
@@ -356,6 +400,7 @@ stamp-obj-$(TARGET):
 clean : 
 	-rm -rf $(OBJDIR) stamp-obj-$(TARGET)
 	-rm -f $(BINDIR)/mao-$(DEVPREFIX)$(TARGET) $(PLUGIN_TARGETS) $(BINDIR)/mao
+	-rm -f $(BINDIR)/mao-$(DEVPREFIX)$(TARGET) $(MC_TARGETS)
 
 allclean : 
 	-rm -rf ../obj-*

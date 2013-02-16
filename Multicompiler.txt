@@ -1,0 +1,44 @@
+Needs random number generator from LLVM multicompiler
+included as ./llvm
+Edited files in MultiCompiler folder: prevent llvm specific code from being loaded when including this file. Simply #define MAO_MULTI_COMPILER and block llvm specific code with #ifndef MAO_MULTI_COMPILER
+
+Files:
+./src/Makefile
+    Added "-I../llvm/include/          \" to CFLAGS
+    ==========
+    MC_OBJDIR=../obj-$(TARGET)
+    MC_PLUGINS=MaoNOPInsertion
+    MC_SRCS=$(patsubst %,$(PLUGINSRC)/%.cc,$(notdir $(MC_PLUGINS)))
+    MC_OBJS=$(patsubst %,$(MC_OBJDIR)/%.o,$(notdir $(MC_PLUGINS)))
+    MC_TARGETS=$(patsubst %,$(BINDIR)/%-$(TARGET).$(DYNLIBEXT),$(MC_PLUGINS))
+    
+    
+    RNG_SRCDIR=../llvm/lib/MultiCompiler
+    RNG_SRCS=AESCounterModeRNG.cpp          \
+            AESRandomNumberGenerator.cpp    \
+            MultiCompilerOptions.cpp        \
+            Rand48.cpp                      \
+            Random.cpp                      \
+            SkeinBlock.cpp                  \
+            Skein.cpp                       \
+            SkeinPBKDF2.cpp
+    RNG_OBJS=$(patsubst %.cpp,$(MC_OBJDIR)/%.o,$(notdir $(RNG_SRCS)))
+    
+    $(RNG_OBJS) : $(MC_OBJDIR)/%.o : $(RNG_SRCDIR)/%.cpp
+        $(CC) $(CFLAGS) $(CCEXTRAFLAGS) -DMAO_MULTI_COMPILER -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -fPIC -c -o $@ $<
+        
+    $(MC_OBJS) : $(MC_OBJDIR)/%.o : $(PLUGINSRC)/%.cc stamp-obj-$(TARGET) $(OBJDIR)/gen-opcodes.h
+        @$(MAKEDEPEND) -MQ $@;                  \
+        cp $(OBJDIR)/$*.P $(OBJDIR)/$*.d;           \
+        sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
+            -e '/^$$/ d' -e 's/$$/ :/' -e 's/^ *//'     \
+                < $(OBJDIR)/$*.P >> $(OBJDIR)/$*.d;         \
+        rm -f $(OBJDIR)/$*.P
+        $(CC) $(CFLAGS) $(CCEXTRAFLAGS) -fPIC -c -o $@ $<   
+        
+    $(MC_TARGETS) : $(BINDIR)/%-$(TARGET).$(DYNLIBEXT) : $(MC_OBJDIR)/%.o  $(RNG_OBJS)
+        $(CC) $(CFLAGS) $(DYNFLAGS) -lm -o $@ $< $(RNG_OBJS)
+    ==========
+        
+./src/plugins/MaoNOPInsertion.cc
+    Working
