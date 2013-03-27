@@ -74,30 +74,29 @@ public:
 
 
             //Pick correct LEA
-            unsigned leaOpc;
-            if (entry->AsInstruction()->op() == X86::MOV32rr) {
-                leaOpc = X86::LEA32r;
-            } else if (I->getOpcode() == X86::MOV64rr) {
-                leaOpc = X86::LEA64r;
-            } else {
-                continue;
-            }
+//            unsigned leaOpc;
+//            if (entry->AsInstruction()->op() == X86::MOV32rr) {
+//                leaOpc = X86::LEA32r;
+//            } else if (I->getOpcode() == X86::MOV64rr) {
+//                leaOpc = X86::LEA64r;
+//            } else {
+//                continue;
+//            }
 
             //Found MOV, roll for insertion
-            unsigned int Roll = AESRandomNumberGenerator::Generator().randnext(100);
+            unsigned int Roll = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(100);
             ++MOVCandidates;
-            if (Roll >= multicompiler::getFunctionOption(multicompiler::MOVToLEAPercentage, *Fn.getFunction())) {
-                ++I;
+            if (Roll >= multicompiler::MOVToLEAPercentage) {
                 continue;
             }
 
             //Replace MOV with LEA
             ++ReplacedMOV;
-            MachineBasicBlock::iterator J = I;
-            ++I;
-            addRegOffset(BuildMI(*BB, J, J->getDebugLoc(), TII->get(leaOpc), J->getOperand(0).getReg()),
-                    J->getOperand(1).getReg(), false, 0);
-            J->eraseFromParent();
+//            MachineBasicBlock::iterator J = I;
+//            ++I;
+//            addRegOffset(BuildMI(*BB, J, J->getDebugLoc(), TII->get(leaOpc), J->getOperand(0).getReg()),
+//                    J->getOperand(1).getReg(), false, 0);
+//            J->eraseFromParent();
             Changed = true;
 
             if (tracing_level() > 0)
@@ -109,8 +108,10 @@ public:
         TraceC(1, "Number of MOV candidates: %d\n", MOVCandidates);
         TraceC(1, "Number of substituted MOV instructions: %d\n", ReplacedMOV);
 
-        CFG::InvalidateCFG(function_);
-        return true;
+        if(Changed){
+            CFG::InvalidateCFG(function_);
+        }
+        return Changed;
     }
 
 };
