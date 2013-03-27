@@ -34,3 +34,10 @@
 *.svn-base
 *.d
 
+llvm/
+.cproject
+.project
+.settings/
+buildMAO.sh~
+src/.Makefile.swp
+

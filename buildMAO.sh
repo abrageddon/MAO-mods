@@ -4,8 +4,7 @@
 #=========================================================
 
 # UBUNTU required packages
-# build-essentials autoconf automake texinfo zlib1g-dev bison flex
-
+sudo apt-get install build-essentials autoconf automake texinfo zlib1g-dev bison flex
 
 
 # Set target to i686-linux or x86_64
@@ -16,8 +15,9 @@ TARGET=x86_64-linux
 # otherwise, clear the flag:
 BINUTILS_CONF_FLAGS=
 
-mkdir MAO
-cd MAO
+#Only for inital, dir is already created and we are in it
+#mkdir MAO
+#cd MAO
 
 # If you haven't downloaded the source for mao:
 # See http://code.google.com/p/mao/source/checkout for more info
