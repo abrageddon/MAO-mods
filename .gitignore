@@ -41,4 +41,4 @@ llvm/
 buildMAO.sh~
 src/.Makefile.swp
 binutils-2.22-obj-x86_64-linux/
-
+bin/
