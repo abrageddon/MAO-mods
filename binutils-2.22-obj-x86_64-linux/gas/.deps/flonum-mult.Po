@@ -1,9 +1,0 @@
-flonum-mult.o: ../../binutils-2.22/gas/flonum-mult.c \
- ../../binutils-2.22/gas/../include/ansidecl.h \
- ../../binutils-2.22/gas/flonum.h ../../binutils-2.22/gas/bignum.h
-
-../../binutils-2.22/gas/../include/ansidecl.h:
-
-../../binutils-2.22/gas/flonum.h:
-
-../../binutils-2.22/gas/bignum.h:
