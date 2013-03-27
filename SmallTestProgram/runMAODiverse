@@ -1,0 +1,1 @@
+../MAO/bin/mao-x86_64-linux --mao=--plugin=../MAO/bin/MaoNOPInsertion-x86_64-linux.so --mao=NOPINSERTION=trace[3]+MultiCompilerSeed[abcdef]+NOPInsertionPercentage[50]:ASM=o[hellofunc_div.s] hellofunc.s

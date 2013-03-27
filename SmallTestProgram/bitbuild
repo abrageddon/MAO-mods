@@ -1,0 +1,36 @@
+#!/bin/sh
+
+E_BADARGS=65
+
+if [ $# -eq 0 ]
+then
+  echo "Usage: `basename $0` <command>"
+  echo "  Executes <command> in an environment with appropriate"
+  echo "  environment to build an autoconf project into bitcode"
+  echo ""
+  echo "  Requires LLVM_HOME is set to where LLVM is installed "
+  echo "  ($LLVM_HOME/lib/LLVMgold.so must exist) and that     "
+  echo "  clang and clang++ your on the path.                  "
+  exit $E_BADARGS
+fi
+
+GOLD=/usr/local/lib/LLVMgold.so
+export CC="bclang"
+export CXX="bclang++"
+export CPP="bclang -E"
+
+#export CFLAGS="-emit-llvm -g"
+#export CFLAGS="-ccc-print-phases -emit-llvm -g -Xclang -multicompiler-seed=1000 -Xclang -nop-insertion-percentage=100"
+#export CFLAGS="-O3 -emit-llvm -g -Xclang -multicompiler-seed=1000 -Xclang -nop-insertion-percentage=100"
+export CFLAGS="-Xclang -multicompiler-seed=1000 -Xclang -nop-insertion-percentage=100"
+
+export CXXFLAGS="$CFLAGS"
+
+# export LDFLAGS="-Xlinker -plugin=$GOLD -Xlinker -plugin-opt=also-emit-llvm"
+#export LDFLAGS="-ccc-print-phases -Xlinker -plugin=$GOLD -Xlinker -plugin-opt=also-emit-llvm"
+#export LDFLAGS="-Xlinker -plugin=$GOLD -Xlinker -plugin-opt=also-emit-llvm"
+export LDFLAGS="-Xlinker -plugin=$GOLD "
+
+export RANLIB="ar --plugin=$GOLD -s"
+
+$@
