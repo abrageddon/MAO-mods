@@ -21,7 +21,7 @@ BINUTILS_CONF_FLAGS=
 
 # If you haven't downloaded the source for mao:
 # See http://code.google.com/p/mao/source/checkout for more info
-svn checkout http://mao.googlecode.com/svn/trunk/ .
+#svn checkout http://mao.googlecode.com/svn/trunk/ .
 
 #=========================================================
 # GNU Binutils sources

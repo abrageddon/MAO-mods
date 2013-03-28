@@ -16,7 +16,6 @@ myPrintHelloMake:	# id: 6, l: 6
 .Ltmp5:	# id: 15, l: 16	
 	.cfi_def_cfa_register	%rbp	# id: 16, l: 17	
 	subq	$16, %rsp	# id: 17, l: 18	
-	nop		# id: 36, l: 0	
 	leaq	.L.str, %rdi	# id: 18, l: 19	
 	movb	$0, %al	# id: 19, l: 20	
 	callq	printf	# id: 20, l: 21	

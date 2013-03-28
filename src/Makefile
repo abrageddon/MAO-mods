@@ -191,7 +191,7 @@ MC_OBJS=$(patsubst %,$(MC_OBJDIR)/%.o,$(notdir $(MC_PLUGINS)))
 MC_TARGETS=$(patsubst %,$(BINDIR)/%-$(TARGET).$(DYNLIBEXT),$(MC_PLUGINS))
 
 
-RNG_SRCDIR=../llvm/lib/MultiCompiler
+RNG_SRCDIR=./MultiCompiler
 RNG_SRCS=AESCounterModeRNG.cpp			\
 		AESRandomNumberGenerator.cpp	\
 		MultiCompilerOptions.cpp		\
