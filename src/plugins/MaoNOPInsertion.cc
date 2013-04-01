@@ -17,8 +17,8 @@
 #ifndef MAO_MULTI_COMPILER
 #define MAO_MULTI_COMPILER
 #endif //MAO_MULTI_COMPILER
-#include "llvm/MultiCompiler/MultiCompilerOptions.h"
-#include "llvm/MultiCompiler/AESRandomNumberGenerator.h"
+#include "MultiCompiler/MultiCompilerOptions.h"
+#include "MultiCompiler/AESRandomNumberGenerator.h"
 
 namespace {
 

@@ -8,6 +8,7 @@
 #define RANDOM_H_
 
 #include <inttypes.h>
+#include <string>
 
 
 namespace multicompiler{
