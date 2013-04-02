@@ -28,11 +28,9 @@ PLUGIN_VERSION
 // Options
 // --------------------------------------------------------------------
 MAO_DEFINE_OPTIONS(MOVTOLEA, "MOV To LEA pass", 3) {
-    OPTION_STR("MultiCompilerSeed", "1337", "Seed for random number generation")
-,
-  	                        OPTION_INT("NOPInsertionPercentage", 30, "NOP Insertion Percentage")
-,
-  	                        OPTION_INT("MaxNOPsPerInstruction", 1, "Maximum NOPs Per Instruction")
+ OPTION_STR("MultiCompilerSeed", "1337", "Seed for random number generation")
+,OPTION_INT("NOPInsertionPercentage", 30, "NOP Insertion Percentage")
+,OPTION_INT("MaxNOPsPerInstruction", 1, "Maximum NOPs Per Instruction")
 };
 
 class MOVToLEA: public MaoFunctionPass {

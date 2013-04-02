@@ -33,17 +33,13 @@
  */
 
 #define DEBUG_TYPE "aesrng"
-
-#ifndef MAO_MULTI_COMPILER
 #include "llvm/ADT/Statistic.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/ErrorHandling.h"
-#endif //MAO_MULTI_COMPILER
-
 #include "llvm/MultiCompiler/MultiCompilerOptions.h"
 #include "llvm/MultiCompiler/AESRandomNumberGenerator.h"
 #include "llvm/MultiCompiler/AESCounterModeRNG.h"
+#include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/Debug.h"
+#include "llvm/Support/ErrorHandling.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -54,9 +50,7 @@ extern int errno;
 
 using namespace llvm;
 
-#ifndef MAO_MULTI_COMPILER
 STATISTIC(RandomNumbersGenerated, "multicompiler: Number of random numbers generated");
-#endif //MAO_MULTI_COMPILER
 
 namespace multicompiler
 {
@@ -65,21 +59,15 @@ namespace Random
 
 AESRandomNumberGenerator::AESRandomNumberGenerator( ) : Random()
 {
-#ifndef MAO_MULTI_COMPILER
     DEBUG(errs() << "AES RNG: Initializing context ");
-#endif //MAO_MULTI_COMPILER
     if(!MultiCompilerSeed.empty() && !EntropyData.empty()){
-#ifndef MAO_MULTI_COMPILER
         DEBUG(errs() << " with command line seed and entropy data\n");
-#endif //MAO_MULTI_COMPILER
 
         // TODO(tmjackso): Replace checks with a proper assert
         errno = 0;
         Seed = strtoul(MultiCompilerSeed.c_str(), NULL, 10);
         if(errno == ERANGE || errno == EINVAL){
-#ifndef MAO_MULTI_COMPILER
             llvm::report_fatal_error("MultiCompilerSeed is out of range!");
-#endif //MAO_MULTI_COMPILER
         }
         // Seed properly
         aesrng_initialize_with_random_data(&ctx, 16,
@@ -88,40 +76,30 @@ AESRandomNumberGenerator::AESRandomNumberGenerator( ) : Random()
     }
     else if(multicompiler::RNGStateFile != ""){
         // Fall back on state file...if provided.
-#ifndef MAO_MULTI_COMPILER
         DEBUG(errs() << " with file\n");
-#endif //MAO_MULTI_COMPILER
         aesrng_initialize_to_empty(&ctx);
         readStateFile();
     }
     else{
-#ifndef MAO_MULTI_COMPILER
         DEBUG(errs() << " to default\n");
         DEBUG(errs() << "Warning! Using unseeded random number generator\n");
-#endif //MAO_MULTI_COMPILER
         aesrng_initialize_to_default(&ctx);
 
     }
-#ifndef MAO_MULTI_COMPILER
     errs().flush();
-#endif //MAO_MULTI_COMPILER
 }
 
 void AESRandomNumberGenerator::Reseed(uint64_t salt, uint8_t const* password, unsigned int length)
 {
-#ifndef MAO_MULTI_COMPILER
     DEBUG(errs() << "Re-Seeding AES RNG context from salt and password\n");
     DEBUG(errs() << "Salt: " << salt << "\n");
-#endif //MAO_MULTI_COMPILER
     aesrng_destroy(ctx);
     aesrng_initialize_with_random_data(&ctx, 16, password, length, salt);
 }
 
 AESRandomNumberGenerator::AESRandomNumberGenerator(AESRandomNumberGenerator const& a) : Random()
 {
-#ifndef MAO_MULTI_COMPILER
     DEBUG(errs() << "Initialising AES RNG context from copy constructor\n");
-#endif //MAO_MULTI_COMPILER
     aesrng_initialize_to_empty(&ctx);
     memcpy(&ctx, &a.ctx, sizeof(aesrng_context));
     ctx->key = new uint8_t[a.ctx->keylength];
@@ -138,35 +116,27 @@ AESRandomNumberGenerator::~AESRandomNumberGenerator()
 
 void AESRandomNumberGenerator::readStateFile()
 {
-#ifndef MAO_MULTI_COMPILER
     DEBUG(errs() << "Reading RNG state file from " << multicompiler::RNGStateFile << "\n");
-#endif //MAO_MULTI_COMPILER
     aesrng_restore_state(ctx, multicompiler::RNGStateFile.c_str());
 }
 
 void AESRandomNumberGenerator::writeStateFile()
 {
-#ifndef MAO_MULTI_COMPILER
     DEBUG(errs() << "Writing RNG state file to " << multicompiler::RNGStateFile << "\n");
-#endif //MAO_MULTI_COMPILER
     aesrng_write_state(ctx, multicompiler::RNGStateFile.c_str());
 }
 
 uint64_t AESRandomNumberGenerator::random()
 {
     assert(ctx != NULL);
-#ifndef MAO_MULTI_COMPILER
     RandomNumbersGenerated++;
-#endif //MAO_MULTI_COMPILER
     return aesrng_random_u64(ctx);
 }
 
 uint64_t AESRandomNumberGenerator::randnext(uint64_t max)
 {
     assert(ctx != NULL);
-#ifndef MAO_MULTI_COMPILER
     RandomNumbersGenerated++;
-#endif //MAO_MULTI_COMPILER
     return aesrng_random_u64(ctx) % max;
 }
 

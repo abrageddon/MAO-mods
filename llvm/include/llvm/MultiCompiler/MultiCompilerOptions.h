@@ -12,10 +12,7 @@
 #include <string>
 #include <map>
 
-#ifndef MAO_MULTI_COMPILER
 #include <llvm/Function.h>
-#endif // MAO_MULTI_COMPILER
-
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/raw_ostream.h>
 
@@ -43,7 +40,6 @@ extern std::string FunctionOptionsFile;
 
 static const int NOPInsertionUnknown = -1;
 
-#ifndef MAO_MULTI_COMPILER
 typedef std::pair<std::string, std::string> FunctionOptionKey;
 typedef std::map<FunctionOptionKey, std::string> FunctionOptionMap;
 
@@ -83,7 +79,6 @@ T getFunctionOption(T &OptLoc, const llvm::Function &Fn) {
   }
   return OptLoc;
 }
-#endif // MAO_MULTI_COMPILER
 
 }
 

@@ -39,7 +39,6 @@ unsigned int ProfiledNOPMinThreshold;
 bool UseFunctionOptions;
 std::string FunctionOptionsFile;
 
-#ifndef MAO_MULTI_COMPILER
 static llvm::cl::opt<bool, true>
 ShuffleStackFramesOpt("shuffle-stack-frames",
                      llvm::cl::desc("Shuffle variables in function stack frames"),
@@ -171,7 +170,6 @@ FunctionOptionInfo FunctionOptions[] = {
   {NULL, NULL}
 };
 
-
 // FIXME: read&store this with a LLVM Pass
 static FunctionOptionMap *funcOptMap = NULL;
 
@@ -233,5 +231,4 @@ bool findFunctionOption(
   return true;
 }
 
-#endif //MAO_MULTI_COMPILER
 }

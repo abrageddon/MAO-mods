@@ -41,13 +41,9 @@ void Rand48::readStateFile()
     }
 
     std::ifstream statefile(multicompiler::RNGStateFile.c_str(), std::ios::in);
-#ifndef MAO_MULTI_COMPILER
     DEBUG(errs() << "Reading RNG state file from " << multicompiler::RNGStateFile << "\n");
-#endif //MAO_MULTI_COMPILER
     statefile >> state;
-#ifndef MAO_MULTI_COMPILER
     DEBUG(errs() << "  state: " << state << "\n");
-#endif //MAO_MULTI_COMPILER
 }
 
 void Rand48::writeStateFile()
@@ -56,9 +52,7 @@ void Rand48::writeStateFile()
     if (multicompiler::RNGStateFile == "") return;
 
     std::ofstream statefile(multicompiler::RNGStateFile.c_str(), std::ios::out);
-#ifndef MAO_MULTI_COMPILER
     DEBUG(errs() << "Writing RNG state file to " << multicompiler::RNGStateFile << "\n");
-#endif //MAO_MULTI_COMPILER
     statefile << state << std::endl;
 }
 
