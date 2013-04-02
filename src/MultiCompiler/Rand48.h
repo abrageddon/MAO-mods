@@ -2,6 +2,13 @@
 #define RAND48_H_
 
 #include "Random.h"
+#include "MultiCompilerOptions.h"
+#include "Rand48.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <fstream>
+#include <cstdlib>
 #include <inttypes.h>
 
 namespace multicompiler

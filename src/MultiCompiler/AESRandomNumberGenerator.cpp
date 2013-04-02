@@ -32,11 +32,14 @@
  * C++-ified by Todd Jackson
  */
 
-#define DEBUG_TYPE "aesrng"
+//#define DEBUG_TYPE "aesrng"
 
 #include "MultiCompilerOptions.h"
 #include "AESRandomNumberGenerator.h"
 #include "AESCounterModeRNG.h"
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>

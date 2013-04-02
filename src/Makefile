@@ -50,7 +50,6 @@ CFLAGS=						\
 	-I$(BINUTILSRC)				\
 	-I$(BINUTILSRC)/include			\
 	-I$(BINUTILOBJ)/include			\
-	-I../llvm/include/			\
 	-DLOCALEDIR="\"$(LOCALEDIR)\""		\
 	-DHAVE_DECL_BASENAME=1                  \
 	-g -O0 -Wall -Werror -fno-exceptions

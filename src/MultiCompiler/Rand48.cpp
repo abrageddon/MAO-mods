@@ -1,12 +1,4 @@
-#include "MultiCompilerOptions.h"
 #include "Rand48.h"
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <fstream>
-#include <cstdlib>
-
-using namespace llvm;
 
 namespace multicompiler
 {
