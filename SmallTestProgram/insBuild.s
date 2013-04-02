@@ -1,0 +1,1 @@
+lea	(%edi), %edi

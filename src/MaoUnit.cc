@@ -430,16 +430,6 @@ InstructionEntry *MaoUnit::CreateNop(Function *function) {
 	return e;
 }
 
-/*SNEISIUS*/
-InstructionEntry *MaoUnit::CreateNopType(Function *function) {
-	// TODO Set NOP type
-	InstructionEntry *e = CreateInstruction("nop", 0x90, function);
-
-	e->set_op(OP_nop);
-
-	return e;
-}
-
 InstructionEntry *MaoUnit::Create2ByteNop(Function *function) {
 #define WORD_MNEM_SUFFIX  'w'
 	InstructionEntry *e = CreateInstruction("xchg", 0x90, function);

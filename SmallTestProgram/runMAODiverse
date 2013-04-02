@@ -1,1 +1,8 @@
-../bin/mao-x86_64-linux --mao=--plugin=../bin/MaoNOPInsertion-x86_64-linux.so --mao=NOPINSERTION=trace[3]+MultiCompilerSeed[abcdef]+NOPInsertionPercentage[50]:ASM=o[hellofunc_div.s] hellofunc.s
+seed=$[ $RANDOM ]
+percent=$[ $RANDOM % 100]
+
+
+../bin/mao-x86_64-linux --mao=--plugin=../bin/MaoNOPInsertion-x86_64-linux.so --mao=NOPINSERTION=trace[3]+MultiCompilerSeed[${seed}]+NOPInsertionPercentage[${percent}]:ASM=o[hellofunc_NOP.s] hellofunc.s
+
+
+../bin/mao-x86_64-linux --mao=--plugin=../bin/MaoMOVToLEA-x86_64-linux.so --mao=MOVTOLEA=trace[3]+MultiCompilerSeed[${seed}]+MOVToLEAPercentage[${percent}]:ASM=o[hellofunc_MOVToLEA.s] hellofunc.s

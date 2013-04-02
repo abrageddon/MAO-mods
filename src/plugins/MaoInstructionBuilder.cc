@@ -26,7 +26,7 @@
 #include "tc-i386.h"
 namespace {
 PLUGIN_VERSION
-}
+//}
 
 void PrintTemplate(const insn_template *tm, int num_operands);
 void PrintOperandTypes(const i386_operand_type *operand_types, int num_operands);
@@ -36,7 +36,7 @@ void PrintFlags(const unsigned int *flags);
 void PrintRelocs(const enum bfd_reloc_code_real *reloc);
 void PrintModRm(const modrm_byte *modrm);
 void PrintSib(const sib_byte *sib);
-void PrintDrex(const drex_byte *drex);
+//void PrintDrex(const drex_byte *drex);
 void PrintVexPrefix(const vex_prefix *vex);
 void PrintPrefixes(unsigned int prefixes, const unsigned char *prefix);
 void PrintI386InsnStruct(const i386_insn *instruction);
@@ -98,11 +98,11 @@ class InstructionBuilderPlugin : public MaoPass {
 
 // External Entry Point
 //
-void MaoInit() {
-  RegisterUnitPass(
-      "INSBUILDPLUG",
-      MaoPassManager::GenericPassCreator<InstructionBuilderPlugin>);
-}
+//void MaoInit() {
+//  RegisterUnitPass(
+//      "INSBUILDPLUG",
+//      MaoPassManager::GenericPassCreator<InstructionBuilderPlugin>);
+//}
 
 void PrintI386InsnStruct(const i386_insn *instruction) {
   // Print headers
@@ -138,7 +138,7 @@ void PrintI386InsnStruct(const i386_insn *instruction) {
   PrintModRm(&(instruction->rm));
   PrintNonZero("i->rex = %d;\n", instruction->rex);
   PrintSib(&(instruction->sib));
-  PrintDrex(&(instruction->drex));
+//  PrintDrex(&(instruction->drex));
   PrintVexPrefix(&(instruction->vex));
   printf("}\n");
 }
@@ -167,12 +167,12 @@ void PrintSib(const sib_byte *sib) {
   PrintNonZero("i->sib.scale = %u;\n", sib->scale);
 }
 
-void PrintDrex(const drex_byte *drex) {
-  PrintNonZero("i->drex.reg = %u;\n", drex->reg);
-  PrintNonZero("i->drex.rex = %u;\n", drex->rex);
-  PrintNonZero("i->drex.modrm_reg = %u;\n", drex->modrm_reg);
-  PrintNonZero("i->drex.modrm_regmem = %u;\n", drex->modrm_regmem);
-}
+//void PrintDrex(const drex_byte *drex) {
+//  PrintNonZero("i->drex.reg = %u;\n", drex->reg);
+//  PrintNonZero("i->drex.rex = %u;\n", drex->rex);
+//  PrintNonZero("i->drex.modrm_reg = %u;\n", drex->modrm_reg);
+//  PrintNonZero("i->drex.modrm_regmem = %u;\n", drex->modrm_regmem);
+//}
 
 void PrintVexPrefix(const vex_prefix *vex) {
   PrintNonZero("i->vex.bytes[0] = %u;\n", vex->bytes[0]);
@@ -259,7 +259,7 @@ void PrintOperandTypes(const i386_operand_type *operand_types, int num_operands)
     PrintNonZeroDot(i->tm, operand_types[j], bitfield.ymmword, %d);
     PrintNonZeroDot(i->tm, operand_types[j], bitfield.unspecified, %d);
     PrintNonZeroDot(i->tm, operand_types[j], bitfield.anysize, %d);
-    PrintNonZeroDot(i->tm, operand_types[j], bitfield.vex_imm4, %d);
+    PrintNonZeroDot(i->tm, operand_types[j], bitfield.vec_imm4, %d);
   }
 }
 
@@ -360,12 +360,13 @@ void PrintOperandTypes2(const i386_operand_type *types, int num_operands) {
     PrintNonZeroArrow(i, types[j], bitfield.ymmword, %d);
     PrintNonZeroArrow(i, types[j], bitfield.unspecified, %d);
     PrintNonZeroArrow(i, types[j], bitfield.anysize, %d);
-    PrintNonZeroArrow(i, types[j], bitfield.vex_imm4, %d);
+    PrintNonZeroArrow(i, types[j], bitfield.vec_imm4, %d);
   }
 }
 void PrintOpcodeModifier(i386_opcode_modifier opcode_modifier) {
   PrintNonZeroDot(i->tm, opcode_modifier, d, %d);
   PrintNonZeroDot(i->tm, opcode_modifier, w, %d);
+  PrintNonZeroDot(i->tm, opcode_modifier, s, %d);
   PrintNonZeroDot(i->tm, opcode_modifier, modrm, %d);
   PrintNonZeroDot(i->tm, opcode_modifier, shortform, %d);
   PrintNonZeroDot(i->tm, opcode_modifier, jump, %d);
@@ -378,6 +379,7 @@ void PrintOpcodeModifier(i386_opcode_modifier opcode_modifier) {
   PrintNonZeroDot(i->tm, opcode_modifier, size16, %d);
   PrintNonZeroDot(i->tm, opcode_modifier, size32, %d);
   PrintNonZeroDot(i->tm, opcode_modifier, size64, %d);
+  PrintNonZeroDot(i->tm, opcode_modifier, checkregsize, %d);
   PrintNonZeroDot(i->tm, opcode_modifier, ignoresize, %d);
   PrintNonZeroDot(i->tm, opcode_modifier, defaultsize, %d);
   PrintNonZeroDot(i->tm, opcode_modifier, no_bsuf, %d);
@@ -388,10 +390,11 @@ void PrintOpcodeModifier(i386_opcode_modifier opcode_modifier) {
   PrintNonZeroDot(i->tm, opcode_modifier, no_ldsuf, %d);
   PrintNonZeroDot(i->tm, opcode_modifier, fwait, %d);
   PrintNonZeroDot(i->tm, opcode_modifier, isstring, %d);
+  PrintNonZeroDot(i->tm, opcode_modifier, islockable, %d);
   PrintNonZeroDot(i->tm, opcode_modifier, regkludge, %d);
   PrintNonZeroDot(i->tm, opcode_modifier, firstxmm0, %d);
   PrintNonZeroDot(i->tm, opcode_modifier, implicit1stxmm0, %d);
-  PrintNonZeroDot(i->tm, opcode_modifier, byteokintel, %d);
+//  PrintNonZeroDot(i->tm, opcode_modifier, byteokintel, %d);
   PrintNonZeroDot(i->tm, opcode_modifier, todword, %d);
   PrintNonZeroDot(i->tm, opcode_modifier, toqword, %d);
   PrintNonZeroDot(i->tm, opcode_modifier, addrprefixop0, %d);
@@ -400,20 +403,25 @@ void PrintOpcodeModifier(i386_opcode_modifier opcode_modifier) {
   PrintNonZeroDot(i->tm, opcode_modifier, norex64, %d);
   PrintNonZeroDot(i->tm, opcode_modifier, rex64, %d);
   PrintNonZeroDot(i->tm, opcode_modifier, ugh, %d);
-  PrintNonZeroDot(i->tm, opcode_modifier, drex, %d);
-  PrintNonZeroDot(i->tm, opcode_modifier, drexv, %d);
-  PrintNonZeroDot(i->tm, opcode_modifier, drexc, %d);
+//  PrintNonZeroDot(i->tm, opcode_modifier, drex, %d);
+//  PrintNonZeroDot(i->tm, opcode_modifier, drexv, %d);
+//  PrintNonZeroDot(i->tm, opcode_modifier, drexc, %d);
   PrintNonZeroDot(i->tm, opcode_modifier, vex, %d);
-  PrintNonZeroDot(i->tm, opcode_modifier, vex256, %d);
-  PrintNonZeroDot(i->tm, opcode_modifier, vexnds, %d);
-  PrintNonZeroDot(i->tm, opcode_modifier, vexndd, %d);
-  PrintNonZeroDot(i->tm, opcode_modifier, vexw0, %d);
-  PrintNonZeroDot(i->tm, opcode_modifier, vexw1, %d);
-  PrintNonZeroDot(i->tm, opcode_modifier, vex0f, %d);
-  PrintNonZeroDot(i->tm, opcode_modifier, vex0f38, %d);
-  PrintNonZeroDot(i->tm, opcode_modifier, vex0f3a, %d);
-  PrintNonZeroDot(i->tm, opcode_modifier, vex3sources, %d);
+//  PrintNonZeroDot(i->tm, opcode_modifier, vex256, %d);
+//  PrintNonZeroDot(i->tm, opcode_modifier, vexnds, %d);
+//  PrintNonZeroDot(i->tm, opcode_modifier, vexndd, %d);
+//  PrintNonZeroDot(i->tm, opcode_modifier, vexw0, %d);
+//  PrintNonZeroDot(i->tm, opcode_modifier, vexw1, %d);
+//  PrintNonZeroDot(i->tm, opcode_modifier, vex0f, %d);
+//  PrintNonZeroDot(i->tm, opcode_modifier, vex0f38, %d);
+//  PrintNonZeroDot(i->tm, opcode_modifier, vex0f3a, %d);
+//  PrintNonZeroDot(i->tm, opcode_modifier, vex3sources, %d);
+  PrintNonZeroDot(i->tm, opcode_modifier, vexvvvv, %d);
+  PrintNonZeroDot(i->tm, opcode_modifier, vexw, %d);
+  PrintNonZeroDot(i->tm, opcode_modifier, vexopcode, %d);
+  PrintNonZeroDot(i->tm, opcode_modifier, vexsources, %d);
   PrintNonZeroDot(i->tm, opcode_modifier, veximmext, %d);
+  PrintNonZeroDot(i->tm, opcode_modifier, vecsib, %d);
   PrintNonZeroDot(i->tm, opcode_modifier, sse2avx, %d);
   PrintNonZeroDot(i->tm, opcode_modifier, noavx, %d);
   PrintNonZeroDot(i->tm, opcode_modifier, oldgcc, %d);
@@ -421,4 +429,7 @@ void PrintOpcodeModifier(i386_opcode_modifier opcode_modifier) {
   PrintNonZeroDot(i->tm, opcode_modifier, attsyntax, %d);
   PrintNonZeroDot(i->tm, opcode_modifier, intelsyntax, %d);
 }
+
+REGISTER_PLUGIN_UNIT_PASS("INSBUILDPLUG", InstructionBuilderPlugin)
+
 }  // namespace

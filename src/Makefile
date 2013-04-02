@@ -123,7 +123,7 @@ CCSRCS=						\
 	SymbolTable.cc
 		
 
-PLUGIN_CCSRCS=#$(PLUGINSRC)/MaoInstructionBuilder.cc					\
+PLUGIN_CCSRCS=$(PLUGINSRC)/MaoInstructionBuilder.cc					#\
 #	$(PLUGINSRC)/MaoAddAdd.cc		\
 #	$(PLUGINSRC)/MaoAdd2Inc.cc		\
 #	$(PLUGINSRC)/MaoBackBranchAlign.cc	\
@@ -149,7 +149,7 @@ PLUGIN_CCSRCS=#$(PLUGINSRC)/MaoInstructionBuilder.cc					\
 		
 
 
-PLUGINS=#MaoInstructionBuilder						\
+PLUGINS=MaoInstructionBuilder						#\
 #	MaoAddAdd				\
 #	MaoAdd2Inc				\
 #	MaoBackBranchAlign			\

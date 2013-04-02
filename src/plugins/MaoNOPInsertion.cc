@@ -7,18 +7,13 @@
 //
 #include "Mao.h"
 
-// Needed by llvm/Support/DataTypes.h
-#ifndef __STDC_LIMIT_MACROS
-#define __STDC_LIMIT_MACROS
-#endif //__STDC_LIMIT_MACROS
-#ifndef __STDC_CONSTANT_MACROS
-#define __STDC_CONSTANT_MACROS
-#endif //__STDC_CONSTANT_MACROS
 #ifndef MAO_MULTI_COMPILER
 #define MAO_MULTI_COMPILER
 #endif //MAO_MULTI_COMPILER
 #include "MultiCompiler/MultiCompilerOptions.h"
 #include "MultiCompiler/AESRandomNumberGenerator.h"
+#include "as.h"//maybe these two?
+#include "tc-i386.h"
 
 namespace {
 
@@ -90,11 +85,11 @@ public:
             int BBProb = multicompiler::NOPInsertionPercentage;
 
             // TODO use profiling data
-//		if (BB->getBasicBlock()) {
-//			BBProb = BB->getBasicBlock()->getNOPInsertionPercentage();
-//			if (BBProb == multicompiler::NOPInsertionUnknown)
-//				BBProb = multicompiler::NOPInsertionPercentage;
-//		}
+//			if (BB->getBasicBlock()) {
+//				BBProb = BB->getBasicBlock()->getNOPInsertionPercentage();
+//				if (BBProb == multicompiler::NOPInsertionUnknown)
+//					BBProb = multicompiler::NOPInsertionPercentage;
+//			}
 
             if (BBProb <= 0)
                 continue;
@@ -111,33 +106,38 @@ public:
                 // Type of NOP
                 // TODO implement other types of NOPs
                 int NOPCode = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(MAX_NOPS);
-//			int NOPCode = NOP;
 
-                // TODO(ahomescu): figure out if we need to preserve kill information
-//			MachineInstr *NewMI = NULL;
-//			unsigned reg = nopRegs[NOPCode][!!is64Bit];
-
-                InstructionEntry *nop;
+                i386_insn insn;
+				InstructionEntry *nop;
                 switch (NOPCode) {
                 case NOP:
-//				NewMI = BuildMI(*BB, I, I->getDebugLoc(), TII->get(X86::NOOP));
-                    nop = unit_->CreateNopType(function_);
+                    nop = unit_->CreateNop(function_);
                     entry->LinkBefore(nop);
                     break;
 
                 case MOV_EBP:
-                case MOV_ESP: {
-//				unsigned opc = is64Bit ? X86::MOV64rr : X86::MOV32rr;
-//				NewMI = BuildMI(*BB, I, I->getDebugLoc(), TII->get(opc), reg).addReg(reg);
+                	MOV_EBP_EBP(&insn);
+                	nop = unit_->CreateInstruction(&insn, function_);
+                	entry->LinkBefore(nop);
+                	break;
+
+                case MOV_ESP:
+                	MOV_ESP_ESP(&insn);
+                	nop = unit_->CreateInstruction(&insn, function_);
+                	entry->LinkBefore(nop);
                     break;
-                }
 
                 case LEA_ESI:
-                case LEA_EDI: {
-//				unsigned opc = is64Bit ? X86::LEA64r : X86::LEA32r;
-//				NewMI = addRegOffset(BuildMI(*BB, I, I->getDebugLoc(), TII->get(opc), reg),reg, false, 0);
+                	LEA_ESI_ESI(&insn);
+                	nop = unit_->CreateInstruction(&insn, function_);
+                	entry->LinkBefore(nop);
+                	break;
+
+                case LEA_EDI:
+                	LEA_EDI_EDI(&insn);
+                	nop = unit_->CreateInstruction(&insn, function_);
+                	entry->LinkBefore(nop);
                     break;
-                }
                 }
 
                 if (nop != NULL) {
@@ -186,6 +186,229 @@ public:
             break;
         }
     }
+	void MOV_ESP_ESP(i386_insn *i) {
+		// Zero out the structure.
+		memset(i, 0, sizeof(*i));
+		i->tm.name = strdup("mov");
+		i->tm.operands = 2;
+		i->tm.base_opcode = 137;
+		i->tm.extension_opcode = 65535;
+		i->tm.opcode_length = 1;
+		i->tm.opcode_modifier.d = 1;
+		i->tm.opcode_modifier.w = 1;
+		i->tm.opcode_modifier.modrm = 1;
+		i->tm.opcode_modifier.checkregsize = 1;
+		i->tm.opcode_modifier.no_ssuf = 1;
+		i->tm.opcode_modifier.no_ldsuf = 1;
+		int j;
+
+		j = 0;
+		i->tm.operand_types[j].bitfield.reg8 = 1;
+		i->tm.operand_types[j].bitfield.reg16 = 1;
+		i->tm.operand_types[j].bitfield.reg32 = 1;
+		i->tm.operand_types[j].bitfield.reg64 = 1;
+
+		j = 1;
+		i->tm.operand_types[j].bitfield.reg8 = 1;
+		i->tm.operand_types[j].bitfield.reg16 = 1;
+		i->tm.operand_types[j].bitfield.reg32 = 1;
+		i->tm.operand_types[j].bitfield.reg64 = 1;
+		i->tm.operand_types[j].bitfield.disp8 = 1;
+		i->tm.operand_types[j].bitfield.disp16 = 1;
+		i->tm.operand_types[j].bitfield.disp32 = 1;
+		i->tm.operand_types[j].bitfield.disp32s = 1;
+		i->tm.operand_types[j].bitfield.baseindex = 1;
+		i->tm.operand_types[j].bitfield.byte = 1;
+		i->tm.operand_types[j].bitfield.word = 1;
+		i->tm.operand_types[j].bitfield.dword = 1;
+		i->tm.operand_types[j].bitfield.qword = 1;
+		i->tm.operand_types[j].bitfield.unspecified = 1;
+		i->suffix = 108;
+		i->operands = 2;
+		i->reg_operands = 2;
+		i->disp_operands = 0;
+		i->mem_operands = 0;
+		i->imm_operands = 0;
+
+		j = 0;
+		i->types[j].bitfield.reg32 = 1;
+
+		j = 1;
+		i->types[j].bitfield.reg32 = 1;
+		i->op[0].regs = GetRegFromName("esp");
+		i->op[1].regs = GetRegFromName("esp");
+		i->reloc[0] = static_cast<bfd_reloc_code_real>(70);
+		i->reloc[1] = static_cast<bfd_reloc_code_real>(70);
+		i->reloc[2] = static_cast<bfd_reloc_code_real>(70);
+		i->reloc[3] = static_cast<bfd_reloc_code_real>(70);
+		i->reloc[4] = static_cast<bfd_reloc_code_real>(70);
+		i->rm.regmem = 4;
+		i->rm.reg = 4;
+		i->rm.mode = 3;
+	}
+	void MOV_EBP_EBP(i386_insn *i) {
+		// Zero out the structure.
+		memset(i, 0, sizeof(*i));
+		i->tm.name = strdup("mov");
+		i->tm.operands = 2;
+		i->tm.base_opcode = 137;
+		i->tm.extension_opcode = 65535;
+		i->tm.opcode_length = 1;
+		i->tm.opcode_modifier.d = 1;
+		i->tm.opcode_modifier.w = 1;
+		i->tm.opcode_modifier.modrm = 1;
+		i->tm.opcode_modifier.checkregsize = 1;
+		i->tm.opcode_modifier.no_ssuf = 1;
+		i->tm.opcode_modifier.no_ldsuf = 1;
+		int j;
+
+		j = 0;
+		i->tm.operand_types[j].bitfield.reg8 = 1;
+		i->tm.operand_types[j].bitfield.reg16 = 1;
+		i->tm.operand_types[j].bitfield.reg32 = 1;
+		i->tm.operand_types[j].bitfield.reg64 = 1;
+
+		j = 1;
+		i->tm.operand_types[j].bitfield.reg8 = 1;
+		i->tm.operand_types[j].bitfield.reg16 = 1;
+		i->tm.operand_types[j].bitfield.reg32 = 1;
+		i->tm.operand_types[j].bitfield.reg64 = 1;
+		i->tm.operand_types[j].bitfield.disp8 = 1;
+		i->tm.operand_types[j].bitfield.disp16 = 1;
+		i->tm.operand_types[j].bitfield.disp32 = 1;
+		i->tm.operand_types[j].bitfield.disp32s = 1;
+		i->tm.operand_types[j].bitfield.baseindex = 1;
+		i->tm.operand_types[j].bitfield.byte = 1;
+		i->tm.operand_types[j].bitfield.word = 1;
+		i->tm.operand_types[j].bitfield.dword = 1;
+		i->tm.operand_types[j].bitfield.qword = 1;
+		i->tm.operand_types[j].bitfield.unspecified = 1;
+		i->suffix = 108;
+		i->operands = 2;
+		i->reg_operands = 2;
+		i->disp_operands = 0;
+		i->mem_operands = 0;
+		i->imm_operands = 0;
+
+		j = 0;
+		i->types[j].bitfield.reg32 = 1;
+
+		j = 1;
+		i->types[j].bitfield.reg32 = 1;
+		i->op[0].regs = GetRegFromName("ebp");
+		i->op[1].regs = GetRegFromName("ebp");
+		i->reloc[0] = static_cast<bfd_reloc_code_real>(70);
+		i->reloc[1] = static_cast<bfd_reloc_code_real>(70);
+		i->reloc[2] = static_cast<bfd_reloc_code_real>(70);
+		i->reloc[3] = static_cast<bfd_reloc_code_real>(70);
+		i->reloc[4] = static_cast<bfd_reloc_code_real>(70);
+		i->rm.regmem = 5;
+		i->rm.reg = 5;
+		i->rm.mode = 3;
+	}
+	void LEA_ESI_ESI(i386_insn *i) {
+		// Zero out the structure.
+		memset(i, 0, sizeof(*i));
+		i->tm.name = strdup("lea");
+		i->tm.operands = 2;
+		i->tm.base_opcode = 141;
+		i->tm.extension_opcode = 65535;
+		i->tm.opcode_length = 1;
+		i->tm.opcode_modifier.modrm = 1;
+		i->tm.opcode_modifier.no_bsuf = 1;
+		i->tm.opcode_modifier.no_ssuf = 1;
+		i->tm.opcode_modifier.no_ldsuf = 1;
+		int j;
+
+		j = 0;
+		i->tm.operand_types[j].bitfield.disp8 = 1;
+		i->tm.operand_types[j].bitfield.disp16 = 1;
+		i->tm.operand_types[j].bitfield.disp32 = 1;
+		i->tm.operand_types[j].bitfield.disp32s = 1;
+		i->tm.operand_types[j].bitfield.baseindex = 1;
+		i->tm.operand_types[j].bitfield.anysize = 1;
+
+		j = 1;
+		i->tm.operand_types[j].bitfield.reg16 = 1;
+		i->tm.operand_types[j].bitfield.reg32 = 1;
+		i->tm.operand_types[j].bitfield.reg64 = 1;
+		i->suffix = 108;
+		i->operands = 2;
+		i->reg_operands = 1;
+		i->disp_operands = 0;
+		i->mem_operands = 1;
+		i->imm_operands = 0;
+
+		j = 0;
+		i->types[j].bitfield.baseindex = 1;
+
+		j = 1;
+		i->types[j].bitfield.reg32 = 1;
+		i->op[1].regs = GetRegFromName("esi");
+		i->reloc[0] = static_cast<bfd_reloc_code_real>(70);
+		i->reloc[1] = static_cast<bfd_reloc_code_real>(70);
+		i->reloc[2] = static_cast<bfd_reloc_code_real>(70);
+		i->reloc[3] = static_cast<bfd_reloc_code_real>(70);
+		i->reloc[4] = static_cast<bfd_reloc_code_real>(70);
+		i->base_reg = GetRegFromName("esi");
+		i->prefixes = 1;
+		i->rm.regmem = 6;
+		i->rm.reg = 6;
+		i->sib.base = 6;
+		i->sib.index = 4;
+	}
+	void LEA_EDI_EDI(i386_insn *i) {
+	  // Zero out the structure.
+	  memset(i, 0, sizeof(*i));
+	  i->tm.name = strdup("lea");
+	  i->tm.operands = 2;
+	  i->tm.base_opcode = 141;
+	  i->tm.extension_opcode = 65535;
+	  i->tm.opcode_length = 1;
+	  i->tm.opcode_modifier.modrm = 1;
+	  i->tm.opcode_modifier.no_bsuf = 1;
+	  i->tm.opcode_modifier.no_ssuf = 1;
+	  i->tm.opcode_modifier.no_ldsuf = 1;
+	  int j;
+
+	  j = 0;
+	  i->tm.operand_types[j].bitfield.disp8 = 1;
+	  i->tm.operand_types[j].bitfield.disp16 = 1;
+	  i->tm.operand_types[j].bitfield.disp32 = 1;
+	  i->tm.operand_types[j].bitfield.disp32s = 1;
+	  i->tm.operand_types[j].bitfield.baseindex = 1;
+	  i->tm.operand_types[j].bitfield.anysize = 1;
+
+	  j = 1;
+	  i->tm.operand_types[j].bitfield.reg16 = 1;
+	  i->tm.operand_types[j].bitfield.reg32 = 1;
+	  i->tm.operand_types[j].bitfield.reg64 = 1;
+	  i->suffix = 108;
+	  i->operands= 2;
+	  i->reg_operands= 1;
+	  i->disp_operands= 0;
+	  i->mem_operands= 1;
+	  i->imm_operands= 0;
+
+	  j = 0;
+	  i->types[j].bitfield.baseindex = 1;
+
+	  j = 1;
+	  i->types[j].bitfield.reg32 = 1;
+	  i->op[1].regs = GetRegFromName ("edi");
+	  i->reloc[0] = static_cast<bfd_reloc_code_real>(70);
+	  i->reloc[1] = static_cast<bfd_reloc_code_real>(70);
+	  i->reloc[2] = static_cast<bfd_reloc_code_real>(70);
+	  i->reloc[3] = static_cast<bfd_reloc_code_real>(70);
+	  i->reloc[4] = static_cast<bfd_reloc_code_real>(70);
+	  i->base_reg = GetRegFromName ("edi");
+	  i->prefixes = 1;
+	  i->rm.regmem = 7;
+	  i->rm.reg = 7;
+	  i->sib.base = 7;
+	  i->sib.index = 4;
+	}
+
 };
 
 REGISTER_PLUGIN_FUNC_PASS("NOPINSERTION", NOPInsertion)

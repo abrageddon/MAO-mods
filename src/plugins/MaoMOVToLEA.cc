@@ -7,13 +7,6 @@
 //
 #include "Mao.h"
 
-// Needed by llvm/Support/DataTypes.h
-#ifndef __STDC_LIMIT_MACROS
-#define __STDC_LIMIT_MACROS
-#endif //__STDC_LIMIT_MACROS
-#ifndef __STDC_CONSTANT_MACROS
-#define __STDC_CONSTANT_MACROS
-#endif //__STDC_CONSTANT_MACROS
 #ifndef MAO_MULTI_COMPILER
 #define MAO_MULTI_COMPILER
 #endif //MAO_MULTI_COMPILER
@@ -27,10 +20,9 @@ PLUGIN_VERSION
 // --------------------------------------------------------------------
 // Options
 // --------------------------------------------------------------------
-MAO_DEFINE_OPTIONS(MOVTOLEA, "MOV To LEA pass", 3) {
+MAO_DEFINE_OPTIONS(MOVTOLEA, "MOV To LEA pass", 2) {
  OPTION_STR("MultiCompilerSeed", "1337", "Seed for random number generation")
-,OPTION_INT("NOPInsertionPercentage", 30, "NOP Insertion Percentage")
-,OPTION_INT("MaxNOPsPerInstruction", 1, "Maximum NOPs Per Instruction")
+,OPTION_INT("MOVToLEAPercentage", 30, "MOV To LEA Percentage")
 };
 
 class MOVToLEA: public MaoFunctionPass {
@@ -62,7 +54,7 @@ public:
             ++PreMOVtoLEAInstructionCount;
 
             //Determine if is MOV
-            if (!entry->AsInstruction()->IsOpMov()) {
+            if (!entry->IsInstruction() || !entry->AsInstruction()->IsOpMov()) {
                 continue;
             }
 //            if (entry->AsInstruction()->NumOperands() != 2 || !entry->AsInstruction()->IsRegisterOperand(0)
