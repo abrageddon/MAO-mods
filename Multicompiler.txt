@@ -37,7 +37,7 @@ Files:
         $(CC) $(CFLAGS) $(CCEXTRAFLAGS) -fPIC -c -o $@ $<   
         
     $(MC_TARGETS) : $(BINDIR)/%-$(TARGET).$(DYNLIBEXT) : $(MC_OBJDIR)/%.o  $(RNG_OBJS)
-        $(CC) $(CFLAGS) $(DYNFLAGS) -lm -o $@ $< $(RNG_OBJS)
+        $(CC) $(CFLAGS) $(DYNFLAGS) -o $@ -lm $< $(RNG_OBJS)
     ==========
         
 ./src/plugins/MaoNOPInsertion.cc

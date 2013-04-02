@@ -270,7 +270,7 @@ $(MC_OBJS) : $(MC_OBJDIR)/%.o : $(PLUGINSRC)/%.cc stamp-obj-$(TARGET) $(OBJDIR)/
 	$(CC) $(CFLAGS) $(CCEXTRAFLAGS) -fPIC -c -o $@ $<	
 	
 $(MC_TARGETS) : $(BINDIR)/%-$(TARGET).$(DYNLIBEXT) : $(MC_OBJDIR)/%.o  $(RNG_OBJS)
-	$(CC) $(CFLAGS) $(DYNFLAGS) -lm -o $@ $< $(RNG_OBJS)
+	$(CC) $(CFLAGS) $(DYNFLAGS) -o $@ $< $(RNG_OBJS) -lm
 	
 #end MultiCompiler =====================
 
