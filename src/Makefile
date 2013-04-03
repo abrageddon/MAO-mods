@@ -184,7 +184,8 @@ PLUGIN_TARGETS=$(patsubst %,$(BINDIR)/%-$(TARGET).$(DYNLIBEXT),$(PLUGINS))
 # MultiCompiler ==================================
 MC_OBJDIR=../obj-$(TARGET)
 MC_PLUGINS=MaoNOPInsertion				\
-		MaoMOVToLEA
+		MaoMOVToLEA						\
+		MaoEquivSubst
 MC_SRCS=$(patsubst %,$(PLUGINSRC)/%.cc,$(notdir $(MC_PLUGINS)))
 MC_OBJS=$(patsubst %,$(MC_OBJDIR)/%.o,$(notdir $(MC_PLUGINS)))
 MC_TARGETS=$(patsubst %,$(BINDIR)/%-$(TARGET).$(DYNLIBEXT),$(MC_PLUGINS))

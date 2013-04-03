@@ -38,15 +38,13 @@ public:
         // Initialize RNG
         //	srand (multicompiler::MultiCompilerSeed);
         // TODO make it more similar to cc1_main.cpp => cc1_main
-        multicompiler::Random::EntropyData = multicompiler::MultiCompilerSeed;
+        multicompiler::Random::EntropyData = multicompiler::MultiCompilerSeed + "salt";
         PreMOVtoLEAInstructionCount = MOVCandidates = ReplacedMOV = 0;
 
         Trace(1, "MOVToLEA! MultiCompilerSeed: %s , MOVToLEAPercentage: %d",
                 multicompiler::MultiCompilerSeed.c_str(), multicompiler::MOVToLEAPercentage);
     }
 
-// Randomly insert nops into the code stream
-//
     bool Go() {
         bool Changed = false;
         FORALL_FUNC_ENTRY(function_,entry)
@@ -69,11 +67,6 @@ public:
                 entry->PrintEntry(stderr);
                 continue;
             }
-
-            TraceC(3, "Generated Op: %s\t%s, %s\n"
-                    , (&(&insn)->tm)->name
-                    , (&insn)->base_reg->reg_name
-                    , (&insn)->op[1].regs->reg_name);
 
             //Found MOV candidate, roll for insertion
             unsigned int Roll = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(100);
