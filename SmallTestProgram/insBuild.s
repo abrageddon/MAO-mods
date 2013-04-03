@@ -1,1 +1,1 @@
-movq %rbp, %rbp
+leal    (%eax), %eax

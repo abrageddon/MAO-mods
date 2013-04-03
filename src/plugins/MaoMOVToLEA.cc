@@ -53,27 +53,29 @@ public:
         {
             ++PreMOVtoLEAInstructionCount;
 
-            //Determine if is MOV
-            if (!entry->IsInstruction() || !entry->AsInstruction()->IsOpMov()) {
+            //Determine if is MOV between registers
+            if (!entry->IsInstruction() || !entry->AsInstruction()->IsOpMov() || !entry->AsInstruction()->IsRegisterOperand(0)  || !entry->AsInstruction()->IsRegisterOperand(1) ) {
                 continue;
             }
-//            if (entry->AsInstruction()->NumOperands() != 2 || !entry->AsInstruction()->IsRegisterOperand(0)
-//                    || !entry->AsInstruction()->IsRegisterOperand(1)) {
-//                continue;
-//            }
-
 
             //Pick correct LEA
-//            unsigned leaOpc;
-//            if (entry->AsInstruction()->op() == X86::MOV32rr) {
-//                leaOpc = X86::LEA32r;
-//            } else if (I->getOpcode() == X86::MOV64rr) {
-//                leaOpc = X86::LEA64r;
-//            } else {
-//                continue;
-//            }
+            i386_insn insn;
+            if (entry->AsInstruction()->op()==OP_movq) {
+                LEAQ(&insn, entry->AsInstruction()->instruction() );
+            } else if (entry->AsInstruction()->op()==OP_mov) {
+                LEAL(&insn, entry->AsInstruction()->instruction() );
+            } else {
+                fprintf(stderr, "NEW MOV TYPE: ");
+                entry->PrintEntry(stderr);
+                continue;
+            }
 
-            //Found MOV, roll for insertion
+            TraceC(3, "Generated Op: %s\t%s, %s\n"
+                    , (&(&insn)->tm)->name
+                    , (&insn)->base_reg->reg_name
+                    , (&insn)->op[1].regs->reg_name);
+
+            //Found MOV candidate, roll for insertion
             unsigned int Roll = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(100);
             ++MOVCandidates;
             if (Roll >= multicompiler::MOVToLEAPercentage) {
@@ -82,15 +84,24 @@ public:
 
             //Replace MOV with LEA
             ++ReplacedMOV;
-//            MachineBasicBlock::iterator J = I;
-//            ++I;
-//            addRegOffset(BuildMI(*BB, J, J->getDebugLoc(), TII->get(leaOpc), J->getOperand(0).getReg()),
-//                    J->getOperand(1).getReg(), false, 0);
-//            J->eraseFromParent();
-            Changed = true;
+
+            if (tracing_level() > 0){
+                entry->PrintEntry(stderr);
+                fprintf(stderr, " -> ");
+            }
+
+            InstructionEntry *newIns;
+            newIns = unit_->CreateInstruction(&insn, function_);
+            EntryIterator remEntry = entry;
+            remEntry->LinkAfter(newIns);
+            ++entry;
+            remEntry->Unlink();
 
             if (tracing_level() > 0)
                 entry->PrintEntry(stderr);
+
+            Changed = true;
+
         }
 
         // TODO Output stats
@@ -101,7 +112,108 @@ public:
         if(Changed){
             CFG::InvalidateCFG(function_);
         }
-        return Changed;
+        return true;
+    }
+    void LEAQ(i386_insn *i, i386_insn *movIns) {
+          // Zero out the structure.
+          memset(i, 0, sizeof(*i));
+          i->tm.name = strdup("lea");
+          i->tm.operands = 2;
+          i->tm.base_opcode = 141;
+          i->tm.extension_opcode = 65535;
+          i->tm.opcode_length = 1;
+          i->tm.opcode_modifier.modrm = 1;
+          i->tm.opcode_modifier.no_bsuf = 1;
+          i->tm.opcode_modifier.no_ssuf = 1;
+          i->tm.opcode_modifier.no_ldsuf = 1;
+          int j;
+
+          j = 0;
+          i->tm.operand_types[j].bitfield.disp8 = 1;
+          i->tm.operand_types[j].bitfield.disp16 = 1;
+          i->tm.operand_types[j].bitfield.disp32 = 1;
+          i->tm.operand_types[j].bitfield.disp32s = 1;
+          i->tm.operand_types[j].bitfield.baseindex = 1;
+          i->tm.operand_types[j].bitfield.anysize = 1;
+
+          j = 1;
+          i->tm.operand_types[j].bitfield.reg16 = 1;
+          i->tm.operand_types[j].bitfield.reg32 = 1;
+          i->tm.operand_types[j].bitfield.reg64 = 1;
+          i->suffix = 113;
+          i->operands= 2;
+          i->reg_operands= 1;
+          i->disp_operands= 0;
+          i->mem_operands= 1;
+          i->imm_operands= 0;
+
+          j = 0;
+          i->types[j].bitfield.baseindex = 1;
+
+          j = 1;
+          i->types[j].bitfield.reg64 = 1;
+          i->op[1].regs = movIns->op[1].regs;
+          i->reloc[0] = static_cast<bfd_reloc_code_real>(70);
+          i->reloc[1] = static_cast<bfd_reloc_code_real>(70);
+          i->reloc[2] = static_cast<bfd_reloc_code_real>(70);
+          i->reloc[3] = static_cast<bfd_reloc_code_real>(70);
+          i->reloc[4] = static_cast<bfd_reloc_code_real>(70);
+          i->base_reg = movIns->op[0].regs;
+          i->prefixes = 1;
+          i->rm = movIns->rm;
+          i->rex = 8;
+          i->sib = movIns->sib;
+    }
+
+    //TODO 32 bit
+    void LEAL(i386_insn *i, i386_insn *movIns) {
+        // Zero out the structure.
+        memset(i, 0, sizeof(*i));
+        i->tm.name = strdup("lea");
+        i->tm.operands = 2;
+        i->tm.base_opcode = 141;
+        i->tm.extension_opcode = 65535;
+        i->tm.opcode_length = 1;
+        i->tm.opcode_modifier.modrm = 1;
+        i->tm.opcode_modifier.no_bsuf = 1;
+        i->tm.opcode_modifier.no_ssuf = 1;
+        i->tm.opcode_modifier.no_ldsuf = 1;
+        int j;
+
+        j = 0;
+        i->tm.operand_types[j].bitfield.disp8 = 1;
+        i->tm.operand_types[j].bitfield.disp16 = 1;
+        i->tm.operand_types[j].bitfield.disp32 = 1;
+        i->tm.operand_types[j].bitfield.disp32s = 1;
+        i->tm.operand_types[j].bitfield.baseindex = 1;
+        i->tm.operand_types[j].bitfield.anysize = 1;
+
+        j = 1;
+        i->tm.operand_types[j].bitfield.reg16 = 1;
+        i->tm.operand_types[j].bitfield.reg32 = 1;
+        i->tm.operand_types[j].bitfield.reg64 = 1;
+        i->suffix = 108;
+        i->operands= 2;
+        i->reg_operands= 1;
+        i->disp_operands= 0;
+        i->mem_operands= 1;
+        i->imm_operands= 0;
+
+        j = 0;
+        i->types[j].bitfield.baseindex = 1;
+
+        j = 1;
+        i->types[j].bitfield.reg32 = 1;
+        i->op[1].regs = movIns->op[1].regs;
+        i->reloc[0] = static_cast<bfd_reloc_code_real>(70);
+        i->reloc[1] = static_cast<bfd_reloc_code_real>(70);
+        i->reloc[2] = static_cast<bfd_reloc_code_real>(70);
+        i->reloc[3] = static_cast<bfd_reloc_code_real>(70);
+        i->reloc[4] = static_cast<bfd_reloc_code_real>(70);
+        i->base_reg = movIns->op[0].regs;
+        i->prefixes = 1;
+        i->rm = movIns->rm;
+        i->sib = movIns->sib;
     }
 
 };

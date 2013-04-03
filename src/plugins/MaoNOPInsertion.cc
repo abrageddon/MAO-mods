@@ -47,7 +47,7 @@ public:
         // Initialize RNG
         //	srand (multicompiler::MultiCompilerSeed);
         // TODO make it more similar to cc1_main.cpp => cc1_main
-        multicompiler::Random::EntropyData = multicompiler::MultiCompilerSeed;
+        multicompiler::Random::EntropyData = multicompiler::MultiCompilerSeed + "salt";
         InsertedInstructions = NumNOPInstructions = NumMovEBPInstructions = NumMovESPInstructions =
                 NumLeaESIInstructions = NumLeaEDIInstructions = 0;
 
