@@ -1,32 +1,22 @@
 	.file	"hellomake.c"
 	.text
 	.globl	main
-	.align	16, 0x90
-	.type	main,@function
-main:                                   # @main
-.Ltmp2:
+	.type	main, @function
+main:
+.LFB0:
 	.cfi_startproc
-# BB#0:
 	pushq	%rbp
-.Ltmp3:
 	.cfi_def_cfa_offset 16
-.Ltmp4:
-	.cfi_offset %rbp, -16
+	.cfi_offset 6, -16
 	movq	%rsp, %rbp
-.Ltmp5:
-	.cfi_def_cfa_register %rbp
-	subq	$16, %rsp
-	movl	$0, -4(%rbp)
-	callq	myPrintHelloMake
+	.cfi_def_cfa_register 6
+	call	myPrintHelloMake
 	movl	$0, %eax
-	addq	$16, %rsp
 	popq	%rbp
+	.cfi_def_cfa 7, 8
 	ret
-.Ltmp6:
-	.size	main, .Ltmp6-main
-.Ltmp7:
 	.cfi_endproc
-.Leh_func_end0:
-
-
-	.section	".note.GNU-stack","",@progbits
+.LFE0:
+	.size	main, .-main
+	.ident	"GCC: (Ubuntu/Linaro 4.7.2-2ubuntu1) 4.7.2"
+	.section	.note.GNU-stack,"",@progbits

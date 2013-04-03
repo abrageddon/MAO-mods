@@ -1,1 +1,1 @@
-lea	(%edi), %edi
+movq %rbp, %rbp
