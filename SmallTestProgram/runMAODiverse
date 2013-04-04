@@ -1,8 +1,11 @@
+#!/bin/bash
 seed=$[ $RANDOM ]
 percent=$[ $RANDOM % 100]
 
 
-../bin/mao-x86_64-linux --mao=--plugin=../bin/MaoNOPInsertion-x86_64-linux.so --mao=NOPINSERTION=trace[3]+MultiCompilerSeed[${seed}]+NOPInsertionPercentage[${percent}]:ASM=o[hellofunc_NOP.s] hellofunc.s
+../bin/mao-x86_64-linux --mao=--plugin=../bin/MaoNOPInsertion-x86_64-linux.so --mao=--plugin=../bin/MaoMOVToLEA-x86_64-linux.so --mao=--plugin=../bin/MaoSchedRand-x86_64-linux.so --mao=SCHEDRAND=trace[1]+MultiCompilerSeed[${seed}]+ISchedRandPercentage[${percent}]:MOVTOLEA=trace[3]+MultiCompilerSeed[${seed}]+MOVToLEAPercentage[${percent}]:NOPINSERTION=trace[3]+MultiCompilerSeed[${seed}]+NOPInsertionPercentage[${percent}]:ASM=o[hellofunc_Div.s] hellofunc.s
 
-
-../bin/mao-x86_64-linux --mao=--plugin=../bin/MaoMOVToLEA-x86_64-linux.so --mao=MOVTOLEA=trace[3]+MultiCompilerSeed[${seed}]+MOVToLEAPercentage[${percent}]:ASM=o[hellofunc_MOVToLEA.s] hellofunc.s
+gcc -c hellofunc_Div.s -o hellofunc.o
+gcc -c hellomake.s -o hellomake.o
+gcc hellomake.o hellofunc.o -o hellomake
+./hellomake
