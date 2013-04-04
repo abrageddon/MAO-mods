@@ -21,6 +21,12 @@
 //
 #include "Mao.h"
 
+#ifndef MAO_MULTI_COMPILER
+#define MAO_MULTI_COMPILER
+#endif //MAO_MULTI_COMPILER
+#include "MultiCompiler/MultiCompilerOptions.h"
+#include "MultiCompiler/AESRandomNumberGenerator.h"
+
 namespace {
 PLUGIN_VERSION
 
@@ -30,8 +36,8 @@ PLUGIN_VERSION
 // --------------------------------------------------------------------
 // Options
 // --------------------------------------------------------------------
-MAO_DEFINE_OPTIONS(SCHEDULER, "Schedules instructions at the assembly level", \
-                   5) {
+MAO_DEFINE_OPTIONS(SCHEDRAND, "Schedules instructions at the assembly level", \
+                   7) {
   // The next four options are helpful in debugging the scheduler
   // by limiting  the functions to which the transformation is applied
   OPTION_STR("function_list", "",
@@ -51,6 +57,8 @@ MAO_DEFINE_OPTIONS(SCHEDULER, "Schedules instructions at the assembly level", \
   OPTION_INT("max_steps", 1000000000,
              "Maximum number of scheduling operations performed in "
              "any function"),
+  OPTION_STR("MultiCompilerSeed", "1337", "Seed for random number generation"),
+  OPTION_INT("ISchedRandPercentage", 30, "Instruction Scheduler Percentage"),
 };
 
 #define MAX_REGS 256
@@ -62,7 +70,7 @@ MAO_DEFINE_OPTIONS(SCHEDULER, "Schedules instructions at the assembly level", \
 #define MEM_DEP 8
 #define CTRL_DEP 16
 #define ALL_DEPS (~NO_DEP)
-class SchedulerPass : public MaoFunctionPass {
+class SchedRandPass : public MaoFunctionPass {
  public:
   /* A simple graph data structure to represent dependence graphs in basic
    * blocks. Uses an adjacency matrix representation.
@@ -209,8 +217,18 @@ class SchedulerPass : public MaoFunctionPass {
   typedef std::vector<SchedulerNode *>::reverse_iterator
       SchedulerNodeReverseIterator;
 
-  SchedulerPass(MaoOptionMap *options, MaoUnit *mao, Function *func)
-    : MaoFunctionPass("SCHEDULER", options, mao, func) {
+  SchedRandPass(MaoOptionMap *options, MaoUnit *mao, Function *func)
+    : MaoFunctionPass("SCHEDRAND", options, mao, func) {
+      multicompiler::MultiCompilerSeed = GetOptionString("MultiCompilerSeed");
+      multicompiler::ISchedRandPercentage = GetOptionInt("ISchedRandPercentage");
+
+      // Initialize RNG
+      //	srand (multicompiler::MultiCompilerSeed);
+      // TODO make it more similar to cc1_main.cpp => cc1_main
+      multicompiler::Random::EntropyData = multicompiler::MultiCompilerSeed + "salt";
+
+      Trace(1, "SchedRand! MultiCompilerSeed: %s , ISchedRandPercentage: %d",
+              multicompiler::MultiCompilerSeed.c_str(), multicompiler::ISchedRandPercentage);
 
       profitable_ = IsProfitable(func);
       rsp_pointer_ = GetRegFromName("rsp");
@@ -333,6 +351,7 @@ class SchedulerPass : public MaoFunctionPass {
   bool IsPredicateOperation(InstructionEntry *insn) const;
   int *ComputeDependenceHeights(DependenceDag *dag);
   int RemoveTallest(std::list<int> *list, int *heights);
+  int RemoveRandom(std::list<int> *list, int *heights);
   void ScheduleNode(int node, MaoEntry **head, MaoEntry **last);
   MaoEntry* Schedule(DependenceDag *dag,
                      int *dependence_heights,
@@ -345,7 +364,7 @@ class SchedulerPass : public MaoFunctionPass {
   int  CreateSchedulerNodes(MaoEntry *head, BasicBlock *bb);
 };
 
-void SchedulerPass::FindBBsInStraightLineLoops() {
+void SchedRandPass::FindBBsInStraightLineLoops() {
   LoopStructureGraph *loop_graph = LoopStructureGraph::GetLSG(unit_,
                                                               function_,
                                                               true);
@@ -355,7 +374,7 @@ void SchedulerPass::FindBBsInStraightLineLoops() {
 
 // If a loop has a single BB, add it to bbs_in_stline_loops_.
 // Recursively apply the method to inner loops
-void SchedulerPass::FindBBsInStraightLineLoops(SimpleLoop *loop) {
+void SchedRandPass::FindBBsInStraightLineLoops(SimpleLoop *loop) {
   if (loop->header() == loop->bottom() && loop->header() != NULL) {
     bbs_in_stline_loops_.insert(loop->header());
     // This must be an innermost loop since it has a single BB
@@ -369,7 +388,7 @@ void SchedulerPass::FindBBsInStraightLineLoops(SimpleLoop *loop) {
 
 // Given a dependence dag and the dependence height (from sink) of nodes
 // in the dag, apply the scheduling heuristic
-MaoEntry* SchedulerPass::Schedule(DependenceDag *dag,
+MaoEntry* SchedRandPass::Schedule(DependenceDag *dag,
                                   int *dependence_heights,
                                   MaoEntry *head,
                                   MaoEntry *last_entry) {
@@ -390,7 +409,13 @@ MaoEntry* SchedulerPass::Schedule(DependenceDag *dag,
     num_predecessors[i] = dag->NumPredecessors(i);
 
   while (!ready->empty()) {
-    int node = RemoveTallest(ready, dependence_heights);
+	//SNEISIUS inserting randomness here
+	int node = -1;
+	if (multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(100) < multicompiler::ISchedRandPercentage) {
+		node = RemoveRandom(ready, dependence_heights);
+	} else {
+		node = RemoveTallest(ready, dependence_heights);
+	}
     ScheduleNode(node, &head, &last_entry);
     scheduled[node]=1;
     num_steps_++;
@@ -449,7 +474,7 @@ MaoEntry* SchedulerPass::Schedule(DependenceDag *dag,
  * Schedules a node immediately after the head node, making it the new head
  * node. If the scheduled node is the last node, update the last node.
  */
-void SchedulerPass::ScheduleNode(int node_index, MaoEntry **head,
+void SchedRandPass::ScheduleNode(int node_index, MaoEntry **head,
                                  MaoEntry **last) {
   SchedulerNode *node = entries_[node_index];
   // Don't do anything if the node to be scheduled is the head node
@@ -496,7 +521,7 @@ void SchedulerPass::ScheduleNode(int node_index, MaoEntry **head,
   *head = node->last;
 }
 
-int SchedulerPass::RemoveTallest(std::list<int> *list, int *heights) {
+int SchedRandPass::RemoveTallest(std::list<int> *list, int *heights) {
   int best_height = -1, best_node = -1;
   for (std::list<int>::iterator iter = list->begin();
        iter != list->end(); ++iter) {
@@ -514,7 +539,27 @@ int SchedulerPass::RemoveTallest(std::list<int> *list, int *heights) {
   return best_node;
 }
 
-int *SchedulerPass::ComputeDependenceHeights(DependenceDag *dag) {
+//SNEISIUS
+int SchedRandPass::RemoveRandom(std::list<int> *list, int *heights) {
+	int best_node = -1;
+	int node_count = list->size();
+	if (node_count == 1){
+		best_node = list->front();
+	}else{
+		int pick_node = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(node_count);
+		std::list<int>::iterator iter = list->begin();
+
+		for (int i=0;i<pick_node;i++){
+			++iter;
+		}
+		int node = *iter;
+		best_node = node;
+	}
+	list->remove(best_node);
+	return best_node;
+}
+
+int *SchedRandPass::ComputeDependenceHeights(DependenceDag *dag) {
   int *heights, *visited;
   std::list<int> *work_list = dag->GetExits(TRUE_DEP|MEM_DEP);
   std::list<int> *new_work_list = new std::list<int>;
@@ -582,7 +627,7 @@ int *SchedulerPass::ComputeDependenceHeights(DependenceDag *dag) {
 }
 
 
-BitString SchedulerPass::GetSrcRegisters(SchedulerNode *node) {
+BitString SchedRandPass::GetSrcRegisters(SchedulerNode *node) {
   BitString use_mask;
   for (MaoEntry *entry = node->first; entry != node->last->next();
        entry = entry->next()) {
@@ -631,7 +676,7 @@ BitString SchedulerPass::GetSrcRegisters(SchedulerNode *node) {
   return use_mask;
 }
 
-BitString SchedulerPass::GetDestRegisters(SchedulerNode *node) {
+BitString SchedRandPass::GetDestRegisters(SchedulerNode *node) {
   BitString def_mask;
   for (MaoEntry *entry = node->first; entry != node->last->next();
        entry = entry->next()) {
@@ -671,7 +716,7 @@ BitString SchedulerPass::GetDestRegisters(SchedulerNode *node) {
   return def_mask;
 }
 
-void SchedulerPass::InitializeLastWriter(int *last_writer) {
+void SchedRandPass::InitializeLastWriter(int *last_writer) {
   int insns_in_bb = 0;
   for (SchedulerNodeIterator entry_iter = entries_.begin();
       entry_iter != entries_.end(); ++entry_iter) {
@@ -700,7 +745,7 @@ void SchedulerPass::InitializeLastWriter(int *last_writer) {
  * together. The code sequence for TLS access for various relocations is
  * described in http://people.redhat.com/drepper/tls.pdf */
 
-int  SchedulerPass::CreateSchedulerNodes(MaoEntry *head, BasicBlock *bb) {
+int  SchedRandPass::CreateSchedulerNodes(MaoEntry *head, BasicBlock *bb) {
   int retain_next = 0;
   MaoEntry *first = NULL;
   SchedulerNode *sn = NULL;
@@ -809,7 +854,7 @@ int  SchedulerPass::CreateSchedulerNodes(MaoEntry *head, BasicBlock *bb) {
   return entries_.size();
 }
 
-SchedulerPass::DependenceDag *SchedulerPass::FormDependenceDag(BasicBlock *bb) {
+SchedRandPass::DependenceDag *SchedRandPass::FormDependenceDag(BasicBlock *bb) {
   int last_writer[MAX_REGS];
   std::vector<int> writers[MAX_REGS];
   int nodes_in_bb = 0;
@@ -976,7 +1021,7 @@ SchedulerPass::DependenceDag *SchedulerPass::FormDependenceDag(BasicBlock *bb) {
   return dag;
 }
 
-bool SchedulerPass::HasMemOperation(SchedulerNode *node) const {
+bool SchedRandPass::HasMemOperation(SchedulerNode *node) const {
   for (MaoEntry *entry = node->first; entry != node->last->next();
        entry = entry->next()) {
     if (entry->IsInstruction()) {
@@ -996,7 +1041,7 @@ bool SchedulerPass::HasMemOperation(SchedulerNode *node) const {
 // is in a specified location) incorrect. .cfi_restore is essentially similar
 // to .cfi_offset since it is saying a specified register is at the same
 // location as it was at an earlier point in the code.
-bool SchedulerPass::IsMemCFIDirective(MaoEntry *entry) const {
+bool SchedRandPass::IsMemCFIDirective(MaoEntry *entry) const {
   if(!entry->IsDirective())
     return false;
   DirectiveEntry *de = entry->AsDirective();
@@ -1013,7 +1058,7 @@ bool SchedulerPass::IsMemCFIDirective(MaoEntry *entry) const {
 // An instruction is considered to touch memory if
 // 1. It has base or index registers, buit not a lea
 // 2. It is a call instruction
-bool SchedulerPass::IsMemOperation(InstructionEntry *entry) const {
+bool SchedRandPass::IsMemOperation(InstructionEntry *entry) const {
     if (entry->IsCall())
       return true;
     if (entry->op() == OP_lea)
@@ -1071,7 +1116,7 @@ bool SchedulerPass::IsMemOperation(InstructionEntry *entry) const {
     return false;
 }
 
-bool SchedulerPass::HasPredicateOperation(SchedulerNode *node) const {
+bool SchedRandPass::HasPredicateOperation(SchedulerNode *node) const {
   for (MaoEntry *entry = node->first; entry != node->last->next();
        entry = entry->next()) {
     if (entry->IsInstruction()) {
@@ -1083,7 +1128,7 @@ bool SchedulerPass::HasPredicateOperation(SchedulerNode *node) const {
   return false;
 }
 
-bool SchedulerPass::IsPredicateOperation(InstructionEntry *entry) const {
+bool SchedRandPass::IsPredicateOperation(InstructionEntry *entry) const {
   switch (entry->op()) {
     case OP_cmovo:
     case OP_cmovno:
@@ -1120,7 +1165,7 @@ bool SchedulerPass::IsPredicateOperation(InstructionEntry *entry) const {
   return false;
 }
 
-bool SchedulerPass::HasControlOperation(SchedulerNode *node) const {
+bool SchedRandPass::HasControlOperation(SchedulerNode *node) const {
   for (MaoEntry *entry = node->first; entry != node->last->next();
        entry = entry->next()) {
     if (entry->IsInstruction()) {
@@ -1132,7 +1177,7 @@ bool SchedulerPass::HasControlOperation(SchedulerNode *node) const {
   return false;
 }
 
-bool SchedulerPass::IsControlOperation(InstructionEntry *entry) const {
+bool SchedRandPass::IsControlOperation(InstructionEntry *entry) const {
   if (entry->IsReturn() || entry->IsJump() || entry->IsCondJump())
     return true;
   switch (entry->op()) {
@@ -1149,7 +1194,7 @@ bool SchedulerPass::IsControlOperation(InstructionEntry *entry) const {
 // Right now it checks a list of function names passed as
 // a parameter to deciede if the function is profitable or
 // not
-bool SchedulerPass::IsProfitable(Function *function) {
+bool SchedRandPass::IsProfitable(Function *function) {
   // List of comma separated functions to apply this pass
   const char *function_list;
   function_list = GetOptionString("function_list");
@@ -1175,5 +1220,5 @@ bool SchedulerPass::IsProfitable(Function *function) {
   }
 }
 
-REGISTER_PLUGIN_FUNC_PASS("SCHEDULER", SchedulerPass)
+REGISTER_PLUGIN_FUNC_PASS("SCHEDRAND", SchedRandPass)
 }  // namespace

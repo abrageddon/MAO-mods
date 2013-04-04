@@ -123,7 +123,8 @@ CCSRCS=						\
 	SymbolTable.cc
 		
 
-PLUGIN_CCSRCS=$(PLUGINSRC)/MaoInstructionBuilder.cc					#\
+PLUGIN_CCSRCS=$(PLUGINSRC)/MaoInstructionBuilder.cc					\
+	$(PLUGINSRC)/MaoScheduler.cc		#\
 #	$(PLUGINSRC)/MaoAddAdd.cc		\
 #	$(PLUGINSRC)/MaoAdd2Inc.cc		\
 #	$(PLUGINSRC)/MaoBackBranchAlign.cc	\
@@ -141,7 +142,6 @@ PLUGIN_CCSRCS=$(PLUGINSRC)/MaoInstructionBuilder.cc					#\
 #	$(PLUGINSRC)/MaoRatFinder.cc		\
 #	$(PLUGINSRC)/MaoRedundantTestElim.cc	\
 #	$(PLUGINSRC)/MaoRedundantMemMove.cc	\
-#	$(PLUGINSRC)/MaoScheduler.cc		\
 #	$(PLUGINSRC)/MaoTestDF.cc		\
 #	$(PLUGINSRC)/MaoTestPlugin.cc		\
 #	$(PLUGINSRC)/MaoUOpsFuse.cc		\
@@ -149,7 +149,8 @@ PLUGIN_CCSRCS=$(PLUGINSRC)/MaoInstructionBuilder.cc					#\
 		
 
 
-PLUGINS=MaoInstructionBuilder						#\
+PLUGINS=MaoInstructionBuilder						\
+	MaoScheduler				#\
 #	MaoAddAdd				\
 #	MaoAdd2Inc				\
 #	MaoBackBranchAlign			\
@@ -167,7 +168,6 @@ PLUGINS=MaoInstructionBuilder						#\
 #	MaoRatFinder				\
 #	MaoRedundantTestElim			\
 #	MaoRedundantMemMove			\
-#	MaoScheduler				\
 #	MaoTestDF				\
 #	MaoTestPlugin				\
 #	MaoUOpsFuse				\
@@ -185,7 +185,8 @@ PLUGIN_TARGETS=$(patsubst %,$(BINDIR)/%-$(TARGET).$(DYNLIBEXT),$(PLUGINS))
 MC_OBJDIR=../obj-$(TARGET)
 MC_PLUGINS=MaoNOPInsertion				\
 		MaoMOVToLEA						\
-		MaoEquivSubst
+		MaoEquivSubst           \
+		MaoSchedRand
 MC_SRCS=$(patsubst %,$(PLUGINSRC)/%.cc,$(notdir $(MC_PLUGINS)))
 MC_OBJS=$(patsubst %,$(MC_OBJDIR)/%.o,$(notdir $(MC_PLUGINS)))
 MC_TARGETS=$(patsubst %,$(BINDIR)/%-$(TARGET).$(DYNLIBEXT),$(MC_PLUGINS))
