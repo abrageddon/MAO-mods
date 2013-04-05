@@ -2,8 +2,14 @@
 seed=$[ $RANDOM ]
 percent=$[ $RANDOM % 100]
 
+runTests=""
+runTests+="MOVTOLEA=trace[3]+MultiCompilerSeed[${seed}]+MOVToLEAPercentage[${percent}]:"
+runTests+="NOPINSERTION=trace[3]+MultiCompilerSeed[${seed}]+NOPInsertionPercentage[${percent}]:"
+runTests+="SCHEDRAND=trace[1]+MultiCompilerSeed[${seed}]+ISchedRandPercentage[${percent}]:"
 
-../bin/mao-x86_64-linux --mao=--plugin=../bin/MaoNOPInsertion-x86_64-linux.so --mao=--plugin=../bin/MaoMOVToLEA-x86_64-linux.so --mao=--plugin=../bin/MaoSchedRand-x86_64-linux.so --mao=SCHEDRAND=trace[1]+MultiCompilerSeed[${seed}]+ISchedRandPercentage[${percent}]:MOVTOLEA=trace[3]+MultiCompilerSeed[${seed}]+MOVToLEAPercentage[${percent}]:NOPINSERTION=trace[3]+MultiCompilerSeed[${seed}]+NOPInsertionPercentage[${percent}]:ASM=o[hellofunc_Div.s] hellofunc.s
+
+#../bin/mao-x86_64-linux --mao=--plugin=../bin/MaoNOPInsertion-x86_64-linux.so:--plugin../bin/MaoMOVToLEA-x86_64-linux.so:--plugin=../bin/MaoSchedRand-x86_64-linux.so --mao=SCHEDRAND=trace[1]+MultiCompilerSeed[${seed}]+ISchedRandPercentage[${percent}]:MOVTOLEA=trace[3]+MultiCompilerSeed[${seed}]+MOVToLEAPercentage[${percent}]:NOPINSERTION=trace[3]+MultiCompilerSeed[${seed}]+NOPInsertionPercentage[${percent}]:ASM=o[hellofunc_Div.s] hellofunc.s
+../bin/mao-x86_64-linux --mao=--plugin=../bin/MaoNOPInsertion-x86_64-linux.so:--plugin../bin/MaoMOVToLEA-x86_64-linux.so:--plugin=../bin/MaoSchedRand-x86_64-linux.so:${runTests}ASM=o[hellofunc_Div.s] hellofunc.s
 
 gcc -c hellofunc_Div.s -o hellofunc.o
 gcc -c hellomake.s -o hellomake.o
