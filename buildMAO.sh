@@ -4,7 +4,7 @@
 #=========================================================
 
 # UBUNTU required packages
-sudo apt-get install build-essentials autoconf automake texinfo zlib1g-dev bison flex
+sudo apt-get install build-essential autoconf automake texinfo zlib1g-dev bison flex
 
 
 # Set target to i686-linux or x86_64
@@ -52,6 +52,7 @@ make -j4)
 # Please check the Makefile, as it contains a reference to the binutils
 # directory. Update, if necessary
 #
+mkdir bin
 cd src
 
 make -j4 TARGET=${TARGET}
