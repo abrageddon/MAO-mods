@@ -1,17 +1,19 @@
 #!/bin/bash
 seed=$[ $RANDOM ]
 percent=$[ $RANDOM % 100]
-
+trace=1
 loadTests="";runTests=""
-loadTests+="--plugin../bin/MaoMOVToLEA-x86_64-linux.so:";runTests+="MOVTOLEA=trace[3]+MultiCompilerSeed[${seed}]+MOVToLEAPercentage[${percent}]:"
-loadTests+="--plugin=../bin/MaoNOPInsertion-x86_64-linux.so:";runTests+="NOPINSERTION=trace[3]+MultiCompilerSeed[${seed}]+NOPInsertionPercentage[${percent}]:"
-loadTests+="--plugin=../bin/MaoSchedRand-x86_64-linux.so:";runTests+="SCHEDRAND=trace[1]+MultiCompilerSeed[${seed}]+ISchedRandPercentage[${percent}]:"
+
+# Reorder these lines to change the order of passes
+loadTests+="--plugin=../bin/MaoSchedRand-x86_64-linux.so:";runTests+="SCHEDRAND=trace[${trace}]+MultiCompilerSeed[${seed}]+ISchedRandPercentage[${percent}]:"
+loadTests+="--plugin../bin/MaoMOVToLEA-x86_64-linux.so:";runTests+="MOVTOLEA=trace[${trace}]+MultiCompilerSeed[${seed}]+MOVToLEAPercentage[${percent}]:"
+loadTests+="--plugin=../bin/MaoNOPInsertion-x86_64-linux.so:";runTests+="NOPINSERTION=trace[${trace}]+MultiCompilerSeed[${seed}]+NOPInsertionPercentage[${percent}]:"
 
 
-#../bin/mao-x86_64-linux --mao=--plugin=../bin/MaoNOPInsertion-x86_64-linux.so:--plugin../bin/MaoMOVToLEA-x86_64-linux.so:--plugin=../bin/MaoSchedRand-x86_64-linux.so:${runTests}ASM=o[hellofunc_Div.s] hellofunc.s
 ../bin/mao-x86_64-linux --mao=${loadTests}${runTests}ASM=o[hellofunc_Div.s] hellofunc.s
+../bin/mao-x86_64-linux --mao=${loadTests}${runTests}ASM=o[hellomake_Div.s] hellomake.s
 
 gcc -c hellofunc_Div.s -o hellofunc.o
-gcc -c hellomake.s -o hellomake.o
+gcc -c hellomake_Div.s -o hellomake.o
 gcc hellomake.o hellofunc.o -o hellomake
 ./hellomake
