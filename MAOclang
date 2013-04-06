@@ -1,0 +1,196 @@
+#!/usr/bin/python
+import sys, os, re, string, subprocess, shutil, random
+
+def main():
+    clangExec = 'clang'
+    retCode = 0
+    prDebug=True # output to std err
+    mkdirFlag=True # really make dirs, not just print
+    realBuild=True # really build, not just print
+    
+    if (sys.argv[1] == "-prDebug"):
+        prDebug = True
+    
+    #TODO pull seed and percent from commandline 
+
+
+
+
+    #if prDebug: sys.stderr.write( "\n" )
+    # Pick the correct clang....
+    if ('++' in sys.argv[0]):
+        clangExec = 'clang++'
+        
+    # make args a single string
+    cmdLine = string.join(sys.argv[1:], ' ')
+
+
+    # TODO make portable; raw compile configure
+    if ( bool(re.search(r'workspace/[^/]+$',os.getcwd())) # configure fix 
+         or bool(re.search(r'[\w]*\.[sS]\b',cmdLine)) # skip .s files for now TODO find way to cache
+        ):
+        if realBuild: 
+            process = subprocess.Popen([clangExec] + cmdLine.split())
+            retCode = process.wait()
+            if (retCode != 0):
+                sys.stderr.write( 'Error: "Exclusion Build" failed' +'\n')
+            sys.exit(retCode)
+
+
+    # find output file
+    objFile=""
+    outFile = string.join(re.findall(r'-o [^ ]*\.o\b', cmdLine))
+    
+    # TODO whitespace correction...
+    if (len(outFile) != 0):
+    	objFile = os.path.realpath(re.sub(r'-o (?P<OUT>[^ ]*)',r'\g<OUT>',outFile))
+    	if prDebug: sys.stderr.write( 'objFile: ' + objFile +'\n')
+    
+    	# trim output file string & get full, real path to object
+    	outFile = os.path.realpath(objFile[:-2])
+    	#if prDebug: sys.stderr.write( 'outFile: ' + str(outFile) +'\n')
+
+    # if output is a binary; CACHE THAT TOO!!
+    #TODO include .so? .exe? .run? ...
+    # TODO whitespace correction...
+    binFile = string.join(re.findall(r'-o [^ ]*\b', cmdLine))
+    if (binFile[-2:] == ".o"):
+        binFile = ""
+    else:
+        binFile = os.path.realpath(re.sub(r'-o (?P<OUT>[^ ]*)',r'\g<OUT>',binFile))
+        if prDebug: sys.stderr.write( 'binFile: ' + binFile +'\n')
+
+    #merged
+    outFile = binFile + outFile
+    if prDebug: sys.stderr.write( 'outFile: ' + outFile +'\n')
+    # name cached file
+    cachedFile = re.sub(r'/home/ubuntu/workspace/','/home/ubuntu/workspace/bcache/',outFile)
+    if prDebug: sys.stderr.write( 'cachedFile: ' + cachedFile +'\n')
+
+    # change extension to .bc
+    bcFile = os.path.realpath(cachedFile + ".bc")
+    
+    # make path to file if needed
+    cacheDir = os.path.dirname(cachedFile)
+    if cacheDir != '':
+        if (not os.path.isdir(cacheDir)):
+            if mkdirFlag: 
+                try: 
+                    os.makedirs(cacheDir)
+                except: 
+                    pass
+            else: sys.stderr.write ('mkdir file\'s dir: '+cacheDir +'\n')
+            
+    # There is an .o output file we want to cache
+    if (len(objFile)!=0):
+    	if prDebug: sys.stderr.write( 'bcFile: ' + bcFile +'\n')
+
+        # Build .bc file if there is no cached version
+        if ( not os.path.isfile(bcFile) ):
+            
+            if prDebug: sys.stderr.write ("=== Build Bitcode ===" +'\n')
+            
+            buildBc = cmdLine
+            buildBc = re.sub(r'-o [^ ]*\.o\b',r'-o '+bcFile, buildBc) 
+            buildBc = re.sub(r'-c\b',r'-S -emit-llvm', buildBc)
+            
+            if prDebug: sys.stderr.write( "\n"+ string.join([clangExec] + buildBc.split(), ' ') +'\n\n')
+            if realBuild: 
+                process = subprocess.Popen([clangExec] + buildBc.split())
+                retCode = process.wait()
+                if (retCode != 0):
+                    sys.stderr.write( 'Error: "Build Bc" failed' +'\n')
+
+    elif ( len(binFile)!=0):
+
+
+        # Build blob object from bitcode
+        blobS = cachedFile + ".blob.s"
+        if prDebug: sys.stderr.write ("blobS: " + blobS+'\n')
+        blobSDiv = blobS + "Div.s"
+        if prDebug: sys.stderr.write ("blobSDiv: " + blobSDiv+'\n')
+
+        if (not os.path.isfile(blobS)):
+            if prDebug: sys.stderr.write ("=== Build Assembly Blob ===" +'\n\n')
+            
+            inObj = re.findall(r'[^ ]*\.o', cmdLine)
+	    #For each obj .o located cached .bc file
+            for i,item in enumerate(inObj):
+	        inObj[i] = cacheDir + "/" + re.sub(r'\.o',r'.bc',item)
+
+            
+            blobBc = cachedFile + ".blob.bc"
+            llvmLink = ["llvm-link", "-S", "-o", blobBc]+inObj
+            if prDebug: sys.stderr.write( string.join(llvmLink,' ') +'\n\n')
+            if realBuild: 
+                process = subprocess.Popen(llvmLink)
+                retCode = process.wait()
+           
+            if (retCode == 0):
+		#convert to assembly blob
+                assemble = ["clang", "-S", blobBc, "-o", blobS]
+                if prDebug: sys.stderr.write( string.join(assemble,' ') +'\n\n')
+                if realBuild: 
+                    process = subprocess.Popen(assemble)
+                    retCode = process.wait()
+
+
+         # source Blob exists; diversify and build!!
+        if (retCode == 0):
+            if prDebug: sys.stderr.write ("=== Diversify Assembly Blob ===" +'\n\n')
+            
+            #TODO read from command line and purge after use
+            seed = str(random.randint(0,100000))
+            percent = str(random.randint(0,99))
+
+            tests = ""
+
+            tests += "--plugin=../bin/MaoSchedRand-x86_64-linux.so:SCHEDRAND=MultiCompilerSeed["+seed+"]+ISchedRandPercentage["+percent+"]:"
+            tests += "--plugin../bin/MaoMOVToLEA-x86_64-linux.so:MOVTOLEA=MultiCompilerSeed["+seed+"]+MOVToLEAPercentage["+percent+"]:"
+            tests += "--plugin=../bin/MaoNOPInsertion-x86_64-linux.so:NOPINSERTION=MultiCompilerSeed["+seed+"]+NOPInsertionPercentage["+percent+"]:"
+
+            divBlob = ["mao", "--mao="+tests+"ASM=o["+blobSDiv+"]", blobS ]
+        
+            if prDebug: sys.stderr.write( string.join(divBlob,' ') +'\n\n')
+            if realBuild: 
+                process = subprocess.Popen(divBlob)
+                retCode = process.wait()
+                if (retCode != 0):
+                    sys.stderr.write ('Error: "Diversify Assembly Blob" failed' +'\n')
+                    sys.exit(retCode)
+
+        if (retCode == 0):
+            if prDebug: sys.stderr.write ("=== Build Assembly Blob ===" +'\n\n')
+        
+            buildBin = cmdLine
+            #remove all .o files replace with blobSDiv
+            buildBin = re.sub(r'[^ ]*\.o','',buildBin)
+            buildBin = re.sub(r'-o [^ ]*','',buildBin)
+            buildBin += " " + blobSDiv
+            buildBin += " -o " + binFile
+
+            if prDebug: sys.stderr.write( clangExec +" "+ buildBin +'\n\n')
+            if realBuild: 
+                process = subprocess.Popen([clangExec] +  buildBin.split())
+                retCode = process.wait()
+                if (retCode != 0):
+                    sys.stderr.write ('Error: "Build Binary" failed' +'\n')
+
+        if (retCode != 0):
+	    # Something didn't work. Fail back to compile from scratch.
+            sys.stderr.write ("=== Fail Build Attempt ===" +'\n')
+            
+            if prDebug: sys.stderr.write ( string.join([clangExec] +  cmdLine.split(),' ') +'\n')
+            if realBuild: 
+                process = subprocess.Popen([clangExec] +  cmdLine.split())
+                retCode = process.wait()
+                if (retCode != 0):
+                    sys.stderr.write ('Error: "Fail Build Attempt" failed')
+                    sys.exit(retCode)
+        
+    if prDebug: sys.stderr.write( "\n" )
+    sys.exit(retCode)
+
+
+if __name__ == "__main__":
+    main()

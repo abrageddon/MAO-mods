@@ -2,8 +2,8 @@ CFLAGS+=-I.
 DEPS = hellomake.h
 OBJ = hellomake.o hellofunc.o 
 ASS = hellomake.s hellofunc.s 
-CC = clang
-CXX = clang++
+CC = MAOclang
+CXX = MAOclang++
 
 %.c: $(DEPS)
 
@@ -11,7 +11,7 @@ CXX = clang++
 	$(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
 
 hellomake: $(OBJ)
-	$(CC) $(OBJ) -flto -o $@
+	$(CC) $(OBJ) -o $@
 
 %.s: %.c
 	$(CC) -S $(CFLAGS) $(CPPFLAGS) $< -o $@

@@ -15,5 +15,7 @@ loadTests+="--plugin=../bin/MaoNOPInsertion-x86_64-linux.so:";runTests+="NOPINSE
 
 gcc -c hellofunc_Div.s -o hellofunc.o
 gcc -c hellomake_Div.s -o hellomake.o
-gcc hellomake.o hellofunc.o -o hellomake
+#gcc hellomake.o hellofunc.o -o hellomake
+gcc hellomake.o hellofunc.o -S -o hellomakebin.s
+gcc hellomakebin.s -o hellomake
 ./hellomake
