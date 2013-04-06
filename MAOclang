@@ -8,7 +8,7 @@ def failBuild():
 
 def errorCatch(retCode, cmd, mesg):
     if (retCode != 0):
-        sys.stderr.write ('========= Error: '+ mesg +'failed\n'+cmd+'\n\n')
+        sys.stderr.write ('========= Error: '+ mesg +' failed\n'+cmd+'\n\n')
         sys.stderr.write( 'cmdLine: '+ cmdLine +'\n\n')
         sys.stderr.write( 'outFile: ' + outFile +'\n')
         sys.stderr.write( 'rawFile: ' + rawFile +'\n')
@@ -28,19 +28,20 @@ def execBuild(cmd, mesg):
     if realBuild:
         process = subprocess.Popen(cmd)
         retCode = process.wait()
-    return errorCatch(retCode, cmd, mesg)
+    return errorCatch(retCode, string.join(cmd,' '), mesg)
 
 
 def cacheBitcode(output):    # Build .bc file if there is no cached version
     if ( not os.path.isfile(output) ):        
-        if prDebug: sys.stderr.write ("=== To Bitcode ===" +'\n')
+        if prDebug: sys.stderr.write ("=== To Bitcode Cache ===" +'\n')
         
         buildBc = cmdLine
-        buildBc = re.sub(r'\w-o [^ ]*\.o\w','', buildBc)
-        buildBc = re.sub(r'\s-c\s',r' -S -emit-llvm ', buildBc)
-        buildBc = [clangExec, ' -o ', output] + buildBc.split()
+        buildBc = re.sub(r'(\A|\s)-o\s*\S*\.o(\Z|\s)','', buildBc)
+        buildBc = re.sub(r'(\A|\s)-c(\Z|\s)',r' -S -emit-llvm ', buildBc)
+        buildBc = re.sub(r'(\A|\s)-c(\Z|\s)',r' -S -emit-llvm ', buildBc)
+        buildBc = [clangExec, '-o', output] + buildBc.split()
         
-        return execBuild(buildBc,"To Bitcode")
+        return execBuild(buildBc,"To Bitcode Cache")
     return retCode
 
 
@@ -70,10 +71,11 @@ def diversify(output, input):
 
 
 def linkAndCacheAssemblyBlob(output):
+    global retCode
     if not os.path.isfile(output):
-        if prDebug: sys.stderr.write ("=== Link Assembly Blob ===" +'\n\n')
+        if prDebug: sys.stderr.write ("=== Linking Bitcode Files ===" +'\n\n')
         
-        inObj = re.findall(r'[^ ]*\.o', cmdLine)
+        inObj = re.findall(r'\S*\.o', cmdLine)
         #For each obj .o located cached .bc file
         #TODO full dir repacement
         for i,item in enumerate(inObj):
@@ -81,52 +83,55 @@ def linkAndCacheAssemblyBlob(output):
         
         
         blobBc = output + ".bc"
-        llvmLink = ["llvm-link", "-o", blobBc, "-S"] + inObj
-        retCode = retCode and execBuild(llvmLink, "Linking Bitcode Files")
+        llvmLink = ["llvm-link", "-S", "-o", blobBc] + inObj
+        retCode = execBuild(llvmLink, "Linking Bitcode Files") and retCode
         
         if retCode == 0:
+            if prDebug: sys.stderr.write ("=== Convert Bitcode Blob To Assembly ===" +'\n\n')
             #convert to assembly blob
             #TODO use all cmd line options
             buildFlags = cmdLine
+
             #remove all .o files replace with blobS
-            buildFlags = re.sub(r'\w[^ ]*\.o\w','',buildFlags)
-            buildFlags = re.sub(r'\w-o [^ ]*\w','',buildFlags)
-            buildFlags = re.sub(r'\w-c\w','',buildFlags)
+            buildFlags = re.sub(r'(\A|\s)\S*\.o(\Z|\s)','',buildFlags)
+            buildFlags = re.sub(r'(\A|\s)-o\s*\S*(\Z|\s)','',buildFlags)
+            buildFlags = re.sub(r'(\A|\s)-c(\Z|\s)','',buildFlags)
+            
             assemble = ["clang", "-o", output, "-S", blobBc] + string.split(buildFlags," ")
+
             return execBuild(assemble, "Convert Bitcode Blob To Assembly")
     return retCode
 
-def buildBinFromBlobS(output, input):
+def buildBinFromBlobS(output, inFile):
     if retCode == 0:
         if prDebug: sys.stderr.write ("=== Build Assembly Blob ===" +'\n\n')
         
-        buildBin = cmdLine
+        flags = cmdLine
         
         #remove all .o files replace with blobSDiv
-        buildBin = re.sub(r'[^ ]*\.o','',buildBin)
-        buildBin = re.sub(r'-o [^ ]*','',buildBin)
-        
-        buildBin = [clangExec, " -o ", output] + buildBin
-    
-        return execBuild()
-        if prDebug: sys.stderr.write( clangExec +" "+ buildBin +'\n\n')
-        if realBuild:
-            process = subprocess.Popen([clangExec] +  buildBin.split())
-            retCode = process.wait()
-            if (retCode != 0):
-                sys.stderr.write ('Error: "Build Assembly Blob" failed' +'\n')
+        flags = re.sub(r'\S*\.o','',flags)
+        flags = re.sub(r'-o\s*\S*','',flags)
 
-def buildObjectFromBC(output, input):
+        buildBin = [clangExec, "-o", output, inFile]
+
+        if(len(flags.strip()) !=0): buildBin + flags.split(' ')
+
+        sys.stderr.write( 'buildBin: '+ string.join(buildBin,' ') +'\n\n')
+    
+        return execBuild(buildBin, "Build Bin From BlobS")
+    return retCode
+
+def buildObjectFromBC(output, inFile):
     # Build .o files too.... they are needed...
     if (doBuildObj and not os.path.isfile(output) ):
         if prDebug: sys.stderr.write ("=== BC To Object ===" +'\n')
-        
-	    buildObj=cmdLine
+
+	buildObj=cmdLine
             
-	    buildObj=re.sub(r'[^ ]*\.[cCsS]+[^o ]?[pPxX+]*','',buildObj)
-	    buildObj=re.sub(r'-o [^ ]*','',buildObj)
+	buildObj=re.sub(r'\S*\.[cCsS]+[^o\s]?[pPxX+]*','',buildObj)
+	buildObj=re.sub(r'(\A|\s)-o[\s]*[\S]*(\Z|\s)','',buildObj)
         
-        buildObj = [clangExec, input, '-o', output]+ buildObj.split
+        buildObj = [clangExec, inFile, '-o', output]+ buildObj.split(' ')
         
         return execBuild(buildObj,"BC To Object")
     return retCode
@@ -134,15 +139,34 @@ def buildObjectFromBC(output, input):
 
 
 def main():
-    global clangExec = 'clang'
-    global retCode = 0
-    global prDebug=True # output to std err
-    global mkdirFlag=True # really make dirs, not just print
-    global realBuild=True # really build, not just print
-    global doBuildObj=True
-    global doDiv=False
+    global clangExec
+    clangExec = 'clang'
+    global retCode
+    retCode = 0
+    global prDebug
+    prDebug=True # output to std err
+    global mkdirFlag
+    mkdirFlag=True # really make dirs, not just print
+    global realBuild
+    realBuild=True # really build, not just print
+    global doBuildObj
+    doBuildObj=True
+    global doDiv
+    doDiv=False
     # make args a single string
-    global cmdLine = string.join(sys.argv[1:], ' ')
+    global cmdLine
+    cmdLine = string.join(sys.argv[1:], ' ')
+    #TODO pullout flags
+
+    global outFile
+    global rawFile
+    global cachedFile
+    global cacheDir
+    global objFile
+    global binFile
+    global bcFile
+    global blobS
+    global blobSDiv
     
     if (sys.argv[1] == "-prDebug"):prDebug = True
     
@@ -152,25 +176,24 @@ def main():
     if ('++' in sys.argv[0]):clangExec = 'clang++'
 
     # TODO make portable; raw compile configure
-        #if  bool(re.search(r'workspace/[^/]+/[^/]+$',os.getcwd())) # configure fix
-    if ( bool(re.search(r'[\w]*\.[sS]\s',cmdLine)) # skip .s files for now TODO find way to cache
-         or bool(re.search(r'\s-E\s',cmdLine)) #Ignore lone preprocessing
-         or bool(re.search(r'conftest\.[ocC]?',cmdLine)) #conf exempt
+        #if  bool(re.search(r'workspace/[^/]+/[^/]+\Z',os.getcwd())) # configure fix
+    if ( bool(re.search(r'(\A|\s).*\.[sS](\Z|\s)',cmdLine)) # skip .s files for now TODO find way to cache
+         or bool(re.search(r'(\A|\s)-E(\Z|\s)',cmdLine)) #Ignore lone preprocessing
+         or bool(re.search(r'(\A|\s)conftest\.[ocC]?(\Z|\s)',cmdLine)) #conf exempt
          or bool(re.search(r'/config/?',os.getcwd())) #config folder exempt
         ):execBuild([clangExec] + cmdLine.split(), "Excluded Build")
 
     #TODO cleanup Determine needed files
     # find output file
-    outFile = string.join(re.findall(r'-o\w*[^ ]*\w', cmdLine))
-
+    outFile = string.join(re.findall(r'-o\s*\S*', cmdLine), ' ')
     
     if len(outFile) == 0 :
-        inSrc = re.findall(r'[^ ]*\.[cCsS]+[^o][pPxX+]*', cmdLine)
-        if len(inSrc.size) == 1 :
-            outFile = os.path.realpath(re.sub(r'\.[cCsS]+[^o][pPxX+]*','.o',inSrc[0]))
+        inSrc = re.findall(r'(\A|\s)\S*\.[cCsS]+[^o\s][pPxX+]*(\Z|\s)', cmdLine)
+        if len(inSrc) == 1 :
+            outFile = re.sub(r'\.[cCsS]+[^o][pPxX+]*','.o',inSrc[0])
     
-    outFile = re.sub(r'\w-o\w',''outFile)
-    outFile = outFile.lstrip()
+    outFile = re.sub(r'(\A|\s)-o','',outFile)
+    outFile = os.path.realpath(outFile.strip())
 
     if outFile[-2:] == ".o" : #output is an object
         binFile = ""
@@ -178,13 +201,16 @@ def main():
         rawFile = outFile[:-2]
     #TODO include .so? .exe? .run? ...
     else : #output is a bin... i guess...
-        binFile = outfile
+        binFile = outFile
         objFile = ''
         rawFile = outFile
     
 
     # name cached file
     cachedFile = re.sub(r'/home/ubuntu/workspace/','/home/ubuntu/workspace/bcache/',rawFile)
+    bcFile = cachedFile + ".bc"
+    blobS = cachedFile + ".blob.s"
+    blobSDiv = cachedFile + ".blob.div.s"
 
     # make path to file if needed
     cacheDir = os.path.dirname(cachedFile)
@@ -202,7 +228,6 @@ def main():
     # There is an .o output file we want to cache
     if len(objFile) != 0:
         # determine location of cached bitcode
-        bcFile = cachedFile + ".bc"
         
         cacheBitcode(bcFile)
         buildObjectFromBC(objFile, bcFile)
@@ -216,14 +241,12 @@ def main():
 
 
         # Build blob object from bitcode
-        blobS = cachedFile + ".blob.s"
         linkAndCacheAssemblyBlob(blobS)
         
         #Diversify
-        blobSDiv = cachedFile + ".blob.div.s"
         diversify(blobSDiv, blobS)
         
-        useBlob
+        useBlob=''
         if doDiv:
             useBlob = blobSDiv
         else:
@@ -234,7 +257,7 @@ def main():
         
 
     elif len(outFile) == 0:
-        if prDebug: sys.stderr.write ("=== No Output File ===" +'\n\n')
+        errorCatch(1,'','No Output File')
 
         
     #if prDebug: sys.stderr.write("ret: "+str(retCode)+ "\n" )
