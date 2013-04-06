@@ -4,9 +4,11 @@ import sys, os, re, string, subprocess, shutil, random
 def main():
     clangExec = 'clang'
     retCode = 0
-    prDebug=False # output to std err
+    prDebug=True # output to std err
     mkdirFlag=True # really make dirs, not just print
     realBuild=True # really build, not just print
+    doBuildObj=True
+    doDiv=False
     
     if (sys.argv[1] == "-prDebug"):
         prDebug = True
@@ -23,13 +25,15 @@ def main():
         
     # make args a single string
     cmdLine = string.join(sys.argv[1:], ' ')
+    if prDebug: sys.stderr.write('\n\n'+ cmdLine +'\n\n')
 
 
     # TODO make portable; raw compile configure
-    if ( bool(re.search(r'workspace/[^/]+/[^/]+$',os.getcwd())) # configure fix 
-         or bool(re.search(r'[\w]*\.[sS]\b',cmdLine)) # skip .s files for now TODO find way to cache
+    if ( #bool(re.search(r'workspace/[^/]+/[^/]+$',os.getcwd())) # configure fix 
+          bool(re.search(r'[\w]*\.[sS]\b',cmdLine)) # skip .s files for now TODO find way to cache
          or bool(re.search(r'\s-E\s',cmdLine)) #Ignore lone preprocessing
          or bool(re.search(r'conftest\.[ocC]?',cmdLine)) #conf exempt
+         or bool(re.search(r'/config/?',os.getcwd())) #config folder exempt
         ):
         #if prDebug: sys.stderr.write(clangExec +" " + cmdLine)
         if realBuild: 
@@ -105,7 +109,7 @@ def main():
                     sys.stderr.write( 'Error: "Build Bc" failed' +'\n')
            
             # Build .o files too.... they are needed...
-        if (not os.path.isfile(objFile) ):
+        if (doBuildObj and not os.path.isfile(objFile) ):
             if prDebug: sys.stderr.write ("=== Build Object ===" +'\n')
 	    #inSrc = re.findall(r'[^ ]*\.[cCsS]+[^o][pPxX+]*', cmdLine)
 	    #For each obj .o located cached .bc file
@@ -114,7 +118,7 @@ def main():
 	    #    inSrc[i] = re.sub(r'/home/ubuntu/workspace/','/home/ubuntu/workspace/bcache/',inSrc[i])
 
 	    buildObj=clangExec +" " + cmdLine
-	    buildObj=re.sub(r'[^ ]*\.[cCsS]+[^o][pPxX+]*','',buildObj)
+	    buildObj=re.sub(r'[^ ]*\.[cCsS]+[^o ]?[pPxX+]*','',buildObj)
 	    buildObj=re.sub(r'-o [^ ]*','',buildObj)
 	    #buildObj+= " " + string.join(inSrc, " ")
 	    buildObj+= " " + bcFile
@@ -131,6 +135,8 @@ def main():
 
     elif ( len(binFile)!=0):
 
+        #if compiling from .c to bin, do exclusion build
+
 
         # Build blob object from bitcode
         blobS = cachedFile + ".blob.s"
@@ -139,7 +145,7 @@ def main():
         if prDebug: sys.stderr.write ("blobSDiv: " + blobSDiv+'\n')
 
         if (not os.path.isfile(blobS)):
-            if prDebug: sys.stderr.write ("=== Build Assembly Blob ===" +'\n\n')
+            if prDebug: sys.stderr.write ("=== Link Assembly Blob ===" +'\n\n')
             
             inObj = re.findall(r'[^ ]*\.o', cmdLine)
 	    #For each obj .o located cached .bc file
@@ -158,19 +164,23 @@ def main():
 		#convert to assembly blob
                 #TODO use all cmd line options
                 buildFlags = cmdLine
-                #remove all .o files replace with blobSDiv
+                #remove all .o files replace with blobS
                 buildFlags = re.sub(r'[^ ]*\.o','',buildFlags)
                 buildFlags = re.sub(r'-o [^ ]*','',buildFlags)
                 buildFlags = re.sub(r'\w-c\w','',buildFlags)
-                assemble = ["clang", "-S", blobBc, "-o", blobSDiv] + string.split(buildFlags," ")
+                assemble = ["clang", "-S", blobBc, "-o", blobS] + string.split(buildFlags," ")
                 if prDebug: sys.stderr.write( string.join(assemble,' ') +'\n\n')
                 if realBuild: 
                     process = subprocess.Popen(assemble)
                     retCode = process.wait()
+                    if (retCode != 0):
+                        sys.stderr.write ('Error: "Link Assembly Blob" failed' +'\n')
+                        sys.exit(retCode)
+
 
 
          # source Blob exists; diversify and build!!
-        if (False and retCode == 0):
+        if (doDiv and retCode == 0):
             if prDebug: sys.stderr.write ("=== Diversify Assembly Blob ===" +'\n\n')
             
             #TODO read from command line and purge after use
@@ -179,9 +189,14 @@ def main():
 
             tests = ""
 
-            tests += "--plugin=/usr/local/lib/MaoSchedRand-x86_64-linux.so:SCHEDRAND=MultiCompilerSeed["+seed+"]+ISchedRandPercentage["+percent+"]:"
-            tests += "--plugin=/usr/local/lib/MaoMOVToLEA-x86_64-linux.so:MOVTOLEA=MultiCompilerSeed["+seed+"]+MOVToLEAPercentage["+percent+"]:"
+            #tests += "--plugin=/usr/local/lib/MaoSchedRand-x86_64-linux.so:SCHEDRAND=MultiCompilerSeed["+seed+"]+ISchedRandPercentage["+percent+"]:"
+            #tests += "--plugin=/usr/local/lib/MaoMOVToLEA-x86_64-linux.so:MOVTOLEA=MultiCompilerSeed["+seed+"]+MOVToLEAPercentage["+percent+"]:"
             tests += "--plugin=/usr/local/lib/MaoNOPInsertion-x86_64-linux.so:NOPINSERTION=MultiCompilerSeed["+seed+"]+NOPInsertionPercentage["+percent+"]:"
+
+            tests += "CFG=respect_orig_labels[1]:"
+            tests += "--plugin=/usr/local/lib/MaoBackBranchAlign-x86_64-linux.so:BACKBRALIGN:"
+            tests += "--plugin=/usr/local/lib/MaoLoop16-x86_64-linux.so:LOOP16:"
+
 
             divBlob = ["mao", "--mao="+tests+"ASM=o["+blobSDiv+"]", blobS ]
         
@@ -200,7 +215,10 @@ def main():
             #remove all .o files replace with blobSDiv
             buildBin = re.sub(r'[^ ]*\.o','',buildBin)
             buildBin = re.sub(r'-o [^ ]*','',buildBin)
-            buildBin += " " + blobSDiv
+            if(doDiv):
+                buildBin += " " + blobSDiv
+            else:
+                buildBin += " " + blobS
             buildBin += " -o " + binFile
 
             if prDebug: sys.stderr.write( clangExec +" "+ buildBin +'\n\n')
@@ -208,7 +226,10 @@ def main():
                 process = subprocess.Popen([clangExec] +  buildBin.split())
                 retCode = process.wait()
                 if (retCode != 0):
-                    sys.stderr.write ('Error: "Build Binary" failed' +'\n')
+                    sys.stderr.write ('Error: "Build Assembly Blob" failed' +'\n')
+
+    elif (len(outFile)==0):
+        if prDebug: sys.stderr.write ("=== No Output File ===" +'\n\n')
 
     if (False and retCode != 0):
         # Something didn't work. Fail back to compile from scratch.
@@ -223,6 +244,7 @@ def main():
                 sys.stderr.write ('Error: "Fail Build Attempt" failed')
                 sys.exit(retCode)
         
+    #if prDebug: sys.stderr.write("ret: "+str(retCode)+ "\n" )
     if prDebug: sys.stderr.write( "\n" )
     sys.exit(retCode)
 

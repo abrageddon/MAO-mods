@@ -124,16 +124,16 @@ CCSRCS=						\
 		
 
 PLUGIN_CCSRCS=$(PLUGINSRC)/MaoInstructionBuilder.cc					\
-	$(PLUGINSRC)/MaoScheduler.cc		#\
+	$(PLUGINSRC)/MaoScheduler.cc		\
+	$(PLUGINSRC)/MaoLoop16.cc		\
+	$(PLUGINSRC)/MaoBackBranchAlign.cc	\
+	$(PLUGINSRC)/MaoBranchSeparator.cc	
 #	$(PLUGINSRC)/MaoAddAdd.cc		\
 #	$(PLUGINSRC)/MaoAdd2Inc.cc		\
-#	$(PLUGINSRC)/MaoBackBranchAlign.cc	\
-#	$(PLUGINSRC)/MaoBranchSeparator.cc	\
 #	$(PLUGINSRC)/MaoDCE.cc			\
 #	$(PLUGINSRC)/MaoEnableFunctionHijacking.cc \
 #	$(PLUGINSRC)/MaoInc2Add.cc		\
 #	$(PLUGINSRC)/MaoInsertPrefNta.cc	\
-#	$(PLUGINSRC)/MaoLoop16.cc		\
 #	$(PLUGINSRC)/MaoMissDisp.cc		\
 #	$(PLUGINSRC)/MaoNopinizer.cc		\
 #	$(PLUGINSRC)/MaoNopKiller.cc		\
@@ -150,16 +150,16 @@ PLUGIN_CCSRCS=$(PLUGINSRC)/MaoInstructionBuilder.cc					\
 
 
 PLUGINS=MaoInstructionBuilder						\
-	MaoScheduler				#\
+	MaoScheduler				\
+	MaoLoop16				\
+	MaoBackBranchAlign			\
+	MaoBranchSeparator	  		
 #	MaoAddAdd				\
 #	MaoAdd2Inc				\
-#	MaoBackBranchAlign			\
-#	MaoBranchSeparator	  		\
 #	MaoDCE					\
 #	MaoEnableFunctionHijacking		\
 #	MaoInsertPrefNta			\
 #	MaoInc2Add				\
-#	MaoLoop16				\
 #	MaoMissDisp				\
 #	MaoNopinizer				\
 #	MaoNopKiller				\
