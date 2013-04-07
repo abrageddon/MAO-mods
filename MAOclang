@@ -67,7 +67,7 @@ def diversify(output, inFile):
         #tests += "--plugin=/usr/local/lib/MaoMOVToLEA-x86_64-linux.so:MOVTOLEA=MultiCompilerSeed["+seed+"]+MOVToLEAPercentage["+percent+"]:"
         tests += "--plugin=/usr/local/lib/MaoNOPInsertion-x86_64-linux.so:NOPINSERTION=MultiCompilerSeed["+seed+"]+NOPInsertionPercentage["+percent+"]:"
         
-        #tests += "CFG=respect_orig_labels[1]:"
+       # tests += "CFG=respect_orig_labels[1]:"
         #tests += "--plugin=/usr/local/lib/MaoBackBranchAlign-x86_64-linux.so:BACKBRALIGN:"
         #tests += "--plugin=/usr/local/lib/MaoLoop16-x86_64-linux.so:LOOP16:"
         
@@ -166,14 +166,17 @@ def main():
     global realBuild
     realBuild=True # really build, not just print
     global doBuildObj
+    global doBuildBlob
     global doDiv
     doBuildObj=False
+    doBuildBlob=True
     doDiv=True
 
     # make args a single string
     global cmdLine
     cmdLine = string.join(sys.argv[1:], ' ')
     #TODO pullout flags
+    #TODO -buildObject explicit flag
 
     global outFile
     global rawFile
@@ -276,33 +279,36 @@ def main():
         #if input is .c and input.bc doesn't exist; build input.c bitcode
         #if blob doesnt exist; use input.c as .bc
 
-
-        # Build blob object from bitcode
-        linkAndCacheAssemblyBlob(blobS)
+        if doBuildBlob:
+            # Build blob object from bitcode
+            linkAndCacheAssemblyBlob(blobS)
         
-        #Diversify
-	diversify(blobSDiv, blobS)
-	#TODO need better fix, MAO outputs bad alignments(possible fix)
-	if(False):
-	    f = open(blobSDiv, 'r')
-            lines = f.readlines()
-	    f.close()
-	    f = open(blobSDiv, 'w')
-	    for line in lines:
-	      if not bool(re.search(r'\.p2align.*, *, *0.*#',line)):
-	          f.write(line)
-            f.close()
+            #Diversify
+	    diversify(blobSDiv, blobS)
+	    #TODO need better fix, MAO outputs bad alignments(possible fix)
+            if(False):
+	        f = open(blobSDiv, 'r')
+                lines = f.readlines()
+	        f.close()
+	        f = open(blobSDiv, 'w')
+	        for line in lines:
+	          if not bool(re.search(r'\.p2align.*, *, *0.*#',line)):
+	              f.write(line)
+                f.close()
 
         
 
-        useBlob=''
-        if doDiv:
-            useBlob = blobSDiv
+            useBlob=''
+            if doDiv:
+                useBlob = blobSDiv
+            else:
+                useBlob = blobS
+
+            buildBinFromBlobS(binFile, useBlob)
+
         else:
-            useBlob = blobS
-
-        buildBinFromBlobS(binFile, useBlob)
-
+	    if prDebug: sys.stderr.write( "buildBinFromObj()\n" )
+	    buildBinFromObj()
         
 
     elif len(outFile) == 0:
