@@ -49,7 +49,7 @@ def cacheBitcode(output):    # Build .bc file if there is no cached version
     return retCode
 
 
-def diversify(output, input):
+def diversify(output, inFile):
     if doDiv:
         if prDebug: sys.stderr.write ("=== Diversify ===" +'\n\n')
         
@@ -68,7 +68,7 @@ def diversify(output, input):
         tests += "--plugin=/usr/local/lib/MaoLoop16-x86_64-linux.so:LOOP16:"
         
         
-        divBlob = ["mao", "--mao="+tests+"ASM=o["+output+"]", input ]
+        divBlob = ["mao", "--mao="+tests+"ASM=o["+output+"]", inFile ]
         
         return execBuild(divBlob, "Diversify")
     return retCode
@@ -79,11 +79,11 @@ def linkAndCacheAssemblyBlob(output):
     if not os.path.isfile(output):
         if prDebug: sys.stderr.write ("=== Linking Bitcode Files ===" +'\n\n')
         
-        inObj = re.findall(r'\S*\.o', cmdLine)
+        inObj = re.findall(r'\S*\.[co]', cmdLine)
         #For each obj .o located cached .bc file
         #TODO full dir repacement
         for i,item in enumerate(inObj):
-            inObj[i] = cacheDir + "/" + re.sub(r'\.o','.bc',item)
+            inObj[i] = cacheDir + "/" + re.sub(r'\.[co]','.bc',item)
         
         
         blobBc = output + ".bc"
@@ -260,8 +260,19 @@ def main():
         linkAndCacheAssemblyBlob(blobS)
         
         #Diversify
-        diversify(blobSDiv, blobS)
+	diversify(blobSDiv, blobS)
+	#TODO better fix, MAO outputs bad alignments
+	f = open(blobSDiv, 'r')
+        lines = f.readlines()
+	f.close()
+	f = open(blobSDiv, 'w')
+	for line in lines:
+	  if not bool(re.search(r'\.p2align.*, *, *0.*#',line)):
+	      f.write(line)
+	f.close()
+
         
+
         useBlob=''
         if doDiv:
             useBlob = blobSDiv
