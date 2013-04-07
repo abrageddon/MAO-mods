@@ -32,15 +32,19 @@ def execBuild(cmd, mesg):
     return errorCatch(retCode, string.join(cmd,' '), mesg)
 
 
-def cacheBitcode(output):    # Build .bc file if there is no cached version
+def cacheBitcode(output, inFile):    # Build .bc file if there is no cached version
     if ( not os.path.isfile(output) ):        
         if prDebug: sys.stderr.write ("=== To Bitcode Cache ===" +'\n')
         
         buildBc = cmdLine
         buildBc = re.sub(r'-o\s*\S*\.o',' ', buildBc)
-        buildBc = re.sub(r'-c',r' -S -emit-llvm ', buildBc)
-        buildBc = [clangExec, '-o', output] + buildBc.split()
+        buildBc = re.sub(r'\W-c\W',r' ', buildBc)
+        buildBc = re.sub(r'-i\s*\S*',r' ', buildBc)
 
+	if(inFile is None):
+            buildBc = [clangExec, '-o', output, '-S', '-emit-llvm'] + buildBc.split()
+        else:
+	    buildBc = [clangExec, '-o', output, '-S', '-emit-llvm', inFile]
 
 	#TODO remove un needed flags, -I file, 
         #buildBc = [clangExec, '-o', output, files]
@@ -63,9 +67,9 @@ def diversify(output, inFile):
         #tests += "--plugin=/usr/local/lib/MaoMOVToLEA-x86_64-linux.so:MOVTOLEA=MultiCompilerSeed["+seed+"]+MOVToLEAPercentage["+percent+"]:"
         tests += "--plugin=/usr/local/lib/MaoNOPInsertion-x86_64-linux.so:NOPINSERTION=MultiCompilerSeed["+seed+"]+NOPInsertionPercentage["+percent+"]:"
         
-        tests += "CFG=respect_orig_labels[1]:"
-        tests += "--plugin=/usr/local/lib/MaoBackBranchAlign-x86_64-linux.so:BACKBRALIGN:"
-        tests += "--plugin=/usr/local/lib/MaoLoop16-x86_64-linux.so:LOOP16:"
+        #tests += "CFG=respect_orig_labels[1]:"
+        #tests += "--plugin=/usr/local/lib/MaoBackBranchAlign-x86_64-linux.so:BACKBRALIGN:"
+        #tests += "--plugin=/usr/local/lib/MaoLoop16-x86_64-linux.so:LOOP16:"
         
         
         divBlob = ["mao", "--mao="+tests+"ASM=o["+output+"]", inFile ]
@@ -79,33 +83,43 @@ def linkAndCacheAssemblyBlob(output):
     if not os.path.isfile(output):
         if prDebug: sys.stderr.write ("=== Linking Bitcode Files ===" +'\n\n')
         
-        inObj = re.findall(r'\S*\.[co]', cmdLine)
-        #For each obj .o located cached .bc file
+        inObj = re.findall(r'\S*\.[cCsSo]+[pPxX+]*', cmdLine)
+	#For each obj .o located cached .bc file
         #TODO full dir repacement
         for i,item in enumerate(inObj):
-            inObj[i] = cacheDir + "/" + re.sub(r'\.[co]','.bc',item)
-        
-        
+	    if item[-2:] == '.o':
+                inObj[i] = cacheDir + "/" + re.sub(r'\.o','.bc',item)
+	    elif item[-2:] == '.c':
+	        #TODO include other source types
+	        inObj[i] = cacheDir + "/" + re.sub(r'\.c','.bc',item)
+		cacheBitcode(inObj[i], item)
+
         blobBc = output + ".bc"
         llvmLink = ["llvm-link", "-S", "-o", blobBc] + inObj
         retCode = execBuild(llvmLink, "Linking Bitcode Files") and retCode
         
         if retCode == 0:
-            if prDebug: sys.stderr.write ("=== Convert Bitcode Blob To Assembly ===" +'\n\n')
-            #convert to assembly blob
-            #TODO use all cmd line options
-            buildFlags = cmdLine
-
-            #remove all .o files replace with blobS
-            buildFlags = re.sub(r'\S*\.o',' ',buildFlags)
-            buildFlags = re.sub(r'-o\s*\S*',' ',buildFlags)
-#TODO isolate -c flag
-            buildFlags = re.sub(r'-c',' ',buildFlags)
-            
-            assemble = ["clang", "-o", output, "-S", blobBc] + string.split(buildFlags," ")
-
-            return execBuild(assemble, "Convert Bitcode Blob To Assembly")
+	    return cacheAssembly(output, blobBc);
     return retCode
+
+def cacheAssembly(output, inFile):
+    if prDebug: sys.stderr.write ("=== Convert Bitcode Blob To Assembly ===" +'\n\n')
+    #convert to assembly blob
+    #TODO use all cmd line options
+    buildFlags = cmdLine
+
+    #remove all .o files replace with blobS
+    #TODO other source types
+    buildFlags = re.sub(r'\S*\.[co]',' ',buildFlags)
+    buildFlags = re.sub(r'-o\s*\S*',' ',buildFlags)
+    #TODO isolate -c flag
+    buildFlags = re.sub(r'-c',' ',buildFlags)
+
+    assemble = ["clang", "-o", output, "-S", inFile] + string.split(buildFlags," ")
+
+    return execBuild(assemble, "Convert Bitcode Blob To Assembly")
+
+
 
 def buildBinFromBlobS(output, inFile):
     if retCode == 0:
@@ -114,7 +128,8 @@ def buildBinFromBlobS(output, inFile):
         flags = cmdLine
         
         #remove all .o files replace with blobSDiv
-        flags = re.sub(r'\S*\.o',' ',flags)
+	#TODO other source types
+        flags = re.sub(r'\S*\.[co]',' ',flags)
         flags = re.sub(r'-o\s*\S*',' ',flags)
 
         buildBin = [clangExec, "-o", output, inFile] + string.split(flags,' ')
@@ -124,7 +139,7 @@ def buildBinFromBlobS(output, inFile):
 
 def buildObjectFromBC(output, inFile):
     # Build .o files too.... they are needed...
-    if (doBuildObj and not os.path.isfile(output) ):
+    if (not os.path.isfile(output) ):
         if prDebug: sys.stderr.write ("=== BC To Object ===" +'\n')
 
 	buildObj=cmdLine
@@ -151,11 +166,9 @@ def main():
     global realBuild
     realBuild=True # really build, not just print
     global doBuildObj
-    doBuildObj=True
     global doDiv
+    doBuildObj=False
     doDiv=True
-    global doFull
-    doFull=False
 
     # make args a single string
     global cmdLine
@@ -171,8 +184,6 @@ def main():
     global bcFile
     global blobS
     global blobSDiv
-
-
     
     if (sys.argv[1] == "-prDebug"):prDebug = True
     
@@ -182,7 +193,7 @@ def main():
     if ('++' in sys.argv[0]):clangExec = 'clang++'
 
     # TODO make portable; raw compile configure
-    if ( bool(re.search(r'workspace/[^/]+/[^/]+\Z',os.getcwd())) # configure fix
+    if ( False #bool(re.search(r'workspace/[^/]+/[^/]+\Z',os.getcwd())) # configure fix
     	 or bool(re.search(r'(\A|\s).*\.[sS](\Z|\s)',cmdLine)) # skip .s files for now TODO find way to cache
          or bool(re.search(r'(\A|\s)-E(\Z|\s)',cmdLine)) #Ignore lone preprocessing
          or bool(re.search(r'(\A|\s)conftest\.[ocC]?(\Z|\s)',cmdLine)) #conf exempt
@@ -198,6 +209,7 @@ def main():
     # find output file
     outFile = string.join(re.findall(r'-o\s*\S*', cmdLine), ' ')
     
+    doFull=False
     if not bool(re.search(r'-o',cmdLine)) :
         doFull=True
         inSrc = re.findall(r'\S*\.[cCsS]+[^o]?[pPxX+]*', cmdLine)
@@ -245,8 +257,17 @@ def main():
     if len(objFile) != 0:
         # determine location of cached bitcode
         
-        cacheBitcode(bcFile)
-        buildObjectFromBC(objFile, bcFile)
+        cacheBitcode(bcFile,None)
+	
+	if doBuildObj :
+	    cacheAssembly(bcFile+".s", bcFile)
+	    diversify(bcFile+"Div.s", bcFile+".s")
+            useBc=''
+            if doDiv:
+                useBc = bcFile+"Div.s"
+            else:
+                useBc = bcFile+".s"
+            buildObjectFromBC(objFile, useBc)
     
     if  len(binFile) != 0:
 
@@ -261,15 +282,16 @@ def main():
         
         #Diversify
 	diversify(blobSDiv, blobS)
-	#TODO better fix, MAO outputs bad alignments
-	f = open(blobSDiv, 'r')
-        lines = f.readlines()
-	f.close()
-	f = open(blobSDiv, 'w')
-	for line in lines:
-	  if not bool(re.search(r'\.p2align.*, *, *0.*#',line)):
-	      f.write(line)
-	f.close()
+	#TODO need better fix, MAO outputs bad alignments(possible fix)
+	if(False):
+	    f = open(blobSDiv, 'r')
+            lines = f.readlines()
+	    f.close()
+	    f = open(blobSDiv, 'w')
+	    for line in lines:
+	      if not bool(re.search(r'\.p2align.*, *, *0.*#',line)):
+	          f.write(line)
+            f.close()
 
         
 
