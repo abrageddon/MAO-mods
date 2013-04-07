@@ -1347,37 +1347,31 @@ s_align (int arg, int bytes_p)
 	}
     }
 
-  if (align > align_limit)
-    {
-      align = align_limit;
-      as_warn (_("alignment too large: %u assumed"), align);
+if (align > align_limit) {
+    align = align_limit;
+    as_warn(_("alignment too large: %u assumed"), align);
+}
+
+if (*input_line_pointer != ',') {
+    fill_p = 0;
+    max = align-1;
+} else {
+    ++input_line_pointer;
+    if (*input_line_pointer == ',')
+        fill_p = 0;
+    else {
+        fill = get_absolute_expression();
+        SKIP_WHITESPACE ();
+        fill_p = 1;
     }
 
-  if (*input_line_pointer != ',')
-    {
-      fill_p = 0;
-      max = 0;
+    if (*input_line_pointer != ',')
+        max = align-1;
+    else {
+        ++input_line_pointer;
+        max = get_absolute_expression();
     }
-  else
-    {
-      ++input_line_pointer;
-      if (*input_line_pointer == ',')
-	fill_p = 0;
-      else
-	{
-	  fill = get_absolute_expression ();
-	  SKIP_WHITESPACE ();
-	  fill_p = 1;
-	}
-
-      if (*input_line_pointer != ',')
-	max = 0;
-      else
-	{
-	  ++input_line_pointer;
-	  max = get_absolute_expression ();
-	}
-    }
+}
 
   if (!fill_p)
     {
