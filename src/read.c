@@ -1354,7 +1354,7 @@ if (align > align_limit) {
 
 if (*input_line_pointer != ',') {
     fill_p = 0;
-    max = align-1;
+    max = align;
 } else {
     ++input_line_pointer;
     if (*input_line_pointer == ',')
@@ -1366,7 +1366,7 @@ if (*input_line_pointer != ',') {
     }
 
     if (*input_line_pointer != ',')
-        max = align-1;
+        max = align;
     else {
         ++input_line_pointer;
         max = get_absolute_expression();
