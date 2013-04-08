@@ -64,8 +64,8 @@ def diversify(output, inFile):
         tests = ""
         
         #tests += "--plugin=/usr/local/lib/MaoSchedRand-x86_64-linux.so:SCHEDRAND=MultiCompilerSeed["+seed+"]+ISchedRandPercentage["+percent+"]:"
-        #tests += "--plugin=/usr/local/lib/MaoMOVToLEA-x86_64-linux.so:MOVTOLEA=MultiCompilerSeed["+seed+"]+MOVToLEAPercentage["+percent+"]:"
-        tests += "--plugin=/usr/local/lib/MaoNOPInsertion-x86_64-linux.so:NOPINSERTION=MultiCompilerSeed["+seed+"]+NOPInsertionPercentage["+percent+"]:"
+        tests += "--plugin=/usr/local/lib/MaoMOVToLEA-x86_64-linux.so:MOVTOLEA=MultiCompilerSeed["+seed+"]+MOVToLEAPercentage["+percent+"]:"
+        #tests += "--plugin=/usr/local/lib/MaoNOPInsertion-x86_64-linux.so:NOPINSERTION=MultiCompilerSeed["+seed+"]+NOPInsertionPercentage["+percent+"]:"
         
        # tests += "CFG=respect_orig_labels[1]:"
         #tests += "--plugin=/usr/local/lib/MaoBackBranchAlign-x86_64-linux.so:BACKBRALIGN:"
@@ -82,6 +82,8 @@ def linkAndCacheAssemblyBlob(output):
     global retCode
     if not os.path.isfile(output):
         if prDebug: sys.stderr.write ("=== Linking Bitcode Files ===" +'\n\n')
+
+        #TODO change directory to do less file rewriting, might cause cmd line to get too long
         
         inObj = re.findall(r'\S*\.[cCsSo]+[pPxX+]*', cmdLine)
 	#For each obj .o located cached .bc file
@@ -115,7 +117,7 @@ def cacheAssembly(output, inFile):
     #TODO isolate -c flag
     buildFlags = re.sub(r'-c',' ',buildFlags)
 
-    assemble = ["clang", "-o", output, "-S", inFile] + string.split(buildFlags," ")
+    assemble = [clangExec, "-o", output, "-S", inFile] + string.split(buildFlags," ")
 
     return execBuild(assemble, "Convert Bitcode Blob To Assembly")
 
@@ -123,7 +125,7 @@ def cacheAssembly(output, inFile):
 
 def buildBinFromBlobS(output, inFile):
     if retCode == 0:
-        if prDebug: sys.stderr.write ("=== Build Assembly Blob ===" +'\n\n')
+        if prDebug: sys.stderr.write ("=== Build Bin From BlobS ===" +'\n\n')
         
         flags = cmdLine
         
@@ -131,8 +133,12 @@ def buildBinFromBlobS(output, inFile):
 	#TODO other source types
         flags = re.sub(r'\S*\.[co]',' ',flags)
         flags = re.sub(r'-o\s*\S*',' ',flags)
+        flags = re.sub(r'\s+',' ',flags)
 
-        buildBin = [clangExec, "-o", output, inFile] + string.split(flags,' ')
+        #TODO figure out how to build final bin
+        #buildBin = ['as', "-o", output, inFile] 
+        buildBin = [gccExec, "-o", output, inFile] + string.split(flags.strip(),' ')
+        #buildBin = [clangExec, "-o", output, inFile] + string.split(flags,' ')
 
         return execBuild(buildBin, "Build Bin From BlobS")
     return retCode
@@ -156,7 +162,9 @@ def buildObjectFromBC(output, inFile):
 
 def main():
     global clangExec
+    global gccExec
     clangExec = 'clang'
+    gccExec = 'gcc'
     global retCode
     retCode = 0
     global prDebug
@@ -193,7 +201,9 @@ def main():
     #TODO pull seed and percent from commandline 
     #if prDebug: sys.stderr.write( "\n" )
     # Pick the correct clang....
-    if ('++' in sys.argv[0]):clangExec = 'clang++'
+    if ('++' in sys.argv[0]):
+        clangExec = 'clang++'
+        gccExec = 'g++'
 
     # TODO make portable; raw compile configure
     if ( False #bool(re.search(r'workspace/[^/]+/[^/]+\Z',os.getcwd())) # configure fix
@@ -204,6 +214,7 @@ def main():
          or bool(re.search(r'--version',cmdLine)) #skip version lookups
          or bool(re.search(r'-[vV]',cmdLine)) #skip version lookups
          or bool(re.search(r'-qversion',cmdLine)) #skip version lookups
+         or bool(re.search(r'-dumpversion',cmdLine)) #skip version lookups
         ):
 	retCode = execBuild([clangExec] + cmdLine.split(), "Excluded Build")
 	sys.exit(retCode)
