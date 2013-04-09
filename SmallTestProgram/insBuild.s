@@ -1,1 +1,1 @@
-leal    (%eax), %eax
+leaq    (%rdi), %rdi

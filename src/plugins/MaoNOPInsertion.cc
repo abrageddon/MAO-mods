@@ -98,10 +98,11 @@ public:
 
                 // Type of NOP
                 // TODO implement other types of NOPs
+                //int NOPCode = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(LEA_ESI);
                 int NOPCode = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(MAX_NOPS);
 
                 i386_insn insn;
-				InstructionEntry *nop;
+                InstructionEntry *nop;
                 switch (NOPCode) {
                 case NOP:
                     nop = unit_->CreateNop(function_);
@@ -111,12 +112,13 @@ public:
 
                 case MOV_EBP:
                     if (unit_->Is64BitMode()){
-                        MOV_EBP_EBP_64(&insn);
+                        MOVQ_RBP_RBP(&insn);
                     } else if (unit_->Is32BitMode()){
-                        MOV_EBP_EBP(&insn);
+                        MOVL_EBP_EBP(&insn);
                     } else {
                         MAO_RASSERT_MSG(false, "Unable to match code flag to architecture");
                     }
+
                 	nop = unit_->CreateInstruction(&insn, function_);
                 	entry->LinkBefore(nop);
                 	nopStr = "MovEBPs";
@@ -124,9 +126,9 @@ public:
 
                 case MOV_ESP:
                     if (unit_->Is64BitMode()){
-                        MOV_ESP_ESP_64(&insn);
+                        MOVQ_RSP_RSP(&insn);
                     } else if (unit_->Is32BitMode()){
-                        MOV_ESP_ESP(&insn);
+                        MOVL_ESP_ESP(&insn);
                     } else {
                         MAO_RASSERT_MSG(false, "Unable to match code flag to architecture");
                     }
@@ -137,14 +139,28 @@ public:
                     break;
 
                 case LEA_ESI:
-                	LEA_ESI_ESI(&insn);
+                    if (unit_->Is64BitMode()){
+                        LEAQ_RSI_RSI(&insn);
+                    } else if (unit_->Is32BitMode()){
+                        LEAL_ESI_ESI(&insn);
+                    } else {
+                        MAO_RASSERT_MSG(false, "Unable to match code flag to architecture");
+                    }
+
                 	nop = unit_->CreateInstruction(&insn, function_);
                 	entry->LinkBefore(nop);
                     nopStr = "LeaESIs";
                 	break;
 
                 case LEA_EDI:
-                	LEA_EDI_EDI(&insn);
+                    if (unit_->Is64BitMode()){
+                        LEAQ_RDI_RDI(&insn);
+                    } else if (unit_->Is32BitMode()){
+                        LEAL_EDI_EDI(&insn);
+                    } else {
+                        MAO_RASSERT_MSG(false, "Unable to match code flag to architecture");
+                    }
+
                 	nop = unit_->CreateInstruction(&insn, function_);
                 	entry->LinkBefore(nop);
                     nopStr = "LeaEDIs";
@@ -200,7 +216,7 @@ public:
             break;
         }
     }
-    void MOV_EBP_EBP_64(i386_insn *i) {
+    void MOVQ_RBP_RBP(i386_insn *i) {
       // Zero out the structure.
       memset(i, 0, sizeof(*i));
       i->tm.name = strdup("movq");
@@ -257,7 +273,7 @@ public:
       i->rex = 8;
     }
 
-    void MOV_EBP_EBP(i386_insn *i) {
+    void MOVL_EBP_EBP(i386_insn *i) {
         // Zero out the structure.
         memset(i, 0, sizeof(*i));
         i->tm.name = strdup("mov");
@@ -317,7 +333,7 @@ public:
         i->rm.reg = 5;
         i->rm.mode = 3;
     }
-    void MOV_ESP_ESP_64(i386_insn *i) {
+    void MOVQ_RSP_RSP(i386_insn *i) {
       // Zero out the structure.
       memset(i, 0, sizeof(*i));
       i->tm.name = strdup("movq");
@@ -374,7 +390,7 @@ public:
       i->rex = 8;
     }
 
-	void MOV_ESP_ESP(i386_insn *i) {
+	void MOVL_ESP_ESP(i386_insn *i) {
 		// Zero out the structure.
 		memset(i, 0, sizeof(*i));
 		i->tm.name = strdup("mov");
@@ -434,7 +450,7 @@ public:
 		i->rm.reg = 4;
 		i->rm.mode = 3;
 	}
-	void LEA_ESI_ESI(i386_insn *i) {
+	void LEAL_ESI_ESI(i386_insn *i) {
 		// Zero out the structure.
 		memset(i, 0, sizeof(*i));
 		i->tm.name = strdup("lea");
@@ -485,7 +501,62 @@ public:
 		i->sib.base = 6;
 		i->sib.index = 4;
 	}
-	void LEA_EDI_EDI(i386_insn *i) {
+
+	void LEAQ_RSI_RSI(i386_insn *i) {
+	  // Zero out the structure.
+	  memset(i, 0, sizeof(*i));
+	  i->tm.name = strdup("lea");
+	  i->tm.operands = 2;
+	  i->tm.base_opcode = 141;
+	  i->tm.extension_opcode = 65535;
+	  i->tm.opcode_length = 1;
+	  i->tm.opcode_modifier.modrm = 1;
+	  i->tm.opcode_modifier.no_bsuf = 1;
+	  i->tm.opcode_modifier.no_ssuf = 1;
+	  i->tm.opcode_modifier.no_ldsuf = 1;
+	  int j;
+
+	  j = 0;
+	  i->tm.operand_types[j].bitfield.disp8 = 1;
+	  i->tm.operand_types[j].bitfield.disp16 = 1;
+	  i->tm.operand_types[j].bitfield.disp32 = 1;
+	  i->tm.operand_types[j].bitfield.disp32s = 1;
+	  i->tm.operand_types[j].bitfield.baseindex = 1;
+	  i->tm.operand_types[j].bitfield.anysize = 1;
+
+	  j = 1;
+	  i->tm.operand_types[j].bitfield.reg16 = 1;
+	  i->tm.operand_types[j].bitfield.reg32 = 1;
+	  i->tm.operand_types[j].bitfield.reg64 = 1;
+	  i->suffix = 113;
+	  i->operands= 2;
+	  i->reg_operands= 1;
+	  i->disp_operands= 0;
+	  i->mem_operands= 1;
+	  i->imm_operands= 0;
+
+	  j = 0;
+	  i->types[j].bitfield.baseindex = 1;
+
+	  j = 1;
+	  i->types[j].bitfield.reg64 = 1;
+	  i->op[1].regs = GetRegFromName ("rsi");
+	  i->reloc[0] = static_cast<bfd_reloc_code_real>(70);
+	  i->reloc[1] = static_cast<bfd_reloc_code_real>(70);
+	  i->reloc[2] = static_cast<bfd_reloc_code_real>(70);
+	  i->reloc[3] = static_cast<bfd_reloc_code_real>(70);
+	  i->reloc[4] = static_cast<bfd_reloc_code_real>(70);
+	  i->base_reg = GetRegFromName ("rsi");
+	  i->prefixes = 1;
+	  i->rm.regmem = 6;
+	  i->rm.reg = 6;
+	  i->rex = 8;
+	  i->sib.base = 6;
+	  i->sib.index = 4;
+	}
+
+
+	void LEAL_EDI_EDI(i386_insn *i) {
 	  // Zero out the structure.
 	  memset(i, 0, sizeof(*i));
 	  i->tm.name = strdup("lea");
@@ -533,6 +604,58 @@ public:
 	  i->prefixes = 1;
 	  i->rm.regmem = 7;
 	  i->rm.reg = 7;
+	  i->sib.base = 7;
+	  i->sib.index = 4;
+	}
+	void LEAQ_RDI_RDI(i386_insn *i) {
+	  // Zero out the structure.
+	  memset(i, 0, sizeof(*i));
+	  i->tm.name = strdup("lea");
+	  i->tm.operands = 2;
+	  i->tm.base_opcode = 141;
+	  i->tm.extension_opcode = 65535;
+	  i->tm.opcode_length = 1;
+	  i->tm.opcode_modifier.modrm = 1;
+	  i->tm.opcode_modifier.no_bsuf = 1;
+	  i->tm.opcode_modifier.no_ssuf = 1;
+	  i->tm.opcode_modifier.no_ldsuf = 1;
+	  int j;
+
+	  j = 0;
+	  i->tm.operand_types[j].bitfield.disp8 = 1;
+	  i->tm.operand_types[j].bitfield.disp16 = 1;
+	  i->tm.operand_types[j].bitfield.disp32 = 1;
+	  i->tm.operand_types[j].bitfield.disp32s = 1;
+	  i->tm.operand_types[j].bitfield.baseindex = 1;
+	  i->tm.operand_types[j].bitfield.anysize = 1;
+
+	  j = 1;
+	  i->tm.operand_types[j].bitfield.reg16 = 1;
+	  i->tm.operand_types[j].bitfield.reg32 = 1;
+	  i->tm.operand_types[j].bitfield.reg64 = 1;
+	  i->suffix = 113;
+	  i->operands= 2;
+	  i->reg_operands= 1;
+	  i->disp_operands= 0;
+	  i->mem_operands= 1;
+	  i->imm_operands= 0;
+
+	  j = 0;
+	  i->types[j].bitfield.baseindex = 1;
+
+	  j = 1;
+	  i->types[j].bitfield.reg64 = 1;
+	  i->op[1].regs = GetRegFromName ("rdi");
+	  i->reloc[0] = static_cast<bfd_reloc_code_real>(70);
+	  i->reloc[1] = static_cast<bfd_reloc_code_real>(70);
+	  i->reloc[2] = static_cast<bfd_reloc_code_real>(70);
+	  i->reloc[3] = static_cast<bfd_reloc_code_real>(70);
+	  i->reloc[4] = static_cast<bfd_reloc_code_real>(70);
+	  i->base_reg = GetRegFromName ("rdi");
+	  i->prefixes = 1;
+	  i->rm.regmem = 7;
+	  i->rm.reg = 7;
+	  i->rex = 8;
 	  i->sib.base = 7;
 	  i->sib.index = 4;
 	}
