@@ -59,9 +59,9 @@ public:
             //Pick correct LEA
             i386_insn insn;
             if (entry->AsInstruction()->op()==OP_movq) {
-                LEAQ(&insn, entry->AsInstruction()->instruction() );
+                MOVQ_To_LEAQ(&insn, entry->AsInstruction()->instruction() );
             } else if (entry->AsInstruction()->op()==OP_mov) {
-                LEAL(&insn, entry->AsInstruction()->instruction() );
+            	MOVL_To_LEAL(&insn, entry->AsInstruction()->instruction() );
             } else {
                 fprintf(stderr, "NEW MOV TYPE: ");
                 entry->PrintEntry(stderr);
@@ -107,6 +107,129 @@ public:
         }
         return true;
     }
+	void MOVL_To_LEAL(i386_insn *i, i386_insn *movIns) {
+		i->tm.name = strdup("lea");
+		i->tm.base_opcode = 141;
+		i->tm.opcode_modifier.d = 0;
+		i->tm.opcode_modifier.w = 0;
+		i->tm.opcode_modifier.checkregsize = 0;
+		i->tm.opcode_modifier.no_bsuf = 1;
+		int j;
+
+		j = 0;
+		i->tm.operand_types[j].bitfield.reg8 = 0;
+		i->tm.operand_types[j].bitfield.reg16 = 0;
+		i->tm.operand_types[j].bitfield.reg32 = 0;
+		i->tm.operand_types[j].bitfield.reg64 = 0;
+		i->tm.operand_types[j].bitfield.disp8 = 1;
+		i->tm.operand_types[j].bitfield.disp16 = 1;
+		i->tm.operand_types[j].bitfield.disp32 = 1;
+		i->tm.operand_types[j].bitfield.disp32s = 1;
+		i->tm.operand_types[j].bitfield.baseindex = 1;
+		i->tm.operand_types[j].bitfield.anysize = 1;
+
+		j = 1;
+		i->tm.operand_types[j].bitfield.reg8 = 0;
+		i->tm.operand_types[j].bitfield.disp8 = 0;
+		i->tm.operand_types[j].bitfield.disp16 = 0;
+		i->tm.operand_types[j].bitfield.disp32 = 0;
+		i->tm.operand_types[j].bitfield.disp32s = 0;
+		i->tm.operand_types[j].bitfield.baseindex = 0;
+		i->tm.operand_types[j].bitfield.byte = 0;
+		i->tm.operand_types[j].bitfield.word = 0;
+		i->tm.operand_types[j].bitfield.dword = 0;
+		i->tm.operand_types[j].bitfield.qword = 0;
+		i->tm.operand_types[j].bitfield.unspecified = 0;
+		i->reg_operands= 1;
+		i->mem_operands= 1;
+
+
+		j = 0;
+		i->types[j].bitfield.reg32 = 0;
+		i->types[j].bitfield.baseindex = 1;
+
+
+		j = 1;
+		i->types[j].bitfield.reg32 = 1;
+		i->types[j].bitfield.dword = 0;
+		i->op[0].regs = NULL;
+		i->rm.mode = 0;
+		i->prefixes = 1;
+		i->sib.index = 4;
+
+
+		i->base_reg = GetRegFromName(movIns->op[0].regs->reg_name);
+
+		//FOR OP1
+		//TODO figure out i->rm.reg
+		i->rm.reg = i->op[1].regs->reg_num;
+
+		//FOR OP0
+		//TODO figure out i->rm.regmem
+		i->rm.regmem = i->op[0].regs->reg_num;
+		//TODO figure out i->sib.base
+		i->sib.base = i->base_reg->reg_num;
+
+	}
+	void MOVQ_To_LEAQ(i386_insn *i, i386_insn *movIns) {
+		i->tm.name = strdup("lea");
+		i->tm.base_opcode = 141;
+		i->tm.opcode_modifier.d = 0;
+		i->tm.opcode_modifier.w = 0;
+		i->tm.opcode_modifier.size64 = 0;
+		i->tm.opcode_modifier.no_wsuf = 0;
+		i->tm.opcode_modifier.no_lsuf = 0;
+		i->tm.opcode_modifier.no_qsuf = 0;
+		int j;
+
+		j = 0;
+		i->tm.operand_types[j].bitfield.reg64 = 0;
+		i->tm.operand_types[j].bitfield.disp8 = 1;
+		i->tm.operand_types[j].bitfield.disp16 = 1;
+		i->tm.operand_types[j].bitfield.disp32 = 1;
+		i->tm.operand_types[j].bitfield.disp32s = 1;
+		i->tm.operand_types[j].bitfield.baseindex = 1;
+		i->tm.operand_types[j].bitfield.anysize = 1;
+
+		j = 1;
+		i->tm.operand_types[j].bitfield.reg16 = 1;
+		i->tm.operand_types[j].bitfield.reg32 = 1;
+		i->tm.operand_types[j].bitfield.disp8 = 0;
+		i->tm.operand_types[j].bitfield.disp32 = 0;
+		i->tm.operand_types[j].bitfield.disp32s = 0;
+		i->tm.operand_types[j].bitfield.baseindex = 0;
+		i->tm.operand_types[j].bitfield.qword = 0;
+		i->tm.operand_types[j].bitfield.unspecified = 0;
+		i->reg_operands = 1;
+		i->mem_operands = 1;
+
+		j = 0;
+		i->types[j].bitfield.reg64 = 0;
+		i->types[j].bitfield.baseindex = 1;
+
+		j = 1;
+		i->types[j].bitfield.qword = 0;
+		i->op[0].regs = NULL; //Guessing here
+//		i->op[1].regs = GetRegFromName ("rax");
+		i->base_reg = GetRegFromName(movIns->op[0].regs->reg_name);
+		i->rm.mode = 0;
+		i->sib.index = 4;
+
+
+		//FOR OP1
+		//TODO figure out i->rm.reg
+		i->rm.reg = i->op[1].regs->reg_num;
+
+
+		//FOR OP0
+		//TODO figure out i->rm.regmem
+		i->rm.regmem = i->op[0].regs->reg_num;
+		//TODO figure out i->sib.base
+		i->sib.base = i->base_reg->reg_num;
+
+
+
+	}
     void LEAQ(i386_insn *i, i386_insn *movIns) {
           // Zero out the structure.
           memset(i, 0, sizeof(*i));
