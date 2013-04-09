@@ -71,7 +71,7 @@ public:
 //            i386_insn insn;
             if (entry->AsInstruction()->op()==OP_movq) {
                 MOVQ_To_LEAQ(entry->AsInstruction()->instruction() );
-            } else if (entry->AsInstruction()->op()==OP_mov) {
+            } else if (entry->AsInstruction()->op()==OP_cmovl) {
             	MOVL_To_LEAL(entry->AsInstruction()->instruction() );
             } else {
                 fprintf(stderr, "NEW MOV TYPE: ");
