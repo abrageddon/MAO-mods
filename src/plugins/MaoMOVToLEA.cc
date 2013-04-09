@@ -162,13 +162,13 @@ public:
 
 		//FOR OP1
 		//TODO figure out i->rm.reg
-		i->rm.reg = i->op[1].regs->reg_num;
+		i->rm.reg = movIns->op[1].regs->reg_num;
 
 		//FOR OP0
 		//TODO figure out i->rm.regmem
-		i->rm.regmem = i->op[0].regs->reg_num;
+		i->rm.regmem = movIns->op[0].regs->reg_num;
 		//TODO figure out i->sib.base
-		i->sib.base = i->base_reg->reg_num;
+		i->sib.base = movIns->base_reg->reg_num;
 
 	}
 	void MOVQ_To_LEAQ(i386_insn *i, i386_insn *movIns) {
@@ -218,14 +218,14 @@ public:
 
 		//FOR OP1
 		//TODO figure out i->rm.reg
-		i->rm.reg = i->op[1].regs->reg_num;
+		i->rm.reg = movIns->op[1].regs->reg_num;
 
 
 		//FOR OP0
 		//TODO figure out i->rm.regmem
-		i->rm.regmem = i->op[0].regs->reg_num;
+		i->rm.regmem = movIns->op[0].regs->reg_num;
 		//TODO figure out i->sib.base
-		i->sib.base = i->base_reg->reg_num;
+		i->sib.base = movIns->base_reg->reg_num;
 
 
 
