@@ -63,6 +63,10 @@ public:
                 continue;
             }
 
+            if (tracing_level() > 0){
+                entry->PrintEntry(stderr);
+            }
+
             //Pick correct LEA
 //            i386_insn insn;
             if (entry->AsInstruction()->op()==OP_movq) {
