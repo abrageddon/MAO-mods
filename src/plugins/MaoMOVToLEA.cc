@@ -56,18 +56,6 @@ public:
                 continue;
             }
 
-            //Pick correct LEA
-            i386_insn insn;
-            if (entry->AsInstruction()->op()==OP_movq) {
-                MOVQ_To_LEAQ(&insn, entry->AsInstruction()->instruction() );
-            } else if (entry->AsInstruction()->op()==OP_mov) {
-            	MOVL_To_LEAL(&insn, entry->AsInstruction()->instruction() );
-            } else {
-                fprintf(stderr, "NEW MOV TYPE: ");
-                entry->PrintEntry(stderr);
-                continue;
-            }
-
             //Found MOV candidate, roll for insertion
             unsigned int Roll = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(100);
             ++MOVCandidates;
@@ -75,23 +63,26 @@ public:
                 continue;
             }
 
+            //Pick correct LEA
+//            i386_insn insn;
+            if (entry->AsInstruction()->op()==OP_movq) {
+                MOVQ_To_LEAQ(entry->AsInstruction()->instruction() );
+            } else if (entry->AsInstruction()->op()==OP_mov) {
+            	MOVL_To_LEAL(entry->AsInstruction()->instruction() );
+            } else {
+                fprintf(stderr, "NEW MOV TYPE: ");
+                entry->PrintEntry(stderr);
+                continue;
+            }
+
+
             //Replace MOV with LEA
             ++ReplacedMOV;
 
             if (tracing_level() > 0){
-                entry->PrintEntry(stderr);
                 fprintf(stderr, " -> ");
-            }
-
-            InstructionEntry *newIns;
-            newIns = unit_->CreateInstruction(&insn, function_);
-            EntryIterator remEntry = entry;
-            remEntry->LinkAfter(newIns);
-            ++entry;
-            remEntry->Unlink();
-
-            if (tracing_level() > 0)
                 entry->PrintEntry(stderr);
+            }
 
             Changed = true;
 
@@ -107,7 +98,7 @@ public:
         }
         return true;
     }
-	void MOVL_To_LEAL(i386_insn *i, i386_insn *movIns) {
+	void MOVL_To_LEAL(i386_insn *i) {
 		i->tm.name = strdup("lea");
 		i->tm.base_opcode = 141;
 		i->tm.opcode_modifier.d = 0;
@@ -152,26 +143,27 @@ public:
 		j = 1;
 		i->types[j].bitfield.reg32 = 1;
 		i->types[j].bitfield.dword = 0;
-		i->op[0].regs = NULL;
 		i->rm.mode = 0;
 		i->prefixes = 1;
 		i->sib.index = 4;
 
 
-		i->base_reg = GetRegFromName(movIns->op[0].regs->reg_name);
+		i->base_reg = GetRegFromName(i->op[0].regs->reg_name);
 
 		//FOR OP1
 		//TODO figure out i->rm.reg
-		i->rm.reg = movIns->op[1].regs->reg_num;
+		i->rm.reg = i->op[1].regs->reg_num;
 
 		//FOR OP0
 		//TODO figure out i->rm.regmem
-		i->rm.regmem = movIns->op[0].regs->reg_num;
+		i->rm.regmem = i->op[0].regs->reg_num;
 		//TODO figure out i->sib.base
-		i->sib.base = movIns->base_reg->reg_num;
+		i->sib.base = i->base_reg->reg_num;
+
+		i->op[0].regs = NULL;
 
 	}
-	void MOVQ_To_LEAQ(i386_insn *i, i386_insn *movIns) {
+	void MOVQ_To_LEAQ(i386_insn *i) {
 		i->tm.name = strdup("lea");
 		i->tm.base_opcode = 141;
 		i->tm.opcode_modifier.d = 0;
@@ -209,24 +201,23 @@ public:
 
 		j = 1;
 		i->types[j].bitfield.qword = 0;
-		i->op[0].regs = NULL; //Guessing here
-//		i->op[1].regs = GetRegFromName ("rax");
-		i->base_reg = GetRegFromName(movIns->op[0].regs->reg_name);
+		i->base_reg = GetRegFromName(i->op[0].regs->reg_name);
 		i->rm.mode = 0;
 		i->sib.index = 4;
 
 
 		//FOR OP1
 		//TODO figure out i->rm.reg
-		i->rm.reg = movIns->op[1].regs->reg_num;
+		i->rm.reg = i->op[1].regs->reg_num;
 
 
 		//FOR OP0
 		//TODO figure out i->rm.regmem
-		i->rm.regmem = movIns->op[0].regs->reg_num;
+		i->rm.regmem = i->op[0].regs->reg_num;
 		//TODO figure out i->sib.base
-		i->sib.base = movIns->base_reg->reg_num;
+		i->sib.base = i->base_reg->reg_num;
 
+		i->op[0].regs = NULL; //Guessing here
 
 
 	}
