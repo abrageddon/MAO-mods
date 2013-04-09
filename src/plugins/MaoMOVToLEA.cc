@@ -71,11 +71,13 @@ public:
 //            i386_insn insn;
             if (entry->AsInstruction()->op()==OP_movq) {
                 MOVQ_To_LEAQ(entry->AsInstruction()->instruction() );
-            } else if (entry->AsInstruction()->op()==OP_cmovl) {
+            } else if (entry->AsInstruction()->op()==OP_mov && entry->AsInstruction()->instruction()->suffix == 108) {
             	MOVL_To_LEAL(entry->AsInstruction()->instruction() );
             } else {
-                fprintf(stderr, "NEW MOV TYPE: ");
-                entry->PrintEntry(stderr);
+                if (tracing_level() > 0){
+					fprintf(stderr, "NEW MOV TYPE: ");
+					entry->PrintEntry(stderr);
+                }
                 continue;
             }
 
