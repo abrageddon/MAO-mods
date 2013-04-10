@@ -36,10 +36,10 @@ def cacheBitcode(output, inFile):    # Build .bc file if there is no cached vers
     if ( not os.path.isfile(output) ):        
         if prDebug: sys.stderr.write ("=== To Bitcode Cache ===" +'\n')
         
-        buildBc = cmdLine
-        buildBc = re.sub(r'-o\s*\S*\.o',' ', buildBc)
-        buildBc = re.sub(r'\W-c\W',r' ', buildBc)
-        buildBc = re.sub(r'-i\s*\S*',r' ', buildBc)
+        buildBc = ' '+cmdLine+' '
+        buildBc = re.sub(r'\s-o\s+\S*\.o\s',' ', buildBc)
+        buildBc = re.sub(r'\s-c\s',' ', buildBc)
+        buildBc = re.sub(r'\s-i\s+\S*\s',' ', buildBc)
 
 	if(inFile is None):
             buildBc = [clangExec, '-o', output, '-S', '-emit-llvm'] + buildBc.split()
@@ -85,16 +85,16 @@ def linkAndCacheAssemblyBlob(output):
 
         #TODO change directory to do less file rewriting, might cause cmd line to get too long
         
-        inObj = re.findall(r'\S*\.[cCsSo]+[pPxX+]*', cmdLine)
+        inObj = re.findall(r'\s\S*\.[cCsSo]+[pPxX+]*\s', cmdLine)
 	#For each obj .o located cached .bc file
         #TODO full dir repacement
         for i,item in enumerate(inObj):
 	    if item[-2:] == '.o':
-                inObj[i] = cacheDir + "/" + re.sub(r'\.o','.bc',item)
+                inObj[i] = cacheDir + "/" + re.sub(r'\.o','.bc',item.strip())
 	    elif item[-2:] == '.c':
 	        #TODO include other source types
-	        inObj[i] = cacheDir + "/" + re.sub(r'\.c','.bc',item)
-		cacheBitcode(inObj[i], item)
+	        inObj[i] = cacheDir + "/" + re.sub(r'\.c','.bc',item.strip())
+		cacheBitcode(inObj[i], item.strip())
 
         blobBc = output + ".bc"
         llvmLink = ["llvm-link", "-S", "-o", blobBc] + inObj
@@ -105,22 +105,22 @@ def linkAndCacheAssemblyBlob(output):
     return retCode
 
 def cacheAssembly(output, inFile):
-    if prDebug: sys.stderr.write ("=== Convert Blob To Assembly ===" +'\n\n')
+    if prDebug: sys.stderr.write ("=== Convert BC To Assembly ===" +'\n\n')
     #convert to assembly blob
     #TODO use all cmd line options
-    buildFlags = cmdLine
+    buildFlags = ' '+cmdLine+' '
 
     #remove all .o files replace with blobS
     #TODO other source types
-    buildFlags = re.sub(r'\S*\.[co]',' ',buildFlags)
-    buildFlags = re.sub(r'-o\s*\S*',' ',buildFlags)
+    buildFlags = re.sub(r'\s\S*\.[cCsSo]+[pPxX+]*\s',' ',buildFlags)
+    buildFlags = re.sub(r'\s-o\s+\S*\s',' ',buildFlags)
     #TODO isolate -c flag
-    buildFlags = re.sub(r'\W-c\W',' ',buildFlags)
+    buildFlags = re.sub(r'\s-c\s',' ',buildFlags)
     #TODO Remove -l\S+ ; unused with -S
 
     assemble = [clangExec, "-o", output, "-S", inFile] + string.split(buildFlags," ")
 
-    return execBuild(assemble, "Convert Blob To Assembly")
+    return execBuild(assemble, "Convert BC To Assembly")
 
 
 
@@ -128,12 +128,12 @@ def buildBinFromBlobS(output, inFile):
     if retCode == 0:
         if prDebug: sys.stderr.write ("=== Build Bin From BlobS ===" +'\n\n')
         
-        flags = cmdLine
+        flags = ' '+cmdLine+' '
         
         #remove all .o files replace with blobSDiv
 	#TODO other source types
-        flags = re.sub(r'\S*\.[co]',' ',flags)
-        flags = re.sub(r'-o\s*\S*',' ',flags)
+        flags = re.sub(r'\s\S*\.[cCsSo]+[pPxX+]*\s',' ',flags)
+        flags = re.sub(r'\s-o\s+\S*\s',' ',flags)
         flags = re.sub(r'\s+',' ',flags)
 
         #TODO figure out how to build final bin
@@ -147,7 +147,15 @@ def buildBinFromBlobS(output, inFile):
 
 def buildBinFromObjs():
     if prDebug: sys.stderr.write ("=== Build Bin From Objs ===" +'\n\n')
-    return execBuild([gccExec] +  cmdLine.split(), "Build Bin From Objs")
+
+    buildBin = ' '+cmdLine+' '
+
+    #weird crash, dont understand
+    buildBin = re.sub(r'\s-Qunused-arguments\s',' ',buildBin)
+
+    buildBin = re.sub(r'\s+',' ',buildBin)
+
+    return execBuild([gccExec] +  buildBin.strip().split(), "Build Bin From Objs")
     
 
 
@@ -156,10 +164,13 @@ def buildObjFromASM(output, inFile):
     if (not os.path.isfile(output) ):
         if prDebug: sys.stderr.write ("=== ASM To Obj ===" +'\n')
 
-	buildObj=cmdLine
+	buildObj=' '+cmdLine+' '
             
-	buildObj=re.sub(r'\S*\.[cCsS]+[^o\s]?[pPxX+]*','',buildObj)
-	buildObj=re.sub(r'-o[\s]*[\S]*','',buildObj)
+	buildObj=re.sub(r'\s\S*\.[cCsS]+[^o\s]?[pPxX+]*\s',' ',buildObj)
+	buildObj=re.sub(r'\s-o\s+\S*\s',' ',buildObj)
+
+        #weird crash, dont understand
+    	buildObj = re.sub(r'\s-Qunused-arguments\s',' ',buildObj)
         buildObj = re.sub(r'\s+',' ',buildObj)
         
         buildObj = [gccExec, '-Wa', inFile, '-o', output]+ buildObj.strip().split(' ')
@@ -230,12 +241,12 @@ def main():
 
     # Determine needed files
     # find output file
-    outFile = string.join(re.findall(r'-o\s*\S*', cmdLine), ' ')
+    outFile = string.join(re.findall(r'\s-o\s+\S*\s', cmdLine), ' ')
     
     doFull=False
-    if not bool(re.search(r'-o',cmdLine)) :
+    if not bool(re.search(r'\s-o\s',cmdLine)) :
         doFull=True
-        inSrc = re.findall(r'\S*\.[cCsS]+[^o]?[pPxX+]*', cmdLine)
+        inSrc = re.findall(r'\s\S*\.[cCsS]+[^o]?[pPxX+]*\s', cmdLine)
         if len(inSrc) == 1 :
             outFile = re.sub(r'\.[cCsS]+[^o]?[pPxX+]*','.o',os.path.basename(inSrc[0]))
     
