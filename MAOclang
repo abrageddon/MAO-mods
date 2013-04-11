@@ -127,8 +127,10 @@ def cacheAssembly(output, inFile):
 
         if doBuildObj:
             if(inFile is None):
+                #assemble = [clangExec, '-o', output, '-S'] + buildFlags.strip().split()
                 assemble = [gccExec, '-o', output, '-S'] + buildFlags.strip().split()
             else:
+                #assemble = [clangExec, '-o', output, '-S', inFile]
                 assemble = [gccExec, '-o', output, '-S', inFile]
                 #assemble = [gccExec, "-o", output, "-S", inFile] + string.split(buildFlags.strip()," ")
         else:
@@ -189,6 +191,8 @@ def buildObjFromASM(output, inFile):
         buildObj = re.sub(r'\s+',' ',buildObj)
 
         buildObj = [gccExec, '-Wa', inFile, '-o', output]+ buildObj.strip().split(' ')
+        #TODO explore using as further
+        #buildObj = ['as', inFile, '-o', output]+ buildObj.strip().split(' ')
 
         if prDebug: sys.stderr.write (string.join(buildObj,' ')+'\n\n')
         return execBuild(buildObj,"ASM To Obj")
@@ -203,8 +207,10 @@ def main():
     gccExec = 'gcc'
     global retCode
     retCode = 0
+
     global prDebug
     prDebug=False # output to std err
+
     global mkdirFlag
     mkdirFlag=True # really make dirs, not just print
     global realBuild
@@ -255,7 +261,8 @@ def main():
          #or bool(re.search(r'\s*ns(ThreadUtils|ProxyRelease|ConsoleService|MemoryImpl|CycleCollector|Array).cpp\s*',cmdLine)) #TODO figure out this firefox bug; maybe need preprocessing step? error including dist/include/nsThreadUtils.h
          #or bool(re.search(r'\s*(ClearOnShutdown|VisualEventTracer).cpp\s*',cmdLine)) #TODO 
         ):
-	retCode = execBuild([clangExec] + cmdLine.strip().split(), "Excluded Build")
+	retCode = execBuild([gccExec] + cmdLine.strip().split(), "Excluded Build")
+	#retCode = execBuild([clangExec] + cmdLine.strip().split(), "Excluded Build")
 	sys.exit(retCode)
 
     # Determine needed files
@@ -312,8 +319,8 @@ def main():
     # There is an .o output file we want to cache
     if len(objFile) != 0:
         # determine location of cached bitcode
-        
-        cacheBitcode(bcFile,None)
+        if not doBuildObj or doBuildBlob:
+            cacheBitcode(bcFile,None)
 	
 	if doBuildObj :
 	    cacheAssembly(asmFile, None)
