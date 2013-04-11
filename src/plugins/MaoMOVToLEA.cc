@@ -52,7 +52,12 @@ public:
             ++PreMOVtoLEAInstructionCount;
 
             //Determine if is MOV between registers
-            if (!entry->IsInstruction() || !entry->AsInstruction()->IsOpMov() || !entry->AsInstruction()->IsRegisterOperand(0)  || !entry->AsInstruction()->IsRegisterOperand(1) ) {
+            if (!entry->IsInstruction()
+                    || !entry->AsInstruction()->IsOpMov()
+                    || !entry->AsInstruction()->IsRegisterOperand(0)
+                    || !entry->AsInstruction()->IsRegisterOperand(1)
+                    || entry->AsInstruction()->IsRegisterXMMOperand(0)
+                    || entry->AsInstruction()->IsRegisterXMMOperand(1)) {
                 continue;
             }
 
