@@ -43,3 +43,27 @@ Files:
 ./src/plugins/MaoNOPInsertion.cc
     Working
 
+
+
+
+
+
+errors:
+obj-ff-dbg/memory/mozjemalloc/jemalloc.c
+Error: invalid instruction suffix for `data16'
+MAO issue; possible rewrite is s/data16w/data16/g
+
+obj-ff-dbg/js/src/shell/js
+../../../dist/lib/libmemory.a(jemalloc.o):
+/home/ubuntu/workspace/bcache/mozilla-central/obj-ff-dbg/memory/mozjemalloc/jemalloc.bc:
+function malloc: error: TLS relocation against invalid instruction
+mystery bug
+
+
+
+check assembly generation and use for obj build
+
+
+
+
+

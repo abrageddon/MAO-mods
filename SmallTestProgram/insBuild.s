@@ -1,1 +1,1 @@
-leaq    (%rdi), %rdi
+movq    %mm4, %mm2
