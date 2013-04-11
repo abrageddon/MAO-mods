@@ -56,8 +56,8 @@ public:
                     || !entry->AsInstruction()->IsOpMov()
                     || !entry->AsInstruction()->IsRegisterOperand(0)
                     || !entry->AsInstruction()->IsRegisterOperand(1)
-                    || entry->AsInstruction()->IsRegisterXMMOperand(0)
-                    || entry->AsInstruction()->IsRegisterXMMOperand(1)) {
+                    || entry->AsInstruction()->instruction()->types[0].bitfield.regmmx == 1
+                    || entry->AsInstruction()->instruction()->types[1].bitfield.regmmx == 1) {
                 continue;
             }
 

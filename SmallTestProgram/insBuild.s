@@ -1,1 +1,1 @@
-movl    %eax, %eax
+movq    %mm4, %mm2
