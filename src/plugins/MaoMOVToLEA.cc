@@ -57,7 +57,11 @@ public:
                     || !entry->AsInstruction()->IsRegisterOperand(0)
                     || !entry->AsInstruction()->IsRegisterOperand(1)
                     || entry->AsInstruction()->instruction()->types[0].bitfield.regmmx == 1
-                    || entry->AsInstruction()->instruction()->types[1].bitfield.regmmx == 1) {
+                    || entry->AsInstruction()->instruction()->types[1].bitfield.regmmx == 1
+                    || entry->AsInstruction()->instruction()->types[0].bitfield.regxmm == 1
+                    || entry->AsInstruction()->instruction()->types[1].bitfield.regxmm == 1
+                    || entry->AsInstruction()->instruction()->types[0].bitfield.regymm == 1
+                    || entry->AsInstruction()->instruction()->types[1].bitfield.regymm == 1) {
                 continue;
             }
 
