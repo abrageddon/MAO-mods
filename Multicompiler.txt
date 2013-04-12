@@ -65,5 +65,5 @@ check assembly generation and use for obj build
 
 
 
-
+ buildObj = [gccExec, '-Wa', inFile, '-o', output]+ buildObj.strip().split(' ')
 

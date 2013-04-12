@@ -4,7 +4,7 @@
 #=========================================================
 
 # UBUNTU required packages
-sudo apt-get install build-essential autoconf automake texinfo zlib1g-dev bison flex
+sudo apt-get install build-essential autoconf automake texinfo zlib1g-dev bison flex binutils-gold
 
 
 # Set target to i686-linux or x86_64
