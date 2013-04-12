@@ -353,8 +353,8 @@ def initVars(varList):
             continue
         
         if isCompGen:
-            #compilerFlags += flag
-            generateAssemblyFlags += flag
+            #compilerFlags += var
+            generateAssemblyFlags += var
             isCompGen=False
             continue
                 
@@ -369,6 +369,8 @@ def initVars(varList):
         elif var == '-E':
             excludeBuild()
         elif var == '-S':
+            excludeBuild()
+        elif var[:16] == '-print-prog-name':
             excludeBuild()
         elif (var == '-v' or var == '-V' 
             or var == '--version' 
