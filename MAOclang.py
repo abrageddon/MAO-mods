@@ -353,8 +353,8 @@ def initVars(varList):
             continue
         
         if isCompGen:
-            #compilerFlags += var
-            generateAssemblyFlags += var
+            #compilerFlags += [var]
+            generateAssemblyFlags += [var]
             isCompGen=False
             continue
                 
