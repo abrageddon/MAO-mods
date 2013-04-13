@@ -15,8 +15,8 @@ def main():
     mkdirFlag=True 
     # really build, not just print
     realBuild=True
-    doBuildObj=True
-    doBuildBlob=False
+    doBuildObj=False
+    doBuildBlob=True
     doDiv=True
     
     
@@ -29,8 +29,6 @@ def main():
     retCode = 0
 
     # make args a single string
-    global cmdLine
-    cmdLine = ' '+ string.join(sys.argv[1:], ' ')+' '
     #TODO pullout flags
     #TODO -buildObject explicit flag
 
@@ -40,7 +38,8 @@ def main():
     global generateAssemblyFlags
     global sources
     global objects
-    compilerFlags = sys.argv[1:]
+    ## GOLD INCLUDE FIX
+    compilerFlags = ['-L/usr/local/lib'] + sys.argv[1:]
     blobCompilerFlags = []
     assemblerFlags = []
     generateAssemblyFlags = []
