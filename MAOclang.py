@@ -332,7 +332,23 @@ def initVars(varList):
     
     generateAssemblyFlags += ['-S']
 
-    buildObjList = ["host_stdc++compat.o",]
+    buildObjList = ["host_stdc++compat.o", "stdc++compat.o", "bignum-dtoa.o"
+        , "bignum.o", "cached-powers.o", "diy-fp.o", "double-conversion.o"
+        , "fast-dtoa.o", "fixed-dtoa.o", "strtod.o", "HashFunctions.o", "jemalloc.o"
+        , "extraMallocFuncs.o", "adler32.o", "compress.o", "crc32.o", "deflate.o"
+        , "gzclose.o", "gzlib.o", "gzread.o", "gzwrite.o", "infback.o", "inffast.o"
+        , "inflate.o", "inftrees.o", "trees.o", "ncompr.o", "dummy.o", "zutil.o"
+        , "prvrsion.o", "prfdcach.o", "prmwait.o", "prmapopt.o", "priometh.o"
+        , "pripv6.o", "prlayer.o", "prlog.o", "prmmap.o", "prpolevt.o", "prprf.o"
+        , "prscanf.o", "prstdio.o", "prcmon.o", "prrwlock.o", "prtpd.o", "prlink.o"
+        , "prmalloc.o", "prmem.o", "prosdep.o", "prshm.o", "prshma.o", "prseg.o"
+        , "pralarm.o", "pratom.o", "prcountr.o", "prdtoa.o", "prenv.o", "prerr.o"
+        , "prerror.o", "prerrortable.o", "prinit.o", "prinrval.o", "pripc.o"
+        , "prlog2.o", "prlong.o", "prnetdb.o", "praton.o", "prolock.o", "prrng.o"
+        , "prsystem.o", "prthinfo.o", "prtpool.o", "prtrace.o", "prtime.o"
+        , "ptsynch.o", "ptio.o", "ptthread.o", "ptmisc.o", "unix.o", "unix_errors.o"
+        , "uxproces.o", "uxrng.o", "uxshm.o", "uxwrap.o", "linux.o", "os_Linux_x86_64.o"
+        ]
 
     for var in varList:
         #Final compile must be ordered specifically
@@ -343,24 +359,9 @@ def initVars(varList):
             if var[-2:] == '.o':
                 #FIREFOX
                 #Objects explicitly needed
-                if ("host_stdc++compat.o" in var                    or "stdc++compat.o" in var
-                    or "bignum-dtoa.o" in var                    or "bignum.o" in var
-                    or "cached-powers.o" in var                    or "diy-fp.o" in var
-                    or "double-conversion.o" in var                    or "fast-dtoa.o" in var
-                    or "fixed-dtoa.o" in var                    or "strtod.o" in var
-                    or "HashFunctions.o" in var                    or "jemalloc.o" in var
-                    or "extraMallocFuncs.o" in var                   or "adler32.o" in var
-                    or "compress.o" in var                   or "infback.o" in var 
-                    or "crc32.o" in var                   or "inffast.o" in var 
-                    or "deflate.o" in var                   or "inflate.o" in var 
-                    or "gzclose.o" in var                   or "inftrees.o" in var 
-                    or "gzlib.o" in var                   or "trees.o" in var 
-                    or "gzread.o" in var                   or "ncompr.o" in var 
-                    or "gzwrite.o" in var                   or "zutil.o" in var 
-                    or "dummy.o" in var#                   or "" in var 
-                    #or "" in var                   or "" in var 
-                    ):
-                    doBuildObj = True
+                for item in buildObjList:
+                    if ( item in var):
+                        doBuildObj = True
 
                 objFile = var
                 rawFile = var[:-2]
