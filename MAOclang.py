@@ -74,7 +74,7 @@ def main():
         
 
     # TODO make portable; raw compile configure
-    if ( False #bool(re.search(r'workspace/[^/]+/[^/]+\Z',os.getcwd())) # configure fix
+    if ( bool(re.search(r'workspace/[^/]+/[^/]+\Z',os.getcwd())) # configure fix
          or bool(re.search(r'\sconftest\.[ocC]?\s',cmdLine)) #conf exempt
          #or bool(re.search(r'/config/?',os.getcwd())) #config folder exempt
         ):
