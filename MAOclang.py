@@ -363,6 +363,7 @@ def initVars(varList):
 #TODO add seed, percent, debug flags to be read from commandline    
 #    if (sys.argv[1] == "-prDebug"):prDebug = True
 
+
         if var == '':
             continue
         #FLAGS
@@ -370,7 +371,11 @@ def initVars(varList):
             excludeBuild()
         elif var == '-S':
             excludeBuild()
-        elif var[:16] == '-print-prog-name':
+        elif var == '-pedantic':
+            generateAssemblyFlags += [var]
+        elif (var[:16] == '-print-prog-name'
+            or var == '-print-search-dirs'
+            or var == '-print-multi-os-directory'):
             excludeBuild()
         elif (var == '-v' or var == '-V' 
             or var == '--version' 
