@@ -35,12 +35,13 @@ def main():
     #TODO -buildObject explicit flag
 
     global compilerFlags
+    global blobCompilerFlags
     global assemblerFlags
     global generateAssemblyFlags
     global sources
     global objects
-    #compilerFlags = []
     compilerFlags = sys.argv[1:]
+    blobCompilerFlags = []
     assemblerFlags = []
     generateAssemblyFlags = []
     sources = []
@@ -216,17 +217,10 @@ def cacheBitcode(output, inFile=None):    # Build .bc file if there is no cached
     if ( not os.path.isfile(output) ):        
         if prDebug: sys.stderr.write ("=== To Bitcode Cache ===" +'\n\n')
         
-        buildBc = cmdLine
-        buildBc = re.sub(r'\s-o\s+\S+\.o\s',' ', buildBc)
-        buildBc = re.sub(r'\s-c\s',' ', buildBc)
-        buildBc = re.sub(r'\s-i\s+\S+\s',' ', buildBc)
-
         if(inFile is None):
-            buildBc = [clangExec, '-o', output, '-S', '-emit-llvm'] + buildBc.split()
+            buildBc = [clangExec, '-o', output, '-emit-llvm'] + generateAssemblyFlags + sources
         else:
             buildBc = [clangExec, '-o', output, '-S', '-emit-llvm', inFile]
-
-        #TODO remove un needed flags, -I file, 
         
         return execBuild(buildBc,"To Bitcode Cache")
     return retCode
@@ -237,20 +231,19 @@ def linkAndCacheAssemblyBlob(output):
         if prDebug: sys.stderr.write ("=== Linking Bitcode Files ===" +'\n\n')
 
         #TODO change directory to do less file rewriting, might cause cmd line to get too long
+        inObj = objects
+        inSrc = sources
         
-        inObj = re.findall(r'\s\S+\.[cCsSo]+[pPxX+]*\s', cmdLine)
         #For each obj .o located cached .bc file
-        #TODO full dir repacement
-        for i,item in enumerate(inObj):
-            if item[-2:] == '.o':
-                inObj[i] = cacheDir + "/" + re.sub(r'\.o','.bc',item.strip())
-            elif item[-2:] == '.c':
-                #TODO include other source types
-                inObj[i] = cacheDir + "/" + re.sub(r'\.c','.bc',item.strip())
-    	        cacheBitcode(inObj[i], item.strip())
+        for i,item in enumerate(objects):
+            inObj[i] = cacheDir + "/" + item[:-1] + 'bc'
+        
+        for i,item in enumerate(sources):
+            inSrc[i] = cacheDir + "/" + re.sub(r'\.[cC]+[pPxX+]*','.bc',item)
+            cacheBitcode(inSrc[i], item)
 
         blobBc = output + ".bc"
-        llvmLink = ["llvm-link", "-S", "-o", blobBc] + inObj
+        llvmLink = ["llvm-link", "-S", "-o", blobBc] + inObj + inSrc
         retCode = execBuild(llvmLink, "Linking Bitcode Files") and retCode
         
         if retCode == 0:
@@ -260,21 +253,14 @@ def linkAndCacheAssemblyBlob(output):
 def buildBinFromBlobS(output, inFile):
     if retCode == 0:
         if prDebug: sys.stderr.write ("=== Build Bin From BlobS ===" +'\n\n')
-        
-        flags = cmdLine
-        
-        #remove all .o files replace with blobSDiv
-	    #TODO other source types
-        flags = re.sub(r'\s\S+\.[cCsSo]+[pPxX+]*\s',' ',flags)
-        flags = re.sub(r'\s-o\s+\S+\s',' ',flags)
-        flags = re.sub(r'\s+',' ',flags)
 
         #TODO figure out how to build final bin
-        #buildBin = ['as', "-o", output, inFile] 
-        buildBin = [gccExec, '-Wa', "-o", output, inFile] + string.split(flags.strip(),' ')
+        buildBin = ['as', "-o", output, inFile]
+        #buildBin = [gccExec, '-Wa', "-o", output, inFile] + blobCompilerFlags
         #buildBin = [gccExec, "-Wa,-alh,-L", "-o", output, inFile] + string.split(flags.strip(),' ')
         #buildBin = [clangExec, "-o", output, inFile] + string.split(flags,' ')
 
+        if prDebug: sys.stderr.write (string.join(buildBin,' ')+'\n\n')
         return execBuild(buildBin, "Build Bin From BlobS")
     return retCode
     
@@ -312,6 +298,7 @@ def errorCatch(retCode, cmd, mesg):
         sys.stderr.write( 'assemblerFlags: ' + str(assemblerFlags) +'\n')
         sys.stderr.write( 'generateAssemblyFlags: ' + str(generateAssemblyFlags) +'\n')
         sys.stderr.write( 'compilerFlags: ' + str(compilerFlags) +'\n\n')
+        sys.stderr.write( 'blobCompilerFlags: ' + str(blobCompilerFlags) +'\n\n')
         
         sys.stderr.write( 'sources: ' + str(sources) +'\n')
         sys.stderr.write( 'objects: ' + str(objects) +'\n\n')
@@ -327,7 +314,7 @@ def initVars(varList):
     global objFile
     global binFile
     
-    global compilerFlags
+    global blobCompilerFlags
     global assemblerFlags
     global generateAssemblyFlags
     global sources
@@ -353,7 +340,7 @@ def initVars(varList):
             continue
         
         if isCompGen:
-            #compilerFlags += [var]
+            blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
             isCompGen=False
             continue
@@ -371,8 +358,6 @@ def initVars(varList):
             excludeBuild()
         elif var == '-S':
             excludeBuild()
-        elif var == '-pedantic':
-            generateAssemblyFlags += [var]
         elif (var[:16] == '-print-prog-name'
             or var == '-print-search-dirs'
             or var == '-print-multi-os-directory'):
@@ -385,29 +370,32 @@ def initVars(varList):
         elif var == '-Qunused-arguments':
             #-Qunused-arguments caused problems and is therefore ...unused...
             continue
+        elif var == '-pedantic':
+            blobCompilerFlags += [var]
+            generateAssemblyFlags += [var]
         elif var[:2] == '-L':
-            #compilerFlags += [var]
+            blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
         elif var[:2] == '-D':
-            #compilerFlags += [var]
+            blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
         elif var[:2] == '-O':
-            #compilerFlags += [var]
+            blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
         elif var[:2] == '-I':
-            #compilerFlags += [var]
+            blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
         elif var[:2] == '-W':
-            #compilerFlags += [var]
+            blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
         elif var[:2] == '-f':
-            #compilerFlags += [var]
+            blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
         elif var[:2] == '-l':
-            #compilerFlags += [var]
+            blobCompilerFlags += [var]
             assemblerFlags += [var]
         elif var == '-include':
-            #compilerFlags += [var]
+            blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
             isCompGen = True
         elif var == '-o':
@@ -415,7 +403,7 @@ def initVars(varList):
             continue
         elif var == '-c':
             pass
-            #compilerFlags += [var]
+            blobCompilerFlags += [var]
         elif var[:1] == '-':
             addFlagsAll(var)
         #FILES    
@@ -468,10 +456,10 @@ def initVars(varList):
     
     
 def addFlagsAll(flag):
-    global compilerFlags
+    global blobCompilerFlags
     global assemblerFlags
     global generateAssemblyFlags
-    #compilerFlags += [flag]
+    blobCompilerFlags += [flag]
     assemblerFlags += [flag]
     generateAssemblyFlags += [flag]
     
