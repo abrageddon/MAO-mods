@@ -414,6 +414,8 @@ def initVars(varList):
             or var[-4:] == '.cxx' or var[-4:] == '.cxx' 
             or var[-4:] == '.CXX' or var[-4:] == '.CXX'):
             sources += [var]
+        elif (var[-2:] == '.s' or var[-2:] == '.S'):
+            sources += [var]
         elif (var[-2:] == '.o' or var[-2:] == '.O'):
             objects += [var]
         else:
