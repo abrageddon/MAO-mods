@@ -80,7 +80,7 @@ def main():
     # TODO make portable; raw compile configure
     if ( doExcludeBuild
          or bool(re.search(r'workspace/[^/]+/[^/]+\Z',os.getcwd())) #FIREFOX
-         or bool(re.search(r'conftest\.[ocC]?\s',cmdLine)) #conf exempt
+         or bool(re.search(r'conftest\.?[ocC]*\s?',cmdLine)) #conf exempt
          or bool(re.search(r'/config/?',os.getcwd())) #FIREFOX
         ):
         excludeBuild()
@@ -243,7 +243,7 @@ def linkAndCacheAssemblyBlob(output):
             inObj[i] = cacheDir + "/" + item[:-1] + 'bc'
         
         for i,item in enumerate(sources):
-            inSrc[i] = cacheDir + "/" + re.sub(r'\.[cC]+[pPxX+]*','.bc',item)
+            inSrc[i] = cacheDir + "/" + re.sub(r'\.[cCsS]+[pPxX+]*','.bc',item)
             cacheBitcode(inSrc[i], item)
 
         blobBc = output + ".bc"
@@ -299,9 +299,9 @@ def errorCatch(retCode, cmd, mesg):
         sys.stderr.write( 'objFile: ' + objFile +'\n')
         sys.stderr.write( 'binFile: ' + binFile +'\n\n')
         
-        sys.stderr.write( 'assemblerFlags: ' + str(assemblerFlags) +'\n')
-        sys.stderr.write( 'generateAssemblyFlags: ' + str(generateAssemblyFlags) +'\n')
         sys.stderr.write( 'compilerFlags: ' + str(compilerFlags) +'\n\n')
+        sys.stderr.write( 'generateAssemblyFlags: ' + str(generateAssemblyFlags) +'\n\n')
+        sys.stderr.write( 'assemblerFlags: ' + str(assemblerFlags) +'\n\n')
         sys.stderr.write( 'blobCompilerFlags: ' + str(blobCompilerFlags) +'\n\n')
         
         sys.stderr.write( 'sources: ' + str(sources) +'\n')
@@ -332,15 +332,36 @@ def initVars(varList):
     
     generateAssemblyFlags += ['-S']
 
+    buildObjList = ["host_stdc++compat.o",]
+
     for var in varList:
         #Final compile must be ordered specifically
         #compilerFlags += [var]
+# adler32.o compress.o crc32.o deflate.o gzclose.o gzlib.o gzread.o gzwrite.o infback.o inffast.o inflate.o inftrees.o trees.o uncompr.o zutil.o
         
         if isOutput:
-            #FIREFOX
             if var[-2:] == '.o':
-                if var == 'host_stdc++compat.o':
+                #FIREFOX
+                #Objects explicitly needed
+                if ("host_stdc++compat.o" in var                    or "stdc++compat.o" in var
+                    or "bignum-dtoa.o" in var                    or "bignum.o" in var
+                    or "cached-powers.o" in var                    or "diy-fp.o" in var
+                    or "double-conversion.o" in var                    or "fast-dtoa.o" in var
+                    or "fixed-dtoa.o" in var                    or "strtod.o" in var
+                    or "HashFunctions.o" in var                    or "jemalloc.o" in var
+                    or "extraMallocFuncs.o" in var                   or "adler32.o" in var
+                    or "compress.o" in var                   or "infback.o" in var 
+                    or "crc32.o" in var                   or "inffast.o" in var 
+                    or "deflate.o" in var                   or "inflate.o" in var 
+                    or "gzclose.o" in var                   or "inftrees.o" in var 
+                    or "gzlib.o" in var                   or "trees.o" in var 
+                    or "gzread.o" in var                   or "ncompr.o" in var 
+                    or "gzwrite.o" in var                   or "zutil.o" in var 
+                    or "dummy.o" in var#                   or "" in var 
+                    #or "" in var                   or "" in var 
+                    ):
                     doBuildObj = True
+
                 objFile = var
                 rawFile = var[:-2]
             else:
@@ -381,7 +402,15 @@ def initVars(varList):
         elif var == '-Qunused-arguments':
             #-Qunused-arguments caused problems and is therefore ...unused...
             continue
-        elif var == '-pedantic':
+        elif var == '-include':
+            blobCompilerFlags += [var]
+            generateAssemblyFlags += [var]
+            isCompGen = True
+        elif (var[:4] == '-std'
+            or var == '-pthread'
+            or var == '-pedantic'
+            or var == '-pipe'
+            ):
             blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
         elif var[:2] == '-L':
@@ -406,10 +435,6 @@ def initVars(varList):
             #compilerFlags = ['-L/usr/local/lib', '-L/lib/x86_64-linux-gnu', '-L/usr/lib/x86_64-linux-gnu'] + compilerFlags
             blobCompilerFlags += [var]
             assemblerFlags += [var]
-        elif var == '-include':
-            blobCompilerFlags += [var]
-            generateAssemblyFlags += [var]
-            isCompGen = True
         elif var == '-o':
             isOutput = True
             continue
@@ -426,6 +451,10 @@ def initVars(varList):
             or var[-4:] == '.cxx' or var[-4:] == '.cxx' 
             or var[-4:] == '.CXX' or var[-4:] == '.CXX'):
             sources += [var]
+        elif (var[-3:] == '.pp' or var[-3:] == '.PP'  or var[-2:] == '.a'):
+            #FIREFOX
+            blobCompilerFlags += [var]
+            generateAssemblyFlags += [var]
         elif (var[-2:] == '.s' or var[-2:] == '.S'):
             sources += [var]
         elif (var[-2:] == '.o' or var[-2:] == '.O'):
@@ -447,6 +476,9 @@ def initVars(varList):
         if len(sources) == 1 :
             objFile = re.sub(r'\.[cCsS]+[^o]?[pPxX+]*','.o',os.path.basename(sources[0]))
             rawFile = objFile[:-2]
+    
+    if len(binFile)==0 and len(objFile)==0 :
+        binFile = 'a.out'
     
     rawFile = os.path.realpath(rawFile)
     cachedFile = re.sub(r'/home/'+getpass.getuser()+r'/workspace/','/home/'+getpass.getuser()+r'/workspace/bcache/',rawFile)
