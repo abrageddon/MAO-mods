@@ -23,10 +23,12 @@ def main():
     global clangExec
     global gccExec
     global retCode
+    global doExcludeBuild
     
     clangExec = 'clang'
     gccExec = 'gcc'
     retCode = 0
+    doExcludeBuild = False
 
     # make args a single string
     #TODO pullout flags
@@ -38,8 +40,8 @@ def main():
     global generateAssemblyFlags
     global sources
     global objects
-    ## GOLD INCLUDE FIX
-    compilerFlags = ['-L/usr/local/lib'] + sys.argv[1:]
+
+    compilerFlags = sys.argv[1:]
     blobCompilerFlags = []
     assemblerFlags = []
     generateAssemblyFlags = []
@@ -69,13 +71,17 @@ def main():
         clangExec = 'clang++'
         gccExec = 'g++'
     
+    global cmdLine
+    cmdLine = ' ' + string.join(sys.argv[1:],' ') + ' '
+
     initVars(sys.argv[1:])
-        
+
 
     # TODO make portable; raw compile configure
-    if ( bool(re.search(r'workspace/[^/]+/[^/]+\Z',os.getcwd())) #FIREFOX
-         or bool(re.search(r'\sconftest\.[ocC]?\s',cmdLine)) #conf exempt
-         #or bool(re.search(r'/config/?',os.getcwd())) #config folder exempt
+    if ( doExcludeBuild
+         or bool(re.search(r'workspace/[^/]+/[^/]+\Z',os.getcwd())) #FIREFOX
+         or bool(re.search(r'conftest\.[ocC]?\s',cmdLine)) #conf exempt
+         or bool(re.search(r'/config/?',os.getcwd())) #FIREFOX
         ):
         excludeBuild()
 
@@ -89,7 +95,6 @@ def main():
     blobSDiv = cachedFile + ".blob.div.s"
 
 
-    #errorCatch(1,'DEBUGGING','DEBUG')
     
     # There is an .o output file we want to cache
     if len(objFile)!=0:
@@ -280,8 +285,8 @@ def failBuild():
 def excludeBuild():
     # Something didn't work. Fail back to compile from scratch.
     if prDebug: sys.stderr.write ("=== Excluded Build Attempt ===" +'\n\n')
-    retCode = execBuild([gccExec] + compilerFlags, "Excluded Build")
-    #retCode = execBuild([clangExec] + cmdLine.strip().split(), "Excluded Build")
+    #retCode = execBuild([gccExec] + compilerFlags, "Excluded Build")
+    retCode = execBuild([clangExec] + compilerFlags, "Excluded Build")
     sys.exit(retCode)
 
 def errorCatch(retCode, cmd, mesg):
@@ -313,12 +318,14 @@ def initVars(varList):
     global objFile
     global binFile
     
+    global compilerFlags
     global blobCompilerFlags
     global assemblerFlags
     global generateAssemblyFlags
     global sources
     global objects
     global doBuildObj
+    global doExcludeBuild
     
     isOutput = False
     isCompGen = False
@@ -359,18 +366,18 @@ def initVars(varList):
             continue
         #FLAGS
         elif var == '-E':
-            excludeBuild()
+            doExcludeBuild = True
         elif var == '-S':
-            excludeBuild()
+            doExcludeBuild = True
         elif (var[:16] == '-print-prog-name'
             or var == '-print-search-dirs'
             or var == '-print-multi-os-directory'):
-            excludeBuild()
+            doExcludeBuild = True
         elif (var == '-v' or var == '-V' 
             or var == '--version' 
             or var == '-qversion' 
             or var == '-dumpversion'):
-            excludeBuild()
+            doExcludeBuild = True
         elif var == '-Qunused-arguments':
             #-Qunused-arguments caused problems and is therefore ...unused...
             continue
@@ -396,6 +403,7 @@ def initVars(varList):
             blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
         elif var[:2] == '-l':
+            #compilerFlags = ['-L/usr/local/lib', '-L/lib/x86_64-linux-gnu', '-L/usr/lib/x86_64-linux-gnu'] + compilerFlags
             blobCompilerFlags += [var]
             assemblerFlags += [var]
         elif var == '-include':
