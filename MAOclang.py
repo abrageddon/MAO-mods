@@ -74,7 +74,7 @@ def main():
         
 
     # TODO make portable; raw compile configure
-    if ( bool(re.search(r'workspace/[^/]+/[^/]+\Z',os.getcwd())) # configure fix
+    if ( bool(re.search(r'workspace/[^/]+/[^/]+\Z',os.getcwd())) #FIREFOX
          or bool(re.search(r'\sconftest\.[ocC]?\s',cmdLine)) #conf exempt
          #or bool(re.search(r'/config/?',os.getcwd())) #config folder exempt
         ):
@@ -319,6 +319,8 @@ def initVars(varList):
     global generateAssemblyFlags
     global sources
     global objects
+    global doBuildObj
+    
     isOutput = False
     isCompGen = False
     
@@ -329,7 +331,10 @@ def initVars(varList):
         #compilerFlags += [var]
         
         if isOutput:
+            #FIREFOX
             if var[-2:] == '.o':
+                if var == 'host_stdc++compat.o':
+                    doBuildObj = True
                 objFile = var
                 rawFile = var[:-2]
             else:
