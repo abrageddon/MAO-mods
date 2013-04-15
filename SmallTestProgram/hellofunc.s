@@ -1,26 +1,39 @@
 	.file	"hellofunc.c"
-	.section	.rodata
-.LC0:
-	.string	"Hello makefiles!"
 	.text
 	.globl	myPrintHelloMake
-	.type	myPrintHelloMake, @function
-myPrintHelloMake:
-.LFB0:
+	.align	16, 0x90
+	.type	myPrintHelloMake,@function
+myPrintHelloMake:                       # @myPrintHelloMake
+.Ltmp2:
 	.cfi_startproc
+# BB#0:
 	pushq	%rbp
+.Ltmp3:
 	.cfi_def_cfa_offset 16
-	.cfi_offset 6, -16
+.Ltmp4:
+	.cfi_offset %rbp, -16
 	movq	%rsp, %rbp
-	.cfi_def_cfa_register 6
-	movl	$.LC0, %edi
-	call	puts
-	nop
+.Ltmp5:
+	.cfi_def_cfa_register %rbp
+	subq	$16, %rsp
+	leaq	.L.str, %rdi
+	movb	$0, %al
+	callq	printf
+	movl	%eax, -4(%rbp)          # 4-byte Spill
+	addq	$16, %rsp
 	popq	%rbp
-	.cfi_def_cfa 7, 8
 	ret
+.Ltmp6:
+	.size	myPrintHelloMake, .Ltmp6-myPrintHelloMake
+.Ltmp7:
 	.cfi_endproc
-.LFE0:
-	.size	myPrintHelloMake, .-myPrintHelloMake
-	.ident	"GCC: (Ubuntu/Linaro 4.7.2-2ubuntu1) 4.7.2"
-	.section	.note.GNU-stack,"",@progbits
+.Leh_func_end0:
+
+	.type	.L.str,@object          # @.str
+	.section	.rodata.str1.1,"aMS",@progbits,1
+.L.str:
+	.asciz	 "Hello makefiles!\n"
+	.size	.L.str, 18
+
+
+	.section	".note.GNU-stack","",@progbits
