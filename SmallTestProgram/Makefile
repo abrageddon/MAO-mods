@@ -2,8 +2,8 @@ CFLAGS+=-I.
 DEPS = hellomake.h
 OBJ = hellomake.o hellofunc.o 
 ASS = hellomake.s hellofunc.s 
-CC = MAOclang
-CXX = MAOclang++
+CC = MAOclang.pyc
+CXX = MAOclang.pyc++
 
 %.c: $(DEPS)
 

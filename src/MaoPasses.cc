@@ -442,9 +442,9 @@ bool MaoFunctionPassManager::Go() {
 void InitPasses() {
   // Static Option Passes
   RegisterStaticOptionPass("READ", new MaoOptionMap);
-//  InitCFG();
-//  InitRelax();
-//  InitLoops();
+    InitCFG();
+    InitRelax();
+    InitLoops();
 }
 
 // Code to maintain the set of available passes
