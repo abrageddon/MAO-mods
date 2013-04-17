@@ -8,6 +8,7 @@ def main():
     global doBuildObj
     global doBuildBlob
     global doDiv
+    global useMAO
     
     # output to std err
     prDebug=False
@@ -15,9 +16,11 @@ def main():
     mkdirFlag=True 
     # really build, not just print
     realBuild=True
-    doBuildObj=True
-    doBuildBlob=False
+
+    doBuildObj=False
+    doBuildBlob=True
     doDiv=True
+    useMAO=True
     
     
     global clangExec
@@ -81,7 +84,7 @@ def main():
 
     # TODO make portable; raw compile configure
     if ( doExcludeBuild
-         or bool(re.search(r'workspace/[^/]+/[^/]+\Z',os.getcwd())) #FIREFOX
+         #or bool(re.search(r'workspace/[^/]+/[^/]+\Z',os.getcwd())) #FIREFOX
          or bool(re.search(r'conftest\.?[ocC]*\s?',cmdLine)) #conf exempt
          or bool(re.search(r'/config/?',os.getcwd())) #FIREFOX
         ):
@@ -106,7 +109,12 @@ def main():
 
         if (doBuildObj):
             cacheAssembly(asmFile)
-            diversify(asmFile+"Div.s", asmFile)
+
+	    if useMAO:
+                diversify(asmFile+"Div.s", asmFile)
+            else:
+                diversifyClang(asmFile+"Div.s", bcFile)
+
             useS=''
             if doDiv:
                 useS = asmFile+"Div.s"
@@ -126,7 +134,10 @@ def main():
             linkAndCacheAssemblyBlob(blobS)
         
             #Diversify
-            diversify(blobSDiv, blobS)
+	    if useMAO:
+                diversify(blobSDiv, blobS)
+            else:
+                diversifyClang(blobSDiv, blobS+".bc")
 
             useBlob=''
             if doDiv:
@@ -208,13 +219,33 @@ def diversify(output, inFile):
         return execBuild(diversify, "Diversify")
     return retCode
 
+def diversifyClang(output, inFile):
+    if doDiv:
+        if prDebug: sys.stderr.write ("=== Diversify ===" +'\n\n')
+
+        #TODO read from command line and purge after use
+        #seed = str(random.randint(0,100000))
+        #percent = str(random.randint(10,50))
+        seed = '1234567890'
+        percent = '30'
+
+        tests = ["-Xclang", "-multicompiler-seed="+seed, "-Xclang", "-nop-insertion-percentage="+percent]
+
+        diversify = [clangExec, "-S", "-o", output, inFile ] + tests
+
+        #TODO TIME THIS STEP
+        if prDebug: sys.stderr.write (string.join(diversify,' ')+'\n\n')
+        return execBuild(diversify, "Diversify")
+    return retCode
+
 
 def buildObjFromASM(output, inFile):
     if prDebug: sys.stderr.write ("=== ASM To Obj ===" +'\n\n')
 
-    #buildObj = [gccExec, '-Wa', inFile, '-o', output]+ buildObj.strip().split(' ')
+    buildObj = [gccExec, '-Wa', '-c', inFile, '-o', output] + blobCompilerFlags
+    #buildObj = [gccExec, '-Wa', inFile, '-o', output] + blobCompilerFlags
     #TODO explore using 'as' further
-    buildObj = ['as', inFile, '-o', output] + assemblerFlags
+    #buildObj = ['as', inFile, '-o', output] + assemblerFlags
 
     #TODO TIME THIS STEP
     if prDebug: sys.stderr.write (string.join(buildObj,' ')+'\n\n')
@@ -285,10 +316,10 @@ def buildBinFromBlobS(output, inFile):
         if prDebug: sys.stderr.write ("=== Build Bin From BlobS ===" +'\n\n')
 
         #TODO figure out how to build final bin
-        buildBin = ['as', "-o", output, inFile]
-        #buildBin = [gccExec, '-Wa', "-o", output, inFile] + blobCompilerFlags
-        #buildBin = [gccExec, "-Wa,-alh,-L", "-o", output, inFile] + string.split(flags.strip(),' ')
-        #buildBin = [clangExec, "-o", output, inFile] + string.split(flags,' ')
+        #buildBin = ['as', "-o", output, inFile]
+        buildBin = [gccExec, '-Wa', "-o", output, inFile] + blobCompilerFlags
+        #buildBin = [gccExec, "-Wa,-alh,-L", "-o", output, inFile] + blobCompilerFlags
+        #buildBin = [clangExec, "-o", output, inFile] + blobCompilerFlags
 
         if prDebug: sys.stderr.write (string.join(buildBin,' ')+'\n\n')
 	retCode = execBuild(buildBin, "Build Bin From BlobS") and retCode
@@ -1062,7 +1093,7 @@ def initVars(varList):
 	, "/security/nss/cmd/shlibsign" ## actually its an output file problem
         ]
 
-    for var in varList + ["-fPIC"]:
+    for var in varList:
         #Final compile must be ordered specifically
 
         #-Qunused-arguments caused problems and is therefore ...unused...
@@ -1157,6 +1188,7 @@ def initVars(varList):
             or var == '-mmmx'
             or var == '-mssse3'
             or var == '-ansi'
+            or var == '-use-gold-plugin'
             ):
             blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
@@ -1187,7 +1219,7 @@ def initVars(varList):
             continue
         elif var == '-c':
             pass
-            blobCompilerFlags += [var]
+            #blobCompilerFlags += [var]
         elif var[:1] == '-':
             addFlagsAll(var)
         #FILES    
