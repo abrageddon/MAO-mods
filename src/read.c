@@ -1112,9 +1112,9 @@ read_a_source_file (char *name)
 		      break;
 		    }
 
-		  new_buf = (char *) xrealloc (new_buf, new_length + 10000);//EDIT
+		  new_buf = (char *) xrealloc (new_buf, new_length + 100);
 		  new_tmp = new_buf + new_length;
-		  new_length += 10000;//EDIT
+		  new_length += 100;
 		}
 
 	      if (tmp_buf)
