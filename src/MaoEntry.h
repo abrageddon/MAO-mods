@@ -145,12 +145,12 @@ class MaoEntry {
 
 
 
+  bool hasChanged() const {return (has_changed_);}
+  void setHasChanged() {has_changed_=true;}
 
  protected:
   //SNEISIUS
   //Do no work if nothing has changed
-  bool hasChanged() const;
-  void setHasChanged();
   bool has_changed_;
 
   // Helper function to indent.
@@ -491,10 +491,6 @@ class InstructionEntry : public MaoEntry {
   ~InstructionEntry();
 
 
-  //SNEISIUS
-  //Do no work if nothing has changed
-  bool hasChanged() const {return (has_changed_);}
-  void setHasChanged() {has_changed_=true;}
 
   // Returns a string representation of this instruction entry.
   virtual std::string &ToString(std::string *out) const;

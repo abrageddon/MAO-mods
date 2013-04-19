@@ -44,8 +44,6 @@ MaoEntry::MaoEntry(unsigned int line_number, const char *line_verbatim,
   has_changed_=false;
 }
 
-bool MaoEntry::hasChanged() const {return (has_changed_);}
-void MaoEntry::setHasChanged() {has_changed_=true;}
 
 MaoEntry::~MaoEntry() {
 }
@@ -1964,8 +1962,8 @@ std::string &InstructionEntry::InstructionToString(std::string *out) const {
 	//SNEISIUS
 	//TODO return input if nothing has changed
 	if (line_verbatim() != NULL && !hasChanged()){
-		std::string str(line_verbatim() );
-		return ( str );
+		out->append( line_verbatim() );
+		return ( *out );
 	}
 
   const MaoOpcode rep_ops[] = {OP_ins, OP_outs, OP_movs, OP_lods, OP_stos};
