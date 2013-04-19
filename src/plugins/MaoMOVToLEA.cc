@@ -90,6 +90,8 @@ public:
                 continue;
             }
 
+            //Mark as changed so it gets preparsed on output
+            entry->AsInstruction()->setHasChanged();
 
             //Replace MOV with LEA
             ++ReplacedMOV;

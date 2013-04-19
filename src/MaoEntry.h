@@ -143,7 +143,16 @@ class MaoEntry {
   // Returns the symbols name from an expressionS *.
   const char *GetSymbolnameFromExpression(expressionS *expr) const;
 
+
+
+
  protected:
+  //SNEISIUS
+  //Do no work if nothing has changed
+  bool hasChanged() const;
+  void setHasChanged();
+  bool has_changed_;
+
   // Helper function to indent.
   void Spaces(unsigned int n, FILE *outfile) const;
   // Gets symbolname. Understands the temporary symbolname
@@ -183,6 +192,7 @@ class MaoEntry {
   // A verbatim copy of the assembly instruction this entry is
   // generated from. Might be NULL for some entries.
   const char *line_verbatim_;
+
 
   // This flag is true for entries that have been added
   // by mao.
@@ -479,6 +489,13 @@ class InstructionEntry : public MaoEntry {
                    unsigned int line_number, const char* line_verbatim,
                    MaoUnit *maounit);
   ~InstructionEntry();
+
+
+  //SNEISIUS
+  //Do no work if nothing has changed
+  bool hasChanged() const {return (has_changed_);}
+  void setHasChanged() {has_changed_=true;}
+
   // Returns a string representation of this instruction entry.
   virtual std::string &ToString(std::string *out) const;
   // Prints this instruction  entry into FILE *out.
