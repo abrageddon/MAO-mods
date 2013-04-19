@@ -54,6 +54,8 @@ CFLAGS=						\
 	-DHAVE_DECL_BASENAME=1                  \
 	-O3 -fno-exceptions
 #-Wall -Werror -fno-exceptions
+	#-pg -O3
+	#-pg -O2 -Wall -Werror -fno-exceptions
 
 MAKEDEPEND=$(CC) -MM $(CFLAGS) $(CCEXTRAFLAGS) -o $(patsubst %.o,%.P,$@) $<
 
