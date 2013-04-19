@@ -1962,6 +1962,7 @@ std::string &InstructionEntry::InstructionToString(std::string *out) const {
 	//SNEISIUS
 	//TODO return input if nothing has changed
 	if (line_verbatim() != NULL && !hasChanged()){
+		out->append("\t");
 		out->append( line_verbatim() );
 		return ( *out );
 	}
