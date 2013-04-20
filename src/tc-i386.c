@@ -2800,6 +2800,7 @@ process_immext (void)
    machine dependent instruction.  This function is supposed to emit
    the frags/bytes it assembles to.  */
 
+inline
 void
 md_assemble (char *line)
 {
@@ -3040,6 +3041,7 @@ md_assemble (char *line)
   /* output_insn (); */
 }
 
+inline
 static char *
 parse_insn (char *line, char *mnemonic)
 {
@@ -3290,6 +3292,7 @@ skip:
   return l;
 }
 
+inline
 static char *
 parse_operands (char *l, const char *mnemonic)
 {

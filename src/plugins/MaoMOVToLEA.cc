@@ -90,7 +90,8 @@ public:
                 continue;
             }
 
-            //Mark as changed so it gets preparsed on output
+            //Mark as changed so it gets reparsed on output
+            //huge performance improvement
             entry->AsInstruction()->setHasChanged();
 
             //Replace MOV with LEA
