@@ -27,6 +27,9 @@
    Bugs & suggestions are completely welcome.  This is free software.
    Please help us make it better.  */
 
+//SNEISIUS process it faster
+#include <pthread.h>
+
 #include "as.h"
 #include "safe-ctype.h"
 #include "subsegs.h"
@@ -161,6 +164,13 @@ static void s_bss (int);
 #if defined (OBJ_ELF) || defined (OBJ_MAYBE_ELF)
 static void handle_large_common (int small ATTRIBUTE_UNUSED);
 #endif
+
+//SNEISIUS
+//Multithreading
+#define NO_OF_THREADS 8
+static pthread_t threads[NO_OF_THREADS];
+static int currentThread = 0;
+static int runningThreads = 0;
 
 static const char *default_arch = DEFAULT_ARCH;
 
@@ -2796,14 +2806,26 @@ process_immext (void)
   i.tm.extension_opcode = None;
 }
 
+//void init_md_assemble(){
+////    static pthread_t threads[NO_OF_THREADS];
+////    static int currentThread;
+////    static int runningThreads;
+////    currentThread = 0;
+////    runningThreads=0;
+//}
+
+
+
+
 /* This is the guts of the machine-dependent assembler.  LINE points to a
    machine dependent instruction.  This function is supposed to emit
    the frags/bytes it assembles to.  */
 
-inline
+
 void
-md_assemble (char *line)
+*md_assemble_thread (void *arg)
 {
+  char *line = (char *)arg;
   unsigned int j;
   char mnemonic[MAX_MNEM_SIZE];
   const insn_template *t;
@@ -2825,12 +2847,12 @@ md_assemble (char *line)
 
   line = parse_insn (line, mnemonic);
   if (line == NULL)
-    return;
+    return arg;
 
   line = parse_operands (line, mnemonic);
   this_operand = -1;
   if (line == NULL)
-    return;
+    return arg;
 
   /* Now we've parsed the mnemonic into a set of templates, and have the
      operands at hand.  */
@@ -2870,7 +2892,7 @@ md_assemble (char *line)
      with the template operand types.  */
 
   if (!(t = match_template ()))
-    return;
+    return arg;
 
   if (sse_check != sse_check_none
       && !i.tm.opcode_modifier.noavx
@@ -2904,7 +2926,7 @@ md_assemble (char *line)
 
   if (i.tm.opcode_modifier.fwait)
     if (!add_prefix (FWAIT_OPCODE))
-      return;
+      return arg;
 
   /* Check for lock without a lockable instruction.  Destination operand
      must be memory unless it is xchg (0x86).  */
@@ -2915,19 +2937,19 @@ md_assemble (char *line)
 	      && !operand_type_check (i.types[i.operands - 1], anymem))))
     {
       as_bad (_("expecting lockable instruction after `lock'"));
-      return;
+      return arg;
     }
 
   /* Check string instruction segment overrides.  */
   if (i.tm.opcode_modifier.isstring && i.mem_operands != 0)
     {
       if (!check_string ())
-	return;
+	return arg;
       i.disp_operands = 0;
     }
 
   if (!process_suffix ())
-    return;
+    return arg;
 
   /* Update operand types.  */
   for (j = 0; j < i.operands; j++)
@@ -2936,7 +2958,7 @@ md_assemble (char *line)
   /* Make still unresolved immediate matches conform to size of immediate
      given in i.suffix.  */
   if (!finalize_imm ())
-    return;
+    return arg;
 
   if (i.types[0].bitfield.imm1)
     i.imm_operands = 0;	/* kludge for shift insns.  */
@@ -2960,7 +2982,7 @@ md_assemble (char *line)
   if (i.operands)
     {
       if (!process_operands ())
-	return;
+	return arg;
     }
   else if (!quiet_warnings && i.tm.opcode_modifier.ugh)
     {
@@ -3036,12 +3058,36 @@ md_assemble (char *line)
   if (i.rex != 0)
     add_prefix (REX_OPCODE | i.rex);
 
+  //SNEISIUS if threads full wait for first else continue unless last
   link_insn(&i, sizeof(i), flag_code, line_verbatim);
   /* We are ready to output the insn.  */
   /* output_insn (); */
 }
 
-inline
+
+void spawn_md_assemble(char *arg){
+    //SNEISIUS
+    //if threads is not all full....
+    //  then spawn new thread...
+    pthread_t thread_ID ;
+//    void *exit_status ;
+    pthread_create(&thread_ID , NULL, md_assemble_thread , (void*)(&arg) ) ;
+    //elif first thread is done
+    //  then read first element
+
+//    pthread_join ( thread_ID , &exit_status ) ;
+    pthread_join ( thread_ID , NULL ) ;
+    //SNEISIUS submit returned instruction
+    //link_insn(&i, sizeof(i), flag_code, line_verbatim);
+    /* We are ready to output the insn.  */
+    /* output_insn (); */
+}
+
+void finish_md_assemble(){
+    //SNEISIUS wrap up all parallel threads
+    //pthread join ( thread ID , &exit status ) ;
+}
+
 static char *
 parse_insn (char *line, char *mnemonic)
 {
@@ -3292,7 +3338,6 @@ skip:
   return l;
 }
 
-inline
 static char *
 parse_operands (char *l, const char *mnemonic)
 {

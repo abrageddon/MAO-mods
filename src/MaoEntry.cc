@@ -1115,6 +1115,7 @@ const char *InstructionEntry::op_str() const {
 // This deallocates memory allocated in CreateInstructionCopy().
 void InstructionEntry::FreeInstruction() {
   MAO_ASSERT(instruction_);
+
   for (unsigned int i = 0; i < instruction_->operands; i++) {
     if (IsImmediateOperand(instruction_, i)) {
       delete instruction_->op[i].imms;
