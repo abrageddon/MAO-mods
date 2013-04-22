@@ -1836,9 +1836,9 @@ set_intel_syntax (int syntax_flag)
       char *string = input_line_pointer;
       int e = get_symbol_end ();
 
-      if (strcmp (string, "prefix") == 0)
+      if (string[0] == 'p' && strcmp (string, "prefix") == 0)
 	ask_naked_reg = 1;
-      else if (strcmp (string, "noprefix") == 0)
+      else if (string[0] == 'n' && strcmp (string, "noprefix") == 0)
 	ask_naked_reg = -1;
       else
 	as_bad (_("bad argument to syntax directive."));
@@ -1889,11 +1889,11 @@ set_sse_check (int dummy ATTRIBUTE_UNUSED)
       char *string = input_line_pointer;
       int e = get_symbol_end ();
 
-      if (strcmp (string, "none") == 0)
+      if (string[0] == 'n' && strcmp (string, "none") == 0)
 	sse_check = sse_check_none;
-      else if (strcmp (string, "warning") == 0)
+      else if (string[0] == 'w' && strcmp (string, "warning") == 0)
 	sse_check = sse_check_warning;
-      else if (strcmp (string, "error") == 0)
+      else if (string[0] == 'e' && strcmp (string, "error") == 0)
 	sse_check = sse_check_error;
       else
 	as_bad (_("bad argument to sse_check directive."));
@@ -1956,7 +1956,7 @@ set_cpu_arch (int dummy ATTRIBUTE_UNUSED)
 
       for (j = 0; j < ARRAY_SIZE (cpu_arch); j++)
 	{
-	  if (strcmp (string, cpu_arch[j].name) == 0)
+	  if (string[0] == cpu_arch[j].name[0] && strcmp (string, cpu_arch[j].name) == 0)
 	    {
 	      check_cpu_arch_compatible (string, cpu_arch[j].flags);
 
@@ -2026,9 +2026,9 @@ set_cpu_arch (int dummy ATTRIBUTE_UNUSED)
       char *string = ++input_line_pointer;
       int e = get_symbol_end ();
 
-      if (strcmp (string, "nojumps") == 0)
+      if (string[0] == 'n' && strcmp (string, "nojumps") == 0)
 	no_cond_jump_promotion = 1;
-      else if (strcmp (string, "jumps") == 0)
+      else if (string[0] == 'j' && strcmp (string, "jumps") == 0)
 	;
       else
 	as_bad (_("no such architecture modifier: `%s'"), string);
@@ -2840,6 +2840,7 @@ md_assemble (char *line)
      precedes the offset, as it does when in AT&T mode. */
   if (intel_syntax
       && i.operands > 1
+      && (mnemonic[0] == 'b' || mnemonic[0] == 'i' )
       && (strcmp (mnemonic, "bound") != 0)
       && (strcmp (mnemonic, "invlpga") != 0)
       && !(operand_type_check (i.types[0], imm)
@@ -2849,6 +2850,7 @@ md_assemble (char *line)
   /* The order of the immediates should be reversed
      for 2 immediates extrq and insertq instructions */
   if (i.imm_operands == 2
+      && (mnemonic[0] == 'e' || mnemonic[0] == 'i' )
       && (strcmp (mnemonic, "extrq") == 0
 	  || strcmp (mnemonic, "insertq") == 0))
       swap_2_operands (0, 1);
@@ -2861,7 +2863,7 @@ md_assemble (char *line)
   if (i.disp_operands
       && !i.disp32_encoding
       && (flag_code != CODE_64BIT
-	  || strcmp (mnemonic, "movabs") != 0))
+	  || ( mnemonic[0] == 'm' && strcmp (mnemonic, "movabs") != 0) ))
     optimize_disp ();
 
   /* Next, we find a template that matches the given insn,
@@ -7616,7 +7618,7 @@ md_parse_option (int c, char *arg)
 	    *next++ = '\0';
 	  for (j = 0; j < ARRAY_SIZE (cpu_arch); j++)
 	    {
-	      if (strcmp (arch, cpu_arch [j].name) == 0)
+	      if (arch[0] == cpu_arch[j].name[0] && strcmp (arch, cpu_arch [j].name) == 0)
 		{
 		  /* Processor.  */
 		  if (! cpu_arch[j].flags.bitfield.cpui386)
@@ -7635,7 +7637,7 @@ md_parse_option (int c, char *arg)
 		  break;
 		}
 	      else if (*cpu_arch [j].name == '.'
-		       && strcmp (arch, cpu_arch [j].name + 1) == 0)
+		       && arch[0] == cpu_arch[j].name[1] && strcmp (arch, cpu_arch [j].name + 1) == 0)
 		{
 		  /* ISA entension.  */
 		  i386_cpu_flags flags;
@@ -7678,7 +7680,7 @@ md_parse_option (int c, char *arg)
 	as_fatal (_("invalid -mtune= option: `%s'"), arg);
       for (j = 0; j < ARRAY_SIZE (cpu_arch); j++)
 	{
-	  if (strcmp (arg, cpu_arch [j].name) == 0)
+	  if (arch[0] == cpu_arch[j].name[0] && strcmp (arg, cpu_arch [j].name) == 0)
 	    {
 	      cpu_arch_tune_set = 1;
 	      cpu_arch_tune = cpu_arch [j].type;
