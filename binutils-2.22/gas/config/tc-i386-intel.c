@@ -187,8 +187,7 @@ operatorT i386_operator (const char *name, unsigned int operands, char *pc)
   return O_absent;
 }
 
-//TODO(SNEISIUS): change to non static
-int i386_intel_parse_name (const char *name, expressionS *e)
+static int i386_intel_parse_name (const char *name, expressionS *e)
 {
   unsigned int j;
 
@@ -291,8 +290,7 @@ i386_intel_simplify_register (expressionS *e)
   return 2;
 }
 
-//TODO(SNEISIUS): change to non static
-int i386_intel_simplify (expressionS *);
+static int i386_intel_simplify (expressionS *);
 
 static INLINE int i386_intel_simplify_symbol(symbolS *sym)
 {
@@ -306,8 +304,7 @@ static INLINE int i386_intel_simplify_symbol(symbolS *sym)
   return ret;
 }
 
-//TODO(SNEISIUS): change to non static
-int i386_intel_simplify (expressionS *e)
+static int i386_intel_simplify (expressionS *e)
 {
   const reg_entry *the_reg = (this_operand >= 0
 			      ? i.op[this_operand].regs : NULL);
@@ -509,9 +506,8 @@ int i386_need_index_operator (void)
   return intel_syntax < 0;
 }
 
-
-//TODO(SNEISIUS): change to non static
-int i386_intel_operand (char *operand_string, int got_a_float)
+static int
+i386_intel_operand (char *operand_string, int got_a_float)
 {
   char *saved_input_line_pointer, *buf;
   segT exp_seg;
