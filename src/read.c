@@ -32,9 +32,6 @@
 /* Routines that read assembler source text to build spaghetti in memory.
    Another group of these functions is in the expr.c module.  */
 
-//SNEISIUS process it faster
-#include <pthread.h>
-
 #include "as.h"
 #include "safe-ctype.h"
 #include "subsegs.h"
@@ -205,9 +202,7 @@ symbolS *mri_common_symbol;
    need to align to an even byte boundary unless the next pseudo-op is
    dc.b, ds.b, or dcb.b.  This variable is set to 1 if an alignment
    may be needed.  */
-int mri_pending_align;
-
-
+static int mri_pending_align;
 
 #ifndef NO_LISTING
 #ifdef OBJ_ELF
@@ -567,7 +562,7 @@ scrub_from_string (char *buf, int buflen)
 }
 
 /* Helper function of read_a_source_file, which tries to expand a macro.  */
-int
+static int
 try_macro (char term, const char *line)
 {
   sb out;
@@ -597,525 +592,576 @@ try_macro (char term, const char *line)
 void
 read_a_source_file (char *name)
 {
-    char c;
-    char *s; /* String of symbol, '\0' appended.  */
-    int temp;
-    pseudo_typeS *pop;
+  char c;
+  char *s;		/* String of symbol, '\0' appended.  */
+  int temp;
+  pseudo_typeS *pop;
 
 #ifdef WARN_COMMENTS
-    found_comment = 0;
+  found_comment = 0;
 #endif
 
-    buffer = input_scrub_new_file(name);
+  buffer = input_scrub_new_file (name);
 
-    listing_file(name);
-    listing_newline(NULL );
-    register_dependency(name);
+  listing_file (name);
+  listing_newline (NULL);
+  register_dependency (name);
 
-    /* Generate debugging information before we've read anything in to denote
+  /* Generate debugging information before we've read anything in to denote
      this file as the "main" source file and not a subordinate one
      (e.g. N_SO vs N_SOL in stabs).  */
-    generate_file_debug();
+  generate_file_debug ();
 
-    //SNEISIUS
-    init_md_assemble();
-
-    while ((buffer_limit = input_scrub_next_buffer(&input_line_pointer)) != 0) { /* We have another line to parse.  */
+  while ((buffer_limit = input_scrub_next_buffer (&input_line_pointer)) != 0)
+    {				/* We have another line to parse.  */
 #ifndef NO_LISTING
-        /* In order to avoid listing macro expansion lines with labels
-         multiple times, keep track of which line was last issued.  */
-        static char *last_eol;
+      /* In order to avoid listing macro expansion lines with labels
+	 multiple times, keep track of which line was last issued.  */
+      static char *last_eol;
 
-        last_eol = NULL;
+      last_eol = NULL;
 #endif
-        while (input_line_pointer < buffer_limit) {
-            bfd_boolean was_new_line;
-            /* We have more of this buffer to parse.  */
+      while (input_line_pointer < buffer_limit)
+	{
+	  bfd_boolean was_new_line;
+	  /* We have more of this buffer to parse.  */
 
-            /* We now have input_line_pointer->1st char of next line.
-             If input_line_pointer [-1] == '\n' then we just
-             scanned another line: so bump line counters.  */
-            was_new_line = is_end_of_line[(unsigned char) input_line_pointer[-1]];
-            if (was_new_line) {
-                /* TODO(martint): Check if this is correct */
-                symbol_set_value_now(&dot_symbol);
+	  /* We now have input_line_pointer->1st char of next line.
+	     If input_line_pointer [-1] == '\n' then we just
+	     scanned another line: so bump line counters.  */
+	  was_new_line = is_end_of_line[(unsigned char) input_line_pointer[-1]];
+	  if (was_new_line)
+	    {
+              /* TODO(martint): Check if this is correct */
+	      symbol_set_value_now (&dot_symbol);
 #ifdef md_start_line_hook
-                md_start_line_hook ();
+	      md_start_line_hook ();
 #endif
-                if (input_line_pointer[-1] == '\n')
-                    bump_line_counters();
-            }
+	      if (input_line_pointer[-1] == '\n')
+		bump_line_counters ();
+	    }
 
 #ifndef NO_LISTING
-            /* If listing is on, and we are expanding a macro, then give
-             the listing code the contents of the expanded line.  */
-            if (listing) {
-                if ((listing & LISTING_MACEXP) && macro_nest > 0) {
-                    /* Find the end of the current expanded macro line.  */
-                    s = find_end_of_line(input_line_pointer, flag_m68k_mri);
+	  /* If listing is on, and we are expanding a macro, then give
+	     the listing code the contents of the expanded line.  */
+	  if (listing)
+	    {
+	      if ((listing & LISTING_MACEXP) && macro_nest > 0)
+		{
+		  /* Find the end of the current expanded macro line.  */
+		  s = find_end_of_line (input_line_pointer, flag_m68k_mri);
 
-                    if (s != last_eol) {
-                        char *copy;
-                        int len;
+		  if (s != last_eol)
+		    {
+		      char *copy;
+		      int len;
 
-                        last_eol = s;
-                        /* Copy it for safe keeping.  Also give an indication of
-                         how much macro nesting is involved at this point.  */
-                        len = s - input_line_pointer;
-                        copy = (char *) xmalloc(len + macro_nest + 2);
-                        memset(copy, '>', macro_nest);
-                        copy[macro_nest] = ' ';
-                        memcpy(copy + macro_nest + 1, input_line_pointer, len);
-                        copy[macro_nest + 1 + len] = '\0';
+		      last_eol = s;
+		      /* Copy it for safe keeping.  Also give an indication of
+			 how much macro nesting is involved at this point.  */
+		      len = s - input_line_pointer;
+		      copy = (char *) xmalloc (len + macro_nest + 2);
+		      memset (copy, '>', macro_nest);
+		      copy[macro_nest] = ' ';
+		      memcpy (copy + macro_nest + 1, input_line_pointer, len);
+		      copy[macro_nest + 1 + len] = '\0';
 
-                        /* Install the line with the listing facility.  */
-                        listing_newline(copy);
-                    }
-                } else
-                    listing_newline(NULL );
-            }
+		      /* Install the line with the listing facility.  */
+		      listing_newline (copy);
+		    }
+		}
+	      else
+		listing_newline (NULL);
+	    }
 #endif
-            if (was_new_line) {
-                line_label = NULL;
+	  if (was_new_line)
+	    {
+	      line_label = NULL;
 
-                if (LABELS_WITHOUT_COLONS || flag_m68k_mri) {
-                    /* Text at the start of a line must be a label, we
-                     run down and stick a colon in.  */
-                    if (is_name_beginner (*input_line_pointer)) {
-                        char *line_start = input_line_pointer;
-                        int mri_line_macro;
+	      if (LABELS_WITHOUT_COLONS || flag_m68k_mri)
+		{
+		  /* Text at the start of a line must be a label, we
+		     run down and stick a colon in.  */
+		  if (is_name_beginner (*input_line_pointer))
+		    {
+		      char *line_start = input_line_pointer;
+		      int mri_line_macro;
 
-                        HANDLE_CONDITIONAL_ASSEMBLY ();
+		      HANDLE_CONDITIONAL_ASSEMBLY ();
 
-                        c = get_symbol_end();
+		      c = get_symbol_end ();
 
-                        /* In MRI mode, the EQU and MACRO pseudoops must
-                         be handled specially.  */
-                        mri_line_macro = 0;
-                        if (flag_m68k_mri) {
-                            char *rest = input_line_pointer + 1;
+		      /* In MRI mode, the EQU and MACRO pseudoops must
+			 be handled specially.  */
+		      mri_line_macro = 0;
+		      if (flag_m68k_mri)
+			{
+			  char *rest = input_line_pointer + 1;
 
-                            if (*rest == ':')
-                                ++rest;
-                            if (*rest == ' ' || *rest == '\t')
-                                ++rest;
-                            if ((strncasecmp(rest, "EQU", 3) == 0 || strncasecmp(rest, "SET", 3) == 0)
-                                    && (rest[3] == ' ' || rest[3] == '\t')) {
-                                input_line_pointer = rest + 3;
-                                equals(line_start, strncasecmp(rest, "SET", 3) == 0);
-                                continue;
-                            }
-                            if (strncasecmp(rest, "MACRO", 5) == 0
-                                    && (rest[5] == ' ' || rest[5] == '\t'
-                                            || is_end_of_line[(unsigned char) rest[5]]))
-                                mri_line_macro = 1;
-                        }
+			  if (*rest == ':')
+			    ++rest;
+			  if (*rest == ' ' || *rest == '\t')
+			    ++rest;
+			  if ((strncasecmp (rest, "EQU", 3) == 0
+			       || strncasecmp (rest, "SET", 3) == 0)
+			      && (rest[3] == ' ' || rest[3] == '\t'))
+			    {
+			      input_line_pointer = rest + 3;
+			      equals (line_start,
+				      strncasecmp (rest, "SET", 3) == 0);
+			      continue;
+			    }
+			  if (strncasecmp (rest, "MACRO", 5) == 0
+			      && (rest[5] == ' '
+				  || rest[5] == '\t'
+				  || is_end_of_line[(unsigned char) rest[5]]))
+			    mri_line_macro = 1;
+			}
 
-                        /* In MRI mode, we need to handle the MACRO
-                         pseudo-op specially: we don't want to put the
-                         symbol in the symbol table.  */
-                        if (!mri_line_macro
+		      /* In MRI mode, we need to handle the MACRO
+			 pseudo-op specially: we don't want to put the
+			 symbol in the symbol table.  */
+		      if (!mri_line_macro
 #ifdef TC_START_LABEL_WITHOUT_COLON
-                        && TC_START_LABEL_WITHOUT_COLON(c,
-                                input_line_pointer)
+			  && TC_START_LABEL_WITHOUT_COLON(c,
+							  input_line_pointer)
 #endif
-                        )
-                            line_label = colon(line_start);
-                        else
-                            line_label = symbol_create(line_start, absolute_section, (valueT) 0,
-                                    &zero_address_frag);
-                        // added hook back to mao
-                        // insert into the symbol table
-                        char *name;
-                        if (line_label->bsym)
-                            name = (char *) line_label->bsym->name;
-                        else
-                            name = (char *) ((struct local_symbol *) line_label)->lsy_name;
-                        link_label(name, 0);
+			  )
+			line_label = colon (line_start);
+		      else
+			line_label = symbol_create (line_start,
+						    absolute_section,
+						    (valueT) 0,
+						    &zero_address_frag);
+                      // added hook back to mao
+                      // insert into the symbol table
+                      char *name;
+                      if (line_label->bsym)
+                        name = (char *)line_label->bsym->name;
+                      else
+                        name = (char *)((struct local_symbol *)line_label)->lsy_name;
+                      link_label(name, 0);
 
-                        *input_line_pointer = c;
-                        if (c == ':')
-                            input_line_pointer++;
-                    }
-                }
-            }
+		      *input_line_pointer = c;
+		      if (c == ':')
+			input_line_pointer++;
+		    }
+		}
+	    }
 
-            /* We are at the beginning of a line, or similar place.
-             We expect a well-formed assembler statement.
-             A "symbol-name:" is a statement.
+	  /* We are at the beginning of a line, or similar place.
+	     We expect a well-formed assembler statement.
+	     A "symbol-name:" is a statement.
 
-             Depending on what compiler is used, the order of these tests
-             may vary to catch most common case 1st.
-             Each test is independent of all other tests at the (top)
-             level.  */
-            do
-                c = *input_line_pointer++;
-            while (c == '\t' || c == ' ' || c == '\f');
+	     Depending on what compiler is used, the order of these tests
+	     may vary to catch most common case 1st.
+	     Each test is independent of all other tests at the (top)
+	     level.  */
+	  do
+	    c = *input_line_pointer++;
+	  while (c == '\t' || c == ' ' || c == '\f');
 
-            /* C is the 1st significant character.
-             Input_line_pointer points after that character.  */
-            if (is_name_beginner (c)) {
-                /* Want user-defined label or pseudo/opcode.  */
-                HANDLE_CONDITIONAL_ASSEMBLY ();
+	  /* C is the 1st significant character.
+	     Input_line_pointer points after that character.  */
+	  if (is_name_beginner (c))
+	    {
+	      /* Want user-defined label or pseudo/opcode.  */
+	      HANDLE_CONDITIONAL_ASSEMBLY ();
 
-                s = --input_line_pointer;
-                c = get_symbol_end(); /* name's delimiter.  */
+	      s = --input_line_pointer;
+	      c = get_symbol_end ();	/* name's delimiter.  */
 
-                /* C is character after symbol.
-                 That character's place in the input line is now '\0'.
-                 S points to the beginning of the symbol.
-                 [In case of pseudo-op, s->'.'.]
-                 Input_line_pointer->'\0' where c was.  */
-                if (TC_START_LABEL (c, s, input_line_pointer)) {
-                    finish_md_assemble();//SNEISIUS TESTING
-                    if (flag_m68k_mri) {
-                        char *rest = input_line_pointer + 1;
+	      /* C is character after symbol.
+		 That character's place in the input line is now '\0'.
+		 S points to the beginning of the symbol.
+		   [In case of pseudo-op, s->'.'.]
+		 Input_line_pointer->'\0' where c was.  */
+	      if (TC_START_LABEL (c, s, input_line_pointer))
+		{
+		  if (flag_m68k_mri)
+		    {
+		      char *rest = input_line_pointer + 1;
 
-                        /* In MRI mode, \tsym: set 0 is permitted.  */
-                        if (*rest == ':')
-                            ++rest;
+		      /* In MRI mode, \tsym: set 0 is permitted.  */
+		      if (*rest == ':')
+			++rest;
 
-                        if (*rest == ' ' || *rest == '\t')
-                            ++rest;
+		      if (*rest == ' ' || *rest == '\t')
+			++rest;
 
-                        if ((strncasecmp(rest, "EQU", 3) == 0 || strncasecmp(rest, "SET", 3) == 0)
-                                && (rest[3] == ' ' || rest[3] == '\t')) {
-                            input_line_pointer = rest + 3;
-                            equals(s, 1);
-                            continue;
-                        }
-                    }
+		      if ((strncasecmp (rest, "EQU", 3) == 0
+			   || strncasecmp (rest, "SET", 3) == 0)
+			  && (rest[3] == ' ' || rest[3] == '\t'))
+			{
+			  input_line_pointer = rest + 3;
+			  equals (s, 1);
+			  continue;
+			}
+		    }
 
-                    line_label = colon(s); /* User-defined label.  */
-                    // added hook back to mao
-                    char *name;
-                    if (line_label->bsym)
-                        name = (char *) line_label->bsym->name;
-                    else
-                        name = (char *) ((struct local_symbol *) line_label)->lsy_name;
-                    link_label(name, 0);
-                    /* Put ':' back for error messages' sake.  */
-                    *input_line_pointer++ = ':';
+		  line_label = colon (s);	/* User-defined label.  */
+                  // added hook back to mao
+                  char *name;
+                  if (line_label->bsym)
+                    name = (char *)line_label->bsym->name;
+                  else
+                    name = (char *)((struct local_symbol *)line_label)->lsy_name;
+                  link_label(name, 0);
+		  /* Put ':' back for error messages' sake.  */
+		  *input_line_pointer++ = ':';
 #ifdef tc_check_label
-                    tc_check_label (line_label);
+		  tc_check_label (line_label);
 #endif
-                    /* Input_line_pointer->after ':'.  */
-                    SKIP_WHITESPACE ();
-                } else if ((c == '=' && input_line_pointer[1] == '=')
-                        || ((c == ' ' || c == '\t') && input_line_pointer[1] == '=' && input_line_pointer[2] == '=')) {
-                    equals(s, -1);
-                    demand_empty_rest_of_line();
-                } else if ((c == '=' || ((c == ' ' || c == '\t') && input_line_pointer[1] == '='))
+		  /* Input_line_pointer->after ':'.  */
+		  SKIP_WHITESPACE ();
+		}
+              else if ((c == '=' && input_line_pointer[1] == '=')
+		       || ((c == ' ' || c == '\t')
+			   && input_line_pointer[1] == '='
+			   && input_line_pointer[2] == '='))
+		{
+		  equals (s, -1);
+		  demand_empty_rest_of_line ();
+		}
+              else if ((c == '='
+                       || ((c == ' ' || c == '\t')
+                            && input_line_pointer[1] == '='))
 #ifdef TC_EQUAL_IN_INSN
-                && !TC_EQUAL_IN_INSN (c, s)
+                           && !TC_EQUAL_IN_INSN (c, s)
 #endif
-                ) {
-                    equals(s, 1);
-                    demand_empty_rest_of_line();
-                } else {
-                    /* Expect pseudo-op or machine instruction.  */
-                    pop = NULL;
+                           )
+		{
+		  equals (s, 1);
+		  demand_empty_rest_of_line ();
+		}
+	      else
+		{
+		  /* Expect pseudo-op or machine instruction.  */
+		  pop = NULL;
 
 #ifndef TC_CASE_SENSITIVE
-                    {
-                        char *s2 = s;
+		  {
+		    char *s2 = s;
 
-                        strncpy(original_case_string, s2, sizeof(original_case_string));
-                        original_case_string[sizeof(original_case_string) - 1] = 0;
+		    strncpy (original_case_string, s2, sizeof (original_case_string));
+		    original_case_string[sizeof (original_case_string) - 1] = 0;
 
-                        while (*s2) {
-                            *s2 = TOLOWER (*s2);
-                            s2++;
-                        }
-                    }
+		    while (*s2)
+		      {
+			*s2 = TOLOWER (*s2);
+			s2++;
+		      }
+		  }
 #endif
-                    if (NO_PSEUDO_DOT || flag_m68k_mri) {
+		  if (NO_PSEUDO_DOT || flag_m68k_mri)
+		    {
+		      /* The MRI assembler uses pseudo-ops without
+			 a period.  */
+		      pop = (pseudo_typeS *) hash_find (po_hash, s);
+		      if (pop != NULL && pop->poc_handler == NULL)
+			pop = NULL;
+		    }
 
-                        /* The MRI assembler uses pseudo-ops without
-                         a period.  */
-                        pop = (pseudo_typeS *) hash_find(po_hash, s);
-                        if (pop != NULL && pop->poc_handler == NULL )
-                            pop = NULL;
-                    }
+		  if (pop != NULL
+		      || (!flag_m68k_mri && *s == '.'))
+		    {
+		      /* PSEUDO - OP.
 
-                    if (pop != NULL || (!flag_m68k_mri && *s == '.')) {
+			 WARNING: c has next char, which may be end-of-line.
+			 We lookup the pseudo-op table with s+1 because we
+			 already know that the pseudo-op begins with a '.'.  */
 
-                        finish_md_assemble();//SNEISIUS TESTING
-                        /* PSEUDO - OP.
+		      if (pop == NULL)
+			pop = (pseudo_typeS *) hash_find (po_hash, s + 1);
+		      if (pop && !pop->poc_handler)
+			pop = NULL;
 
-                         WARNING: c has next char, which may be end-of-line.
-                         We lookup the pseudo-op table with s+1 because we
-                         already know that the pseudo-op begins with a '.'.  */
-
-                        if (pop == NULL )
-                            pop = (pseudo_typeS *) hash_find(po_hash, s + 1);
-                        if (pop && !pop->poc_handler)
-                            pop = NULL;
-
-                        /* In MRI mode, we may need to insert an
-                         automatic alignment directive.  What a hack
-                         this is.  */
-                        if (mri_pending_align
-                                && (pop == NULL
-                                        || !((pop->poc_handler == cons && pop->poc_val == 1)
-                                                || (pop->poc_handler == s_space && pop->poc_val == 1)
+		      /* In MRI mode, we may need to insert an
+			 automatic alignment directive.  What a hack
+			 this is.  */
+		      if (mri_pending_align
+			  && (pop == NULL
+			      || !((pop->poc_handler == cons
+				    && pop->poc_val == 1)
+				   || (pop->poc_handler == s_space
+				       && pop->poc_val == 1)
 #ifdef tc_conditional_pseudoop
-                                                || tc_conditional_pseudoop (pop)
+				   || tc_conditional_pseudoop (pop)
 #endif
-                                                || pop->poc_handler == s_if || pop->poc_handler == s_ifdef
-                                                || pop->poc_handler == s_ifc || pop->poc_handler == s_ifeqs
-                                                || pop->poc_handler == s_else || pop->poc_handler == s_endif
-                                                || pop->poc_handler == s_globl || pop->poc_handler == s_ignore))) {
-                            do_align(1, (char *) NULL, 0, 0);
-                            mri_pending_align = 0;
+				   || pop->poc_handler == s_if
+				   || pop->poc_handler == s_ifdef
+				   || pop->poc_handler == s_ifc
+				   || pop->poc_handler == s_ifeqs
+				   || pop->poc_handler == s_else
+				   || pop->poc_handler == s_endif
+				   || pop->poc_handler == s_globl
+				   || pop->poc_handler == s_ignore)))
+			{
+			  do_align (1, (char *) NULL, 0, 0);
+			  mri_pending_align = 0;
 
-                            if (line_label != NULL ) {
-                                symbol_set_frag(line_label, frag_now);
-                                S_SET_VALUE(line_label, frag_now_fix());
-                            }
-                        }
+			  if (line_label != NULL)
+			    {
+			      symbol_set_frag (line_label, frag_now);
+			      S_SET_VALUE (line_label, frag_now_fix ());
+			    }
+			}
 
-                        /* Print the error msg now, while we still can.  */
-                        if (pop == NULL ) {
-                            char *end = input_line_pointer;
+		      /* Print the error msg now, while we still can.  */
+		      if (pop == NULL)
+			{
+			  char *end = input_line_pointer;
 
-                            *input_line_pointer = c;
-                            s_ignore(0);
-                            c = *--input_line_pointer;
-                            *input_line_pointer = '\0';
-                            if (!macro_defined || !try_macro(c, s)) {
-                                *end = '\0';
-                                as_bad(_("unknown pseudo-op: `%s'"), s);
-                                *input_line_pointer++ = c;
-                            }
-                            continue;
-                        }
+			  *input_line_pointer = c;
+			  s_ignore (0);
+			  c = *--input_line_pointer;
+			  *input_line_pointer = '\0';
+			  if (! macro_defined || ! try_macro (c, s))
+			    {
+			      *end = '\0';
+			      as_bad (_("unknown pseudo-op: `%s'"), s);
+			      *input_line_pointer++ = c;
+			    }
+			  continue;
+			}
 
-                        /* Put it back for error messages etc.  */
-                        *input_line_pointer = c;
-                        /* The following skip of whitespace is compulsory.
-                         A well shaped space is sometimes all that separates
-                         keyword from operands.  */
-                        if (c == ' ' || c == '\t')
-                            input_line_pointer++;
+		      /* Put it back for error messages etc.  */
+		      *input_line_pointer = c;
+		      /* The following skip of whitespace is compulsory.
+			 A well shaped space is sometimes all that separates
+			 keyword from operands.  */
+		      if (c == ' ' || c == '\t')
+			input_line_pointer++;
 
-                        /* Input_line is restored.
-                         Input_line_pointer->1st non-blank char
-                         after pseudo-operation.  */
-                        (*pop->poc_handler)(pop->poc_val);
+		      /* Input_line is restored.
+			 Input_line_pointer->1st non-blank char
+			 after pseudo-operation.  */
+		      (*pop->poc_handler) (pop->poc_val);
 
-                        /* If that was .end, just get out now.  */
-                        if (pop->poc_handler == s_end)
-                            goto quit;
-                    } else {
-                        /* WARNING: c has char, which may be end-of-line.  */
-                        /* Also: input_line_pointer->`\0` where c was.  */
-                        *input_line_pointer = c;
-                        input_line_pointer = _find_end_of_line(input_line_pointer, flag_m68k_mri, 1, 0);
-                        c = *input_line_pointer;
-                        *input_line_pointer = '\0';
+		      /* If that was .end, just get out now.  */
+		      if (pop->poc_handler == s_end)
+			goto quit;
+		    }
+		  else
+		    {
+		      /* WARNING: c has char, which may be end-of-line.  */
+		      /* Also: input_line_pointer->`\0` where c was.  */
+		      *input_line_pointer = c;
+		      input_line_pointer = _find_end_of_line (input_line_pointer, flag_m68k_mri, 1, 0);
+		      c = *input_line_pointer;
+		      *input_line_pointer = '\0';
 
-                        generate_lineno_debug();
+		      generate_lineno_debug ();
 
-                        if (macro_defined && try_macro(c, s))
-                            continue;
+		      if (macro_defined && try_macro (c, s))
+			continue;
 
-                        if (mri_pending_align) {
-                            do_align(1, (char *) NULL, 0, 0);
-                            mri_pending_align = 0;
-                            if (line_label != NULL ) {
-                                symbol_set_frag(line_label, frag_now);
-                                S_SET_VALUE(line_label, frag_now_fix());
-                            }
-                        }
+		      if (mri_pending_align)
+			{
+			  do_align (1, (char *) NULL, 0, 0);
+			  mri_pending_align = 0;
+			  if (line_label != NULL)
+			    {
+			      symbol_set_frag (line_label, frag_now);
+			      S_SET_VALUE (line_label, frag_now_fix ());
+			    }
+			}
 
-                        //SNEISIUS if thread available; spawn
-                        char *asmStr = strdup(s);
-                        spawn_md_assemble(asmStr);
-                        //md_assemble(s); /* Assemble 1 instruction.  */
+		      md_assemble (s);	/* Assemble 1 instruction.  */
 
+		      *input_line_pointer++ = c;
 
-                        *input_line_pointer++ = c;
+		      /* We resume loop AFTER the end-of-line from
+			 this instruction.  */
+		    }
+		}
+	      continue;
+	    }
 
-                        /* We resume loop AFTER the end-of-line from
-                         this instruction.  */
-                    }
-                }
-                continue;
-            }
+	  /* Empty statement?  */
+	  if (is_end_of_line[(unsigned char) c])
+	    continue;
 
-            /* Empty statement?  */
-            if (is_end_of_line[(unsigned char) c])
-                continue;
+	  if ((LOCAL_LABELS_DOLLAR || LOCAL_LABELS_FB) && ISDIGIT (c))
+	    {
+	      /* local label  ("4:")  */
+	      char *backup = input_line_pointer;
 
-            if ((LOCAL_LABELS_DOLLAR || LOCAL_LABELS_FB) && ISDIGIT (c)) {
+	      HANDLE_CONDITIONAL_ASSEMBLY ();
 
-                /* local label  ("4:")  */
-                char *backup = input_line_pointer;
+	      temp = c - '0';
 
-                HANDLE_CONDITIONAL_ASSEMBLY ();
+	      /* Read the whole number.  */
+	      while (ISDIGIT (*input_line_pointer))
+		{
+		  temp = (temp * 10) + *input_line_pointer - '0';
+		  ++input_line_pointer;
+		}
 
-                temp = c - '0';
+	      if (LOCAL_LABELS_DOLLAR
+		  && *input_line_pointer == '$'
+		  && *(input_line_pointer + 1) == ':')
+		{
+		  input_line_pointer += 2;
 
-                /* Read the whole number.  */
-                while (ISDIGIT (*input_line_pointer)) {
-                    temp = (temp * 10) + *input_line_pointer - '0';
-                    ++input_line_pointer;
-                }
+		  if (dollar_label_defined (temp))
+		    {
+		      as_fatal (_("label \"%d$\" redefined"), temp);
+		    }
 
-                if (LOCAL_LABELS_DOLLAR && *input_line_pointer == '$' && *(input_line_pointer + 1) == ':') {
-                    input_line_pointer += 2;
+		  define_dollar_label (temp);
+		  colon (dollar_label_name (temp, 0));
+		  continue;
+		}
 
-                    if (dollar_label_defined(temp)) {
-                        as_fatal(_("label \"%d$\" redefined"), temp);
-                    }
+	      if (LOCAL_LABELS_FB
+		  && *input_line_pointer++ == ':')
+		{
+		  fb_label_instance_inc (temp);
+                  char *temp_label_name = fb_label_name (temp, 0);
+                  link_label(temp_label_name, 0);
+		  colon (temp_label_name);
+		  continue;
+		}
 
-                    define_dollar_label(temp);
-                    colon(dollar_label_name(temp, 0));
-                    continue;
-                }
+	      input_line_pointer = backup;
+	    }			/* local label  ("4:") */
 
-                if (LOCAL_LABELS_FB && *input_line_pointer++ == ':') {
-                    fb_label_instance_inc(temp);
-                    char *temp_label_name = fb_label_name(temp, 0);
-                    link_label(temp_label_name, 0);
-                    colon(temp_label_name);
-                    continue;
-                }
+	  if (c && strchr (line_comment_chars, c))
+	    {			/* Its a comment.  Better say APP or NO_APP.  */
+	      sb sbuf;
+	      char *ends;
+	      char *new_buf;
+	      char *new_tmp;
+	      unsigned int new_length;
+	      char *tmp_buf = 0;
 
-                input_line_pointer = backup;
-            } /* local label  ("4:") */
+	      s = input_line_pointer;
+	      if (strncmp (s, "APP\n", 4))
+		{
+		  /* We ignore it.  */
+		  ignore_rest_of_line ();
+		  continue;
+		}
+	      bump_line_counters ();
+	      s += 4;
 
-            if (c && strchr(line_comment_chars, c)) { /* Its a comment.  Better say APP or NO_APP.  */
-                sb sbuf;
-                char *ends;
-                char *new_buf;
-                char *new_tmp;
-                unsigned int new_length;
-                char *tmp_buf = 0;
+	      sb_new (&sbuf);
+	      ends = strstr (s, "#NO_APP\n");
 
-                s = input_line_pointer;
-                if (strncmp(s, "APP\n", 4)) {
-                    /* We ignore it.  */
-                    ignore_rest_of_line();
-                    continue;
-                }
-                bump_line_counters();
-                s += 4;
+	      if (!ends)
+		{
+		  unsigned int tmp_len;
+		  unsigned int num;
 
-                sb_new(&sbuf);
-                ends = strstr(s, "#NO_APP\n");
+		  /* The end of the #APP wasn't in this buffer.  We
+		     keep reading in buffers until we find the #NO_APP
+		     that goes with this #APP  There is one.  The specs
+		     guarantee it...  */
+		  tmp_len = buffer_limit - s;
+		  tmp_buf = (char *) xmalloc (tmp_len + 1);
+		  memcpy (tmp_buf, s, tmp_len);
+		  do
+		    {
+		      new_tmp = input_scrub_next_buffer (&buffer);
+		      if (!new_tmp)
+			break;
+		      else
+			buffer_limit = new_tmp;
+		      input_line_pointer = buffer;
+		      ends = strstr (buffer, "#NO_APP\n");
+		      if (ends)
+			num = ends - buffer;
+		      else
+			num = buffer_limit - buffer;
 
-                if (!ends) {
-                    unsigned int tmp_len;
-                    unsigned int num;
+		      tmp_buf = (char *) xrealloc (tmp_buf, tmp_len + num);
+		      memcpy (tmp_buf + tmp_len, buffer, num);
+		      tmp_len += num;
+		    }
+		  while (!ends);
 
-                    /* The end of the #APP wasn't in this buffer.  We
-                     keep reading in buffers until we find the #NO_APP
-                     that goes with this #APP  There is one.  The specs
-                     guarantee it...  */
-                    tmp_len = buffer_limit - s;
-                    tmp_buf = (char *) xmalloc(tmp_len + 1);
-                    memcpy(tmp_buf, s, tmp_len);
-                    do {
-                        new_tmp = input_scrub_next_buffer(&buffer);
-                        if (!new_tmp)
-                            break;
-                        else
-                            buffer_limit = new_tmp;
-                        input_line_pointer = buffer;
-                        ends = strstr(buffer, "#NO_APP\n");
-                        if (ends)
-                            num = ends - buffer;
-                        else
-                            num = buffer_limit - buffer;
+		  input_line_pointer = ends ? ends + 8 : NULL;
 
-                        tmp_buf = (char *) xrealloc(tmp_buf, tmp_len + num);
-                        memcpy(tmp_buf + tmp_len, buffer, num);
-                        tmp_len += num;
-                    } while (!ends);
+		  s = tmp_buf;
+		  ends = s + tmp_len;
 
-                    input_line_pointer = ends ? ends + 8 : NULL;
+		}
+	      else
+		{
+		  input_line_pointer = ends + 8;
+		}
 
-                    s = tmp_buf;
-                    ends = s + tmp_len;
+	      scrub_string = s;
+	      scrub_string_end = ends;
 
-                } else {
-                    input_line_pointer = ends + 8;
-                }
+	      new_length = ends - s;
+	      new_buf = (char *) xmalloc (new_length);
+	      new_tmp = new_buf;
+	      for (;;)
+		{
+		  int space;
+		  int size;
 
-                scrub_string = s;
-                scrub_string_end = ends;
+		  space = (new_buf + new_length) - new_tmp;
+		  size = do_scrub_chars (scrub_from_string, new_tmp, space);
 
-                new_length = ends - s;
-                new_buf = (char *) xmalloc(new_length);
-                new_tmp = new_buf;
-                for (;;)
-                        {
-                    int space;
-                    int size;
+		  if (size < space)
+		    {
+		      new_tmp[size] = 0;
+		      break;
+		    }
 
-                    space = (new_buf + new_length) - new_tmp;
-                    size = do_scrub_chars(scrub_from_string, new_tmp, space);
+		  new_buf = (char *) xrealloc (new_buf, new_length + 100);
+		  new_tmp = new_buf + new_length;
+		  new_length += 100;
+		}
 
-                    if (size < space) {
-                        new_tmp[size] = 0;
-                        break;
-                    }
+	      if (tmp_buf)
+		free (tmp_buf);
 
-                    new_buf = (char *) xrealloc(new_buf, new_length + 100);
-                    new_tmp = new_buf + new_length;
-                    new_length += 100;
-                }
+	      /* We've "scrubbed" input to the preferred format.  In the
+		 process we may have consumed the whole of the remaining
+		 file (and included files).  We handle this formatted
+		 input similar to that of macro expansion, letting
+		 actual macro expansion (possibly nested) and other
+		 input expansion work.  Beware that in messages, line
+		 numbers and possibly file names will be incorrect.  */
+	      sb_add_string (&sbuf, new_buf);
+	      input_scrub_include_sb (&sbuf, input_line_pointer, 0);
+	      sb_kill (&sbuf);
+	      buffer_limit = input_scrub_next_buffer (&input_line_pointer);
+	      free (new_buf);
+	      continue;
+	    }
 
-                if (tmp_buf)
-                    free(tmp_buf);
-
-                /* We've "scrubbed" input to the preferred format.  In the
-                 process we may have consumed the whole of the remaining
-                 file (and included files).  We handle this formatted
-                 input similar to that of macro expansion, letting
-                 actual macro expansion (possibly nested) and other
-                 input expansion work.  Beware that in messages, line
-                 numbers and possibly file names will be incorrect.  */
-                sb_add_string(&sbuf, new_buf);
-                input_scrub_include_sb(&sbuf, input_line_pointer, 0);
-                sb_kill(&sbuf);
-                buffer_limit = input_scrub_next_buffer(&input_line_pointer);
-                free(new_buf);
-                continue;
-            }
-
-            HANDLE_CONDITIONAL_ASSEMBLY ();
+	  HANDLE_CONDITIONAL_ASSEMBLY ();
 
 #ifdef tc_unrecognized_line
-            if (tc_unrecognized_line (c))
-            continue;
+	  if (tc_unrecognized_line (c))
+	    continue;
 #endif
-            input_line_pointer--;
-            /* Report unknown char as error.  */
-            demand_empty_rest_of_line();
-        }
-        finish_md_assemble();
-        //SNEISIUS
-        //combine threads
+	  input_line_pointer--;
+	  /* Report unknown char as error.  */
+	  demand_empty_rest_of_line ();
+	}
     }
 
-    quit:
-    // TODO(martint): Check if this is correct.
-    symbol_set_value_now(&dot_symbol);
+ quit:
+  // TODO(martint): Check if this is correct.
+  symbol_set_value_now (&dot_symbol);
 
 #ifdef md_cleanup
-    md_cleanup ();
+  md_cleanup ();
 #endif
-    /* Close the input file.  */
-    input_scrub_close();
+  /* Close the input file.  */
+  input_scrub_close ();
 #ifdef WARN_COMMENTS
-    {
-        if (warn_comment && found_comment)
-        as_warn_where (found_comment_file, found_comment,
-                "first comment found here");
-    }
+  {
+    if (warn_comment && found_comment)
+      as_warn_where (found_comment_file, found_comment,
+		     "first comment found here");
+  }
 #endif
 }
 
@@ -1204,7 +1250,7 @@ s_abort (int ignore ATTRIBUTE_UNUSED)
    the maximum number of characters to skip when doing the alignment,
    or 0 if there is no maximum.  */
 
-void
+static void
 do_align (int n, char *fill, int len, int max)
 {
   if (now_seg == absolute_section)
@@ -1301,31 +1347,37 @@ s_align (int arg, int bytes_p)
 	}
     }
 
-if (align > align_limit) {
-    align = align_limit;
-    as_warn(_("alignment too large: %u assumed"), align);
-}
-
-if (*input_line_pointer != ',') {
-    fill_p = 0;
-    max = align;
-} else {
-    ++input_line_pointer;
-    if (*input_line_pointer == ',')
-        fill_p = 0;
-    else {
-        fill = get_absolute_expression();
-        SKIP_WHITESPACE ();
-        fill_p = 1;
+  if (align > align_limit)
+    {
+      align = align_limit;
+      as_warn (_("alignment too large: %u assumed"), align);
     }
 
-    if (*input_line_pointer != ',')
-        max = align;
-    else {
-        ++input_line_pointer;
-        max = get_absolute_expression();
+  if (*input_line_pointer != ',')
+    {
+      fill_p = 0;
+      max = 0;
     }
-}
+  else
+    {
+      ++input_line_pointer;
+      if (*input_line_pointer == ',')
+	fill_p = 0;
+      else
+	{
+	  fill = get_absolute_expression ();
+	  SKIP_WHITESPACE ();
+	  fill_p = 1;
+	}
+
+      if (*input_line_pointer != ',')
+	max = 0;
+      else
+	{
+	  ++input_line_pointer;
+	  max = get_absolute_expression ();
+	}
+    }
 
   if (!fill_p)
     {
@@ -6011,7 +6063,7 @@ input_scrub_insert_file (char *path)
 # define TC_SINGLE_QUOTE_STRINGS 1
 #endif
 
-char *
+static char *
 _find_end_of_line (char *s, int mri_string, int insn ATTRIBUTE_UNUSED,
 		   int in_macro)
 {

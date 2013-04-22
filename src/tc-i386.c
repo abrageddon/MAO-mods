@@ -27,9 +27,6 @@
    Bugs & suggestions are completely welcome.  This is free software.
    Please help us make it better.  */
 
-//SNEISIUS process it faster
-#include <pthread.h>
-
 #include "as.h"
 #include "safe-ctype.h"
 #include "subsegs.h"
@@ -165,13 +162,6 @@ static void s_bss (int);
 static void handle_large_common (int small ATTRIBUTE_UNUSED);
 #endif
 
-//SNEISIUS
-//Multithreading
-#define NO_OF_THREADS 2
-static pthread_t threads[NO_OF_THREADS];
-static int currentThread;
-static int runningThreads;
-
 static const char *default_arch = DEFAULT_ARCH;
 
 // Allows MAO to query gas on what the default architecture is.
@@ -253,33 +243,33 @@ static char operand_special_chars[] = "%$-+(,)*._~/<>|&^!:[@]";
    effect this we maintain a stack of saved characters that we've smashed
    with '\0's (indicating end of strings for various sub-fields of the
    assembler instruction).  */
-char save_stack[32];
-char *save_stack_p;
+static char save_stack[32];
+static char *save_stack_p;
 #define END_STRING_AND_SAVE(s) \
 	do { *save_stack_p++ = *(s); *(s) = '\0'; } while (0)
 #define RESTORE_END_STRING(s) \
 	do { *(s) = *--save_stack_p; } while (0)
 
 /* The instruction we're assembling.  */
-i386_insn i;
+static i386_insn i;
 
 /* Possible templates for current insn.  */
-const templates *current_templates;
+static const templates *current_templates;
 
 /* Per instruction expressionS buffers: max displacements & immediates.  */
-expressionS disp_expressions[MAX_MEMORY_OPERANDS];
-expressionS im_expressions[MAX_IMMEDIATE_OPERANDS];
+static expressionS disp_expressions[MAX_MEMORY_OPERANDS];
+static expressionS im_expressions[MAX_IMMEDIATE_OPERANDS];
 
 /* Current operand we are working on.  */
-int this_operand = -1;
+static int this_operand = -1;
 
 /* We support four different modes.  FLAG_CODE variable is used to distinguish
    these.  */
 
-enum flag_code flag_code;
-unsigned int object_64bit;
-unsigned int disallow_64bit_reloc;
-int use_rela_relocations = 0;
+static enum flag_code flag_code;
+static unsigned int object_64bit;
+static unsigned int disallow_64bit_reloc;
+static int use_rela_relocations = 0;
 
 #if ((defined (OBJ_MAYBE_COFF) && defined (OBJ_MAYBE_AOUT)) \
      || defined (OBJ_ELF) || defined (OBJ_MAYBE_ELF) \
@@ -338,7 +328,7 @@ static const char *register_prefix = "%";
 /* Used in 16 bit gcc mode to add an l suffix to call, ret, enter,
    leave, push, and pop instructions so that gcc has the same stack
    frame as in 32 bit mode.  */
-char stackop_size = '\0';
+static char stackop_size = '\0';
 
 /* Non-zero to optimize code alignment.  */
 int optimize_align_code = 1;
@@ -2810,22 +2800,9 @@ process_immext (void)
    machine dependent instruction.  This function is supposed to emit
    the frags/bytes it assembles to.  */
 
-struct insn_pend{
-//    int index;
-    char *arg;
-    i386_insn *i;
-    size_t iSize;
-    int flag_code;
-    const char *line_verbatim;
-} iPend[NO_OF_THREADS];
-
 void
-*md_assemble_thread (void *arg)
+md_assemble (char *line)
 {
-  struct insn_pend *ret = (struct insn_pend*)arg;
-  char *line = ret->arg;
-
-//  as_warn(_("Try: %s"), line);
   unsigned int j;
   char mnemonic[MAX_MNEM_SIZE];
   const insn_template *t;
@@ -2845,16 +2822,14 @@ void
      We assume that the scrubber has arranged it so that line[0] is the valid
      start of a (possibly prefixed) mnemonic.  */
 
-
   line = parse_insn (line, mnemonic);
   if (line == NULL)
-    return NULL;
+    return;
 
   line = parse_operands (line, mnemonic);
   this_operand = -1;
   if (line == NULL)
-    return NULL;
-
+    return;
 
   /* Now we've parsed the mnemonic into a set of templates, and have the
      operands at hand.  */
@@ -2894,7 +2869,7 @@ void
      with the template operand types.  */
 
   if (!(t = match_template ()))
-    return NULL;
+    return;
 
   if (sse_check != sse_check_none
       && !i.tm.opcode_modifier.noavx
@@ -2928,7 +2903,7 @@ void
 
   if (i.tm.opcode_modifier.fwait)
     if (!add_prefix (FWAIT_OPCODE))
-      return NULL;
+      return;
 
   /* Check for lock without a lockable instruction.  Destination operand
      must be memory unless it is xchg (0x86).  */
@@ -2939,19 +2914,19 @@ void
 	      && !operand_type_check (i.types[i.operands - 1], anymem))))
     {
       as_bad (_("expecting lockable instruction after `lock'"));
-      return NULL;
+      return;
     }
 
   /* Check string instruction segment overrides.  */
   if (i.tm.opcode_modifier.isstring && i.mem_operands != 0)
     {
       if (!check_string ())
-	return NULL;
+	return;
       i.disp_operands = 0;
     }
 
   if (!process_suffix ())
-    return NULL;
+    return;
 
   /* Update operand types.  */
   for (j = 0; j < i.operands; j++)
@@ -2960,7 +2935,7 @@ void
   /* Make still unresolved immediate matches conform to size of immediate
      given in i.suffix.  */
   if (!finalize_imm ())
-    return NULL;
+    return;
 
   if (i.types[0].bitfield.imm1)
     i.imm_operands = 0;	/* kludge for shift insns.  */
@@ -2984,7 +2959,7 @@ void
   if (i.operands)
     {
       if (!process_operands ())
-	return NULL;
+	return;
     }
   else if (!quiet_warnings && i.tm.opcode_modifier.ugh)
     {
@@ -3060,379 +3035,378 @@ void
   if (i.rex != 0)
     add_prefix (REX_OPCODE | i.rex);
 
-  //SNEISIUS if threads full wait for first else continue unless last
-//  as_warn(_("ipend: %s"), line_verbatim);
-
-  //create ipend memory space
-  ret->i = &i;
-  ret->iSize = sizeof(i);
-  ret->flag_code = flag_code;
-  ret->line_verbatim = line_verbatim;
-
-//  link_insn(&i, sizeof(i), flag_code, line_verbatim);
+  link_insn(&i, sizeof(i), flag_code, line_verbatim);
   /* We are ready to output the insn.  */
   /* output_insn (); */
-  return arg;
-}
-
-void init_md_assemble(){
-    currentThread=0;
-    runningThreads=0;
-}
-void join_md_assemble(pthread_t thread_ID){
-    void *exit_status;
-
-    //wait for join
-    pthread_join ( thread_ID , &exit_status ) ;
-
-    struct insn_pend *thread_result;
-    thread_result = (struct insn_pend*) exit_status ;
-
-//    as_warn(_("join_md_assemble: %s"), thread_result->line_verbatim);
-
-    link_insn(thread_result->i, thread_result->iSize, thread_result->flag_code, thread_result->line_verbatim);
-
-//TODO free the temp struct? no gets reused?
-//    free(exit_status);
-}
-
-void spawn_md_assemble(char *arg){
-    //SNEISIUS
-
-    if (runningThreads < NO_OF_THREADS){
-
-        int newThread = (currentThread + runningThreads) % NO_OF_THREADS;
-
-        iPend[newThread].arg = arg;
-
-//        as_warn(_("\ncurr: %i\tstarting: %i\nspawn_md_assemble: %s")
-//                , currentThread
-//                , (currentThread + runningThreads) % NO_OF_THREADS
-//                , iPend[newThread].arg);
-
-        pthread_t thread_ID;
-
-        pthread_create(&thread_ID , NULL, md_assemble_thread , (void*)(&iPend[newThread]) ) ;
-
-        threads[newThread] = thread_ID;
-
-        ++runningThreads;
-    }
-
-    while (runningThreads >= NO_OF_THREADS){
-//        as_warn(_("join current: %i\tthread_ID: %ul"), currentThread, (int)threads[currentThread]);
-        join_md_assemble(threads[currentThread]);
-
-        currentThread = (currentThread + 1) % NO_OF_THREADS;
-        --runningThreads;
-    }
-}
-
-void finish_md_assemble(){
-    //SNEISIUS wrap up all parallel threads
-    while (runningThreads > 0){
-        as_warn(_("finish_md_assemble: %i\trunning: %i"), currentThread, runningThreads);
-        join_md_assemble(threads[currentThread]);
-
-        currentThread = (currentThread + 1) % NO_OF_THREADS;
-        --runningThreads;
-    }
 }
 
 static char *
-parse_insn(char *line, char *mnemonic) {
-    char *l = line;
-    char *token_start = l;
-    char *mnem_p;
-    int supported;
-    const insn_template *t;
-    char *dot_p = NULL;
+parse_insn (char *line, char *mnemonic)
+{
+  char *l = line;
+  char *token_start = l;
+  char *mnem_p;
+  int supported;
+  const insn_template *t;
+  char *dot_p = NULL;
 
-    /* Non-zero if we found a prefix only acceptable with string insns.  */
-    const char *expecting_string_instruction = NULL;
+  /* Non-zero if we found a prefix only acceptable with string insns.  */
+  const char *expecting_string_instruction = NULL;
 
-    while (1) {
-        mnem_p = mnemonic;
-        while ((*mnem_p = mnemonic_chars[(unsigned char) *l]) != 0) {
-            if (*mnem_p == '.')
-                dot_p = mnem_p;
-            mnem_p++;
-            if (mnem_p >= mnemonic + MAX_MNEM_SIZE) {
-                as_bad(_("no such instruction: `%s'"), token_start);
-                return NULL ;
-            }
-            l++;
-        }
-        if (!is_space_char (*l) && *l != END_OF_INSN && (intel_syntax || (*l != PREFIX_SEPARATOR && *l != ','))) {
-            as_bad(_("1:invalid character %s in %s mnemonic %s"), output_invalid(*l), l, mnemonic);
-            return NULL ;
-        }
-        if (token_start == l) {
-            if (!intel_syntax && *l == PREFIX_SEPARATOR)
-                as_bad(_("expecting prefix; got nothing"));
-            else
-                as_bad(_("expecting mnemonic; got nothing"));
-            return NULL ;
-        }
+  while (1)
+    {
+      mnem_p = mnemonic;
+      while ((*mnem_p = mnemonic_chars[(unsigned char) *l]) != 0)
+	{
+	  if (*mnem_p == '.')
+	    dot_p = mnem_p;
+	  mnem_p++;
+	  if (mnem_p >= mnemonic + MAX_MNEM_SIZE)
+	    {
+	      as_bad (_("no such instruction: `%s'"), token_start);
+	      return NULL;
+	    }
+	  l++;
+	}
+      if (!is_space_char (*l)
+	  && *l != END_OF_INSN
+	  && (intel_syntax
+	      || (*l != PREFIX_SEPARATOR
+		  && *l != ',')))
+	{
+	  as_bad (_("invalid character %s in mnemonic"),
+		  output_invalid (*l));
+	  return NULL;
+	}
+      if (token_start == l)
+	{
+	  if (!intel_syntax && *l == PREFIX_SEPARATOR)
+	    as_bad (_("expecting prefix; got nothing"));
+	  else
+	    as_bad (_("expecting mnemonic; got nothing"));
+	  return NULL;
+	}
 
-        /* Look up instruction (or prefix) via hash table.  */
-        current_templates = (const templates *) hash_find(op_hash, mnemonic);
+      /* Look up instruction (or prefix) via hash table.  */
+      current_templates = (const templates *) hash_find (op_hash, mnemonic);
 
-        if (*l != END_OF_INSN && (!is_space_char (*l) || l[1] != END_OF_INSN) && current_templates
-                && current_templates->start->opcode_modifier.isprefix) {
-            if (!cpu_flags_check_cpu64(current_templates->start->cpu_flags)) {
-                as_bad(
-                        (flag_code != CODE_64BIT ?
-                                _("`%s' is only supported in 64-bit mode") :
-                                _("`%s' is not supported in 64-bit mode")), current_templates->start->name);
-                return NULL ;
-            }
-            /* If we are in 16-bit mode, do not allow addr16 or data16.
-             Similarly, in 32-bit mode, do not allow addr32 or data32.  */
-            if ((current_templates->start->opcode_modifier.size16
-                    || current_templates->start->opcode_modifier.size32) && flag_code != CODE_64BIT
-                    && (current_templates->start->opcode_modifier.size32 ^ (flag_code == CODE_16BIT))) {
-                as_bad(_("redundant %s prefix"), current_templates->start->name);
-                return NULL ;
-            }
-            /* Add prefix, checking for repeated prefixes.  */
-            switch (add_prefix(current_templates->start->base_opcode)) {
-            case PREFIX_EXIST:
-                return NULL ;
-            case PREFIX_REP:
-                expecting_string_instruction = current_templates->start->name;
-                break;
-            default:
-                break;
-            }
-            /* Skip past PREFIX_SEPARATOR and reset token_start.  */
-            token_start = ++l;
-        } else
-            break;
+      if (*l != END_OF_INSN
+	  && (!is_space_char (*l) || l[1] != END_OF_INSN)
+	  && current_templates
+	  && current_templates->start->opcode_modifier.isprefix)
+	{
+	  if (!cpu_flags_check_cpu64 (current_templates->start->cpu_flags))
+	    {
+	      as_bad ((flag_code != CODE_64BIT
+		       ? _("`%s' is only supported in 64-bit mode")
+		       : _("`%s' is not supported in 64-bit mode")),
+		      current_templates->start->name);
+	      return NULL;
+	    }
+	  /* If we are in 16-bit mode, do not allow addr16 or data16.
+	     Similarly, in 32-bit mode, do not allow addr32 or data32.  */
+	  if ((current_templates->start->opcode_modifier.size16
+	       || current_templates->start->opcode_modifier.size32)
+	      && flag_code != CODE_64BIT
+	      && (current_templates->start->opcode_modifier.size32
+		  ^ (flag_code == CODE_16BIT)))
+	    {
+	      as_bad (_("redundant %s prefix"),
+		      current_templates->start->name);
+	      return NULL;
+	    }
+	  /* Add prefix, checking for repeated prefixes.  */
+	  switch (add_prefix (current_templates->start->base_opcode))
+	    {
+	    case PREFIX_EXIST:
+	      return NULL;
+	    case PREFIX_REP:
+	      expecting_string_instruction = current_templates->start->name;
+	      break;
+	    default:
+	      break;
+	    }
+	  /* Skip past PREFIX_SEPARATOR and reset token_start.  */
+	  token_start = ++l;
+	}
+      else
+	break;
     }
 
-    if (!current_templates) {
-        /* Check if we should swap operand or force 32bit displacement in
-         encoding.  */
-        if (mnem_p - 2 == dot_p && dot_p[1] == 's')
-            i.swap_operand = 1;
-        else if (mnem_p - 4 == dot_p && dot_p[1] == 'd' && dot_p[2] == '3' && dot_p[3] == '2')
-            i.disp32_encoding = 1;
-        else
-            goto check_suffix;
-        mnem_p = dot_p;
-        *dot_p = '\0';
-        current_templates = (const templates *) hash_find(op_hash, mnemonic);
+  if (!current_templates)
+    {
+      /* Check if we should swap operand or force 32bit displacement in
+	 encoding.  */
+      if (mnem_p - 2 == dot_p && dot_p[1] == 's')
+	i.swap_operand = 1;
+      else if (mnem_p - 4 == dot_p 
+	       && dot_p[1] == 'd'
+	       && dot_p[2] == '3'
+	       && dot_p[3] == '2')
+	i.disp32_encoding = 1;
+      else
+	goto check_suffix;
+      mnem_p = dot_p;
+      *dot_p = '\0';
+      current_templates = (const templates *) hash_find (op_hash, mnemonic);
     }
 
-    if (!current_templates) {
-        check_suffix:
-        /* See if we can get a match by trimming off a suffix.  */
-        switch (mnem_p[-1]) {
-        case WORD_MNEM_SUFFIX:
-            if (intel_syntax && (intel_float_operand(mnemonic) & 2))
-                i.suffix = SHORT_MNEM_SUFFIX;
-            else
-                case BYTE_MNEM_SUFFIX:
-        case QWORD_MNEM_SUFFIX:
-            i.suffix = mnem_p[-1];
-            mnem_p[-1] = '\0';
-            current_templates = (const templates *) hash_find(op_hash, mnemonic);
-            break;
-        case SHORT_MNEM_SUFFIX:
-        case LONG_MNEM_SUFFIX:
-            if (!intel_syntax) {
-                i.suffix = mnem_p[-1];
-                mnem_p[-1] = '\0';
-                current_templates = (const templates *) hash_find(op_hash, mnemonic);
-            }
-            break;
+  if (!current_templates)
+    {
+check_suffix:
+      /* See if we can get a match by trimming off a suffix.  */
+      switch (mnem_p[-1])
+	{
+	case WORD_MNEM_SUFFIX:
+	  if (intel_syntax && (intel_float_operand (mnemonic) & 2))
+	    i.suffix = SHORT_MNEM_SUFFIX;
+	  else
+	case BYTE_MNEM_SUFFIX:
+	case QWORD_MNEM_SUFFIX:
+	  i.suffix = mnem_p[-1];
+	  mnem_p[-1] = '\0';
+	  current_templates = (const templates *) hash_find (op_hash,
+                                                             mnemonic);
+	  break;
+	case SHORT_MNEM_SUFFIX:
+	case LONG_MNEM_SUFFIX:
+	  if (!intel_syntax)
+	    {
+	      i.suffix = mnem_p[-1];
+	      mnem_p[-1] = '\0';
+	      current_templates = (const templates *) hash_find (op_hash,
+                                                                 mnemonic);
+	    }
+	  break;
 
-            /* Intel Syntax.  */
-        case 'd':
-            if (intel_syntax) {
-                if (intel_float_operand(mnemonic) == 1)
-                    i.suffix = SHORT_MNEM_SUFFIX;
-                else
-                    i.suffix = LONG_MNEM_SUFFIX;
-                mnem_p[-1] = '\0';
-                current_templates = (const templates *) hash_find(op_hash, mnemonic);
-            }
-            break;
-        }
-        if (!current_templates) {
-            as_bad(_("no such instruction: `%s'"), token_start);
-            return NULL ;
-        }
+	  /* Intel Syntax.  */
+	case 'd':
+	  if (intel_syntax)
+	    {
+	      if (intel_float_operand (mnemonic) == 1)
+		i.suffix = SHORT_MNEM_SUFFIX;
+	      else
+		i.suffix = LONG_MNEM_SUFFIX;
+	      mnem_p[-1] = '\0';
+	      current_templates = (const templates *) hash_find (op_hash,
+                                                                 mnemonic);
+	    }
+	  break;
+	}
+      if (!current_templates)
+	{
+	  as_bad (_("no such instruction: `%s'"), token_start);
+	  return NULL;
+	}
     }
 
-    if (current_templates->start->opcode_modifier.jump || current_templates->start->opcode_modifier.jumpbyte) {
-        /* Check for a branch hint.  We allow ",pt" and ",pn" for
-         predict taken and predict not taken respectively.
-         I'm not sure that branch hints actually do anything on loop
-         and jcxz insns (JumpByte) for current Pentium4 chips.  They
-         may work in the future and it doesn't hurt to accept them
-         now.  */
-        if (l[0] == ',' && l[1] == 'p') {
-            if (l[2] == 't') {
-                if (!add_prefix(DS_PREFIX_OPCODE))
-                    return NULL ;
-                l += 3;
-            } else if (l[2] == 'n') {
-                if (!add_prefix(CS_PREFIX_OPCODE))
-                    return NULL ;
-                l += 3;
-            }
-        }
+  if (current_templates->start->opcode_modifier.jump
+      || current_templates->start->opcode_modifier.jumpbyte)
+    {
+      /* Check for a branch hint.  We allow ",pt" and ",pn" for
+	 predict taken and predict not taken respectively.
+	 I'm not sure that branch hints actually do anything on loop
+	 and jcxz insns (JumpByte) for current Pentium4 chips.  They
+	 may work in the future and it doesn't hurt to accept them
+	 now.  */
+      if (l[0] == ',' && l[1] == 'p')
+	{
+	  if (l[2] == 't')
+	    {
+	      if (!add_prefix (DS_PREFIX_OPCODE))
+		return NULL;
+	      l += 3;
+	    }
+	  else if (l[2] == 'n')
+	    {
+	      if (!add_prefix (CS_PREFIX_OPCODE))
+		return NULL;
+	      l += 3;
+	    }
+	}
     }
-    /* Any other comma loses.  */
-    if (*l == ',') {
-        as_bad(_("2:invalid character %s in mnemonic"), output_invalid(*l));
-        return NULL ;
-    }
-
-    /* Check if instruction is supported on specified architecture.  */
-    supported = 0;
-    for (t = current_templates->start; t < current_templates->end; ++t) {
-        supported |= cpu_flags_match(t);
-        if (supported == CPU_FLAGS_PERFECT_MATCH)
-            goto skip;
-    }
-
-    if (!(supported & CPU_FLAGS_64BIT_MATCH)) {
-        as_bad(
-                flag_code == CODE_64BIT ?
-                        _("`%s' is not supported in 64-bit mode") :
-                        _("`%s' is only supported in 64-bit mode"), current_templates->start->name);
-        return NULL ;
-    }
-    if (supported != CPU_FLAGS_PERFECT_MATCH) {
-        as_bad(_("`%s' is not supported on `%s%s'"), current_templates->start->name,
-                cpu_arch_name ? cpu_arch_name : default_arch, cpu_sub_arch_name ? cpu_sub_arch_name : "");
-        return NULL ;
+  /* Any other comma loses.  */
+  if (*l == ',')
+    {
+      as_bad (_("invalid character %s in mnemonic"),
+	      output_invalid (*l));
+      return NULL;
     }
 
-    skip: if (!cpu_arch_flags.bitfield.cpui386 && (flag_code != CODE_16BIT)) {
-        as_warn(_("use .code16 to ensure correct addressing mode"));
+  /* Check if instruction is supported on specified architecture.  */
+  supported = 0;
+  for (t = current_templates->start; t < current_templates->end; ++t)
+    {
+      supported |= cpu_flags_match (t);
+      if (supported == CPU_FLAGS_PERFECT_MATCH)
+	goto skip;
     }
 
-    /* Check for rep/repne without a string instruction.  */
-    if (expecting_string_instruction) {
-        templates override;
-
-        for (t = current_templates->start; t < current_templates->end; ++t)
-            if (t->opcode_modifier.isstring)
-                break;
-        if (t >= current_templates->end) {
-            as_bad(_("expecting string instruction after `%s'"), expecting_string_instruction);
-            return NULL ;
-        }
-        for (override.start = t; t < current_templates->end; ++t)
-            if (!t->opcode_modifier.isstring)
-                break;
-        override.end = t;
-        current_templates = &override;
+  if (!(supported & CPU_FLAGS_64BIT_MATCH))
+    {
+      as_bad (flag_code == CODE_64BIT
+	      ? _("`%s' is not supported in 64-bit mode")
+	      : _("`%s' is only supported in 64-bit mode"),
+	      current_templates->start->name);
+      return NULL;
+    }
+  if (supported != CPU_FLAGS_PERFECT_MATCH)
+    {
+      as_bad (_("`%s' is not supported on `%s%s'"),
+	      current_templates->start->name,
+	      cpu_arch_name ? cpu_arch_name : default_arch,
+	      cpu_sub_arch_name ? cpu_sub_arch_name : "");
+      return NULL;
     }
 
-    return l;
+skip:
+  if (!cpu_arch_flags.bitfield.cpui386
+	   && (flag_code != CODE_16BIT))
+    {
+      as_warn (_("use .code16 to ensure correct addressing mode"));
+    }
+
+  /* Check for rep/repne without a string instruction.  */
+  if (expecting_string_instruction)
+    {
+      static templates override;
+
+      for (t = current_templates->start; t < current_templates->end; ++t)
+	if (t->opcode_modifier.isstring)
+	  break;
+      if (t >= current_templates->end)
+	{
+	  as_bad (_("expecting string instruction after `%s'"),
+		  expecting_string_instruction);
+	  return NULL;
+	}
+      for (override.start = t; t < current_templates->end; ++t)
+	if (!t->opcode_modifier.isstring)
+	  break;
+      override.end = t;
+      current_templates = &override;
+    }
+
+  return l;
 }
 
 static char *
-parse_operands(char *l, const char *mnemonic) {
-    char *token_start;
+parse_operands (char *l, const char *mnemonic)
+{
+  char *token_start;
 
-    /* 1 if operand is pending after ','.  */
-    unsigned int expecting_operand = 0;
+  /* 1 if operand is pending after ','.  */
+  unsigned int expecting_operand = 0;
 
-    /* Non-zero if operand parens not balanced.  */
-    unsigned int paren_not_balanced;
+  /* Non-zero if operand parens not balanced.  */
+  unsigned int paren_not_balanced;
 
-    while (*l != END_OF_INSN) {
-        /* Skip optional white space before operand.  */
-        if (is_space_char (*l))
-            ++l;
-        if (!is_operand_char (*l)&& *l != END_OF_INSN)
-        {
-            as_bad (_("invalid character %s before operand %d"),
-            output_invalid (*l),
-            i.operands + 1);
-            return NULL;
-        }
-        token_start = l; /* after white space */
-        paren_not_balanced = 0;
-        while (paren_not_balanced || *l != ',') {
-            if (*l == END_OF_INSN) {
-                if (paren_not_balanced) {
-                    if (!intel_syntax)
-                        as_bad(_("unbalanced parenthesis in operand %d."), i.operands + 1);
-                    else
-                        as_bad(_("unbalanced brackets in operand %d."), i.operands + 1);
-                    return NULL ;
-                } else
-                    break; /* we are done */
-            } else if (!is_operand_char (*l)&& !is_space_char (*l))
-            {
-                as_bad (_("invalid character %s in operand %d"),
-                output_invalid (*l),
-                i.operands + 1);
-                return NULL;
-            }
-            if (!intel_syntax)
-            {
-                if (*l == '(')
-                ++paren_not_balanced;
-                if (*l == ')')
-                --paren_not_balanced;
-            }
-            else
-            {
-                if (*l == '[')
-                ++paren_not_balanced;
-                if (*l == ']')
-                --paren_not_balanced;
-            }
-            l++;
-        }
-        if (l != token_start) { /* Yes, we've read in another operand.  */
-            unsigned int operand_ok;
-            this_operand = i.operands++;
-            i.types[this_operand].bitfield.unspecified = 1;
-            if (i.operands > MAX_OPERANDS) {
-                as_bad(_("spurious operands; (%d operands/instruction max)"), MAX_OPERANDS);
-                return NULL ;
-            }
-            /* Now parse operand adding info to 'i' as we go along.  */
-            END_STRING_AND_SAVE(l);
+  while (*l != END_OF_INSN)
+    {
+      /* Skip optional white space before operand.  */
+      if (is_space_char (*l))
+	++l;
+      if (!is_operand_char (*l) && *l != END_OF_INSN)
+	{
+	  as_bad (_("invalid character %s before operand %d"),
+		  output_invalid (*l),
+		  i.operands + 1);
+	  return NULL;
+	}
+      token_start = l;	/* after white space */
+      paren_not_balanced = 0;
+      while (paren_not_balanced || *l != ',')
+	{
+	  if (*l == END_OF_INSN)
+	    {
+	      if (paren_not_balanced)
+		{
+		  if (!intel_syntax)
+		    as_bad (_("unbalanced parenthesis in operand %d."),
+			    i.operands + 1);
+		  else
+		    as_bad (_("unbalanced brackets in operand %d."),
+			    i.operands + 1);
+		  return NULL;
+		}
+	      else
+		break;	/* we are done */
+	    }
+	  else if (!is_operand_char (*l) && !is_space_char (*l))
+	    {
+	      as_bad (_("invalid character %s in operand %d"),
+		      output_invalid (*l),
+		      i.operands + 1);
+	      return NULL;
+	    }
+	  if (!intel_syntax)
+	    {
+	      if (*l == '(')
+		++paren_not_balanced;
+	      if (*l == ')')
+		--paren_not_balanced;
+	    }
+	  else
+	    {
+	      if (*l == '[')
+		++paren_not_balanced;
+	      if (*l == ']')
+		--paren_not_balanced;
+	    }
+	  l++;
+	}
+      if (l != token_start)
+	{			/* Yes, we've read in another operand.  */
+	  unsigned int operand_ok;
+	  this_operand = i.operands++;
+	  i.types[this_operand].bitfield.unspecified = 1;
+	  if (i.operands > MAX_OPERANDS)
+	    {
+	      as_bad (_("spurious operands; (%d operands/instruction max)"),
+		      MAX_OPERANDS);
+	      return NULL;
+	    }
+	  /* Now parse operand adding info to 'i' as we go along.  */
+	  END_STRING_AND_SAVE (l);
 
-            if (intel_syntax)
-                operand_ok = i386_intel_operand(token_start, intel_float_operand(mnemonic));
-            else
-                operand_ok = i386_att_operand(token_start);
+	  if (intel_syntax)
+	    operand_ok =
+	      i386_intel_operand (token_start,
+				  intel_float_operand (mnemonic));
+	  else
+	    operand_ok = i386_att_operand (token_start);
 
-            RESTORE_END_STRING(l);
-            if (!operand_ok)
-                return NULL ;
-        } else {
-            if (expecting_operand) {
-                expecting_operand_after_comma: as_bad(_("expecting operand after ','; got nothing"));
-                return NULL ;
-            }
-            if (*l == ',') {
-                as_bad(_("expecting operand before ','; got nothing"));
-                return NULL ;
-            }
-        }
+	  RESTORE_END_STRING (l);
+	  if (!operand_ok)
+	    return NULL;
+	}
+      else
+	{
+	  if (expecting_operand)
+	    {
+	    expecting_operand_after_comma:
+	      as_bad (_("expecting operand after ','; got nothing"));
+	      return NULL;
+	    }
+	  if (*l == ',')
+	    {
+	      as_bad (_("expecting operand before ','; got nothing"));
+	      return NULL;
+	    }
+	}
 
-        /* Now *l must be either ',' or END_OF_INSN.  */
-        if (*l == ',') {
-            if (*++l == END_OF_INSN) {
-                /* Just skip it, if it's \n complain.  */
-                goto expecting_operand_after_comma;
-            }
-            expecting_operand = 1;
-        }
+      /* Now *l must be either ',' or END_OF_INSN.  */
+      if (*l == ',')
+	{
+	  if (*++l == END_OF_INSN)
+	    {
+	      /* Just skip it, if it's \n complain.  */
+	      goto expecting_operand_after_comma;
+	    }
+	  expecting_operand = 1;
+	}
     }
-    return l;
+  return l;
 }
 
 static void
@@ -7261,7 +7235,7 @@ md_atof (int type, char *litP, int *sizeP)
   return ieee_md_atof (type, litP, sizeP, FALSE);
 }
 
-char output_invalid_buf[sizeof (unsigned char) * 2 + 6];
+static char output_invalid_buf[sizeof (unsigned char) * 2 + 6];
 
 static char *
 output_invalid (int c)
