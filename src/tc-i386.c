@@ -138,9 +138,14 @@ int i386_finalize_immediate (segT, expressionS *, i386_operand_type,
 int i386_finalize_displacement (segT, expressionS *, i386_operand_type,
 				       const char *);
 int i386_att_operand (char *);
+
+//TODO(SNEISIUS): change to non static
 int i386_intel_operand (char *, int);
+//TODO(SNEISIUS): change to non static
 int i386_intel_simplify (expressionS *);
+//TODO(SNEISIUS): change to non static
 int i386_intel_parse_name (const char *, expressionS *);
+
 const reg_entry *parse_register (char *, char **);
 char *parse_insn (char *, char *);
 char *parse_operands (char *, const char *);
