@@ -120,54 +120,49 @@ typedef struct
 }
 arch_entry;
 
-void update_code_flag (int, int);
-void set_code_flag (int);
-void set_16bit_gcc_code_flag (int);
-void set_intel_syntax (int);
-void set_intel_mnemonic (int);
-void set_allow_index_reg (int);
-void set_sse_check (int);
-void set_cpu_arch (int);
+static void update_code_flag (int, int);
+static void set_code_flag (int);
+static void set_16bit_gcc_code_flag (int);
+static void set_intel_syntax (int);
+static void set_intel_mnemonic (int);
+static void set_allow_index_reg (int);
+static void set_sse_check (int);
+static void set_cpu_arch (int);
 #ifdef TE_PE
-void pe_directive_secrel (int);
+static void pe_directive_secrel (int);
 #endif
-void signed_cons (int);
-char *output_invalid (int c);
-int i386_finalize_immediate (segT, expressionS *, i386_operand_type,
+static void signed_cons (int);
+static char *output_invalid (int c);
+static int i386_finalize_immediate (segT, expressionS *, i386_operand_type,
 				    const char *);
-int i386_finalize_displacement (segT, expressionS *, i386_operand_type,
+static int i386_finalize_displacement (segT, expressionS *, i386_operand_type,
 				       const char *);
-int i386_att_operand (char *);
-
-//TODO(SNEISIUS): change to non static
-int i386_intel_operand (char *, int);
-//TODO(SNEISIUS): change to non static
-int i386_intel_simplify (expressionS *);
-//TODO(SNEISIUS): change to non static
-int i386_intel_parse_name (const char *, expressionS *);
-
-const reg_entry *parse_register (char *, char **);
-char *parse_insn (char *, char *);
-char *parse_operands (char *, const char *);
-void swap_operands (void);
-void swap_2_operands (int, int);
-void optimize_imm (void);
-void optimize_disp (void);
-const insn_template *match_template (void);
-int check_string (void);
-int process_suffix (void);
-int check_byte_reg (void);
-int check_long_reg (void);
-int check_qword_reg (void);
-int check_word_reg (void);
-int finalize_imm (void);
-int process_operands (void);
-const seg_entry *build_modrm_byte (void);
+static int i386_att_operand (char *);
+static int i386_intel_operand (char *, int);
+static int i386_intel_simplify (expressionS *);
+static int i386_intel_parse_name (const char *, expressionS *);
+static const reg_entry *parse_register (char *, char **);
+static char *parse_insn (char *, char *);
+static char *parse_operands (char *, const char *);
+static void swap_operands (void);
+static void swap_2_operands (int, int);
+static void optimize_imm (void);
+static void optimize_disp (void);
+static const insn_template *match_template (void);
+static int check_string (void);
+static int process_suffix (void);
+static int check_byte_reg (void);
+static int check_long_reg (void);
+static int check_qword_reg (void);
+static int check_word_reg (void);
+static int finalize_imm (void);
+static int process_operands (void);
+static const seg_entry *build_modrm_byte (void);
 #ifndef I386COFF
-void s_bss (int);
+static void s_bss (int);
 #endif
 #if defined (OBJ_ELF) || defined (OBJ_MAYBE_ELF)
-void handle_large_common (int small ATTRIBUTE_UNUSED);
+static void handle_large_common (int small ATTRIBUTE_UNUSED);
 #endif
 
 //SNEISIUS
@@ -177,7 +172,7 @@ static pthread_t threads[NO_OF_THREADS];
 static int currentThread;
 static int runningThreads;
 
-const char *default_arch = DEFAULT_ARCH;
+static const char *default_arch = DEFAULT_ARCH;
 
 // Allows MAO to query gas on what the default architecture is.
 const char *get_default_arch() {
@@ -237,11 +232,11 @@ const char EXP_CHARS[] = "eE";
 const char FLT_CHARS[] = "fFdDxX";
 
 /* Tables for lexical analysis.  */
-char mnemonic_chars[256];
-char register_chars[256];
-char operand_chars[256];
-char identifier_chars[256];
-char digit_chars[256];
+static char mnemonic_chars[256];
+static char register_chars[256];
+static char operand_chars[256];
+static char identifier_chars[256];
+static char digit_chars[256];
 
 /* Lexical macros.  */
 #define is_mnemonic_char(x) (mnemonic_chars[(unsigned char) x])
@@ -252,7 +247,7 @@ char digit_chars[256];
 #define is_digit_char(x) (digit_chars[(unsigned char) x])
 
 /* All non-digit non-letter characters that may occur in an operand.  */
-char operand_special_chars[] = "%$-+(,)*._~/<>|&^!:[@]";
+static char operand_special_chars[] = "%$-+(,)*._~/<>|&^!:[@]";
 
 /* md_assemble() always leaves the strings it's passed unaltered.  To
    effect this we maintain a stack of saved characters that we've smashed
@@ -298,11 +293,11 @@ enum x86_elf_abi
   X86_64_X32_ABI
 };
 
-enum x86_elf_abi x86_elf_abi = I386_ABI;
+static enum x86_elf_abi x86_elf_abi = I386_ABI;
 #endif
 
 /* The names used to print error messages.  */
-const char *flag_code_names[] =
+static const char *flag_code_names[] =
   {
     "32",
     "16",
@@ -311,25 +306,25 @@ const char *flag_code_names[] =
 
 /* 1 for intel syntax,
    0 if att syntax.  */
-int intel_syntax = 0;
+static int intel_syntax = 0;
 
 /* 1 for intel mnemonic,
    0 if att mnemonic.  */
-int intel_mnemonic = !SYSV386_COMPAT;
+static int intel_mnemonic = !SYSV386_COMPAT;
 
 /* 1 if support old (<= 2.8.1) versions of gcc.  */
-int old_gcc = OLDGCC_COMPAT;
+static int old_gcc = OLDGCC_COMPAT;
 
 /* 1 if pseudo registers are permitted.  */
-int allow_pseudo_reg = 0;
+static int allow_pseudo_reg = 0;
 
 /* 1 if register prefix % not required.  */
-int allow_naked_reg = 0;
+static int allow_naked_reg = 0;
 
 /* 1 if pseudo index register, eiz/riz, is allowed .  */
-int allow_index_reg = 0;
+static int allow_index_reg = 0;
 
-enum
+static enum
   {
     sse_check_none = 0,
     sse_check_warning,
@@ -338,7 +333,7 @@ enum
 sse_check;
 
 /* Register prefix used for error message.  */
-const char *register_prefix = "%";
+static const char *register_prefix = "%";
 
 /* Used in 16 bit gcc mode to add an l suffix to call, ret, enter,
    leave, push, and pop instructions so that gcc has the same stack
@@ -349,23 +344,23 @@ char stackop_size = '\0';
 int optimize_align_code = 1;
 
 /* Non-zero to quieten some warnings.  */
-int quiet_warnings = 0;
+static int quiet_warnings = 0;
 
 /* CPU name.  */
-const char *cpu_arch_name = NULL;
-char *cpu_sub_arch_name = NULL;
+static const char *cpu_arch_name = NULL;
+static char *cpu_sub_arch_name = NULL;
 
 /* CPU feature flags.  */
 i386_cpu_flags cpu_arch_flags = CPU_UNKNOWN_FLAGS;
 
 /* If we have selected a cpu we are generating instructions for.  */
-int cpu_arch_tune_set = 0;
+static int cpu_arch_tune_set = 0;
 
 /* Cpu we are generating instructions for.  */
 enum processor_type cpu_arch_tune = PROCESSOR_UNKNOWN;
 
 /* CPU feature flags of cpu we are generating instructions for.  */
-i386_cpu_flags cpu_arch_tune_flags;
+static i386_cpu_flags cpu_arch_tune_flags;
 
 /* CPU instruction set architecture used.  */
 enum processor_type cpu_arch_isa = PROCESSOR_UNKNOWN;
@@ -375,20 +370,20 @@ i386_cpu_flags cpu_arch_isa_flags;
 
 /* If set, conditional jumps are not automatically promoted to handle
    larger than a byte offset.  */
-unsigned int no_cond_jump_promotion = 0;
+static unsigned int no_cond_jump_promotion = 0;
 
 /* Encode SSE instructions with VEX prefix.  */
-unsigned int sse2avx;
+static unsigned int sse2avx;
 
 /* Encode scalar AVX instructions with specific vector length.  */
-enum
+static enum
   {
     vex128 = 0,
     vex256
   } avxscalar;
 
 /* Pre-defined "_GLOBAL_OFFSET_TABLE_".  */
-symbolS *GOT_symbol;
+static symbolS *GOT_symbol;
 
 /* The dwarf2 return column, adjusted for 32 or 64 bit.  */
 unsigned int x86_dwarf2_return_column;
@@ -475,7 +470,7 @@ const relax_typeS md_relax_table[] =
   {0, 0, 4, 0}
 };
 
-const arch_entry cpu_arch[] =
+static const arch_entry cpu_arch[] =
 {
   /* Do not replace the first two entries - i386_target_format()
      relies on them being there in this order.  */
@@ -647,7 +642,7 @@ const arch_entry cpu_arch[] =
 /* Like s_lcomm_internal in gas/read.c but the alignment string
    is allowed to be optional.  */
 
-symbolS *
+static symbolS *
 pe_lcomm_internal (int needs_align, symbolS *symbolP, addressT size)
 {
   addressT align = 0;
@@ -678,7 +673,7 @@ pe_lcomm_internal (int needs_align, symbolS *symbolP, addressT size)
   return symbolP;
 }
 
-void
+static void
 pe_lcomm (int needs_align)
 {
   s_comm_internal (needs_align * 2, pe_lcomm_internal);
@@ -733,10 +728,10 @@ const pseudo_typeS md_pseudo_table[] =
 extern char *input_line_pointer;
 
 /* Hash table for instruction mnemonic lookup.  */
-struct hash_control *op_hash;
+static struct hash_control *op_hash;
 
 /* Hash table for register lookup.  */
-struct hash_control *reg_hash;
+static struct hash_control *reg_hash;
 
 void
 i386_align_code (fragS *fragP, int count)
@@ -744,103 +739,103 @@ i386_align_code (fragS *fragP, int count)
   /* Various efficient no-op patterns for aligning code labels.
      Note: Don't try to assemble the instructions in the comments.
      0L and 0w are not legal.  */
-  const char f32_1[] =
+  static const char f32_1[] =
     {0x90};					/* nop			*/
-  const char f32_2[] =
+  static const char f32_2[] =
     {0x66,0x90};				/* xchg %ax,%ax */
-  const char f32_3[] =
+  static const char f32_3[] =
     {0x8d,0x76,0x00};				/* leal 0(%esi),%esi	*/
-  const char f32_4[] =
+  static const char f32_4[] =
     {0x8d,0x74,0x26,0x00};			/* leal 0(%esi,1),%esi	*/
-  const char f32_5[] =
+  static const char f32_5[] =
     {0x90,					/* nop			*/
      0x8d,0x74,0x26,0x00};			/* leal 0(%esi,1),%esi	*/
-  const char f32_6[] =
+  static const char f32_6[] =
     {0x8d,0xb6,0x00,0x00,0x00,0x00};		/* leal 0L(%esi),%esi	*/
-  const char f32_7[] =
+  static const char f32_7[] =
     {0x8d,0xb4,0x26,0x00,0x00,0x00,0x00};	/* leal 0L(%esi,1),%esi */
-  const char f32_8[] =
+  static const char f32_8[] =
     {0x90,					/* nop			*/
      0x8d,0xb4,0x26,0x00,0x00,0x00,0x00};	/* leal 0L(%esi,1),%esi */
-  const char f32_9[] =
+  static const char f32_9[] =
     {0x89,0xf6,					/* movl %esi,%esi	*/
      0x8d,0xbc,0x27,0x00,0x00,0x00,0x00};	/* leal 0L(%edi,1),%edi */
-  const char f32_10[] =
+  static const char f32_10[] =
     {0x8d,0x76,0x00,				/* leal 0(%esi),%esi	*/
      0x8d,0xbc,0x27,0x00,0x00,0x00,0x00};	/* leal 0L(%edi,1),%edi */
-  const char f32_11[] =
+  static const char f32_11[] =
     {0x8d,0x74,0x26,0x00,			/* leal 0(%esi,1),%esi	*/
      0x8d,0xbc,0x27,0x00,0x00,0x00,0x00};	/* leal 0L(%edi,1),%edi */
-  const char f32_12[] =
+  static const char f32_12[] =
     {0x8d,0xb6,0x00,0x00,0x00,0x00,		/* leal 0L(%esi),%esi	*/
      0x8d,0xbf,0x00,0x00,0x00,0x00};		/* leal 0L(%edi),%edi	*/
-  const char f32_13[] =
+  static const char f32_13[] =
     {0x8d,0xb6,0x00,0x00,0x00,0x00,		/* leal 0L(%esi),%esi	*/
      0x8d,0xbc,0x27,0x00,0x00,0x00,0x00};	/* leal 0L(%edi,1),%edi */
-  const char f32_14[] =
+  static const char f32_14[] =
     {0x8d,0xb4,0x26,0x00,0x00,0x00,0x00,	/* leal 0L(%esi,1),%esi */
      0x8d,0xbc,0x27,0x00,0x00,0x00,0x00};	/* leal 0L(%edi,1),%edi */
-  const char f16_3[] =
+  static const char f16_3[] =
     {0x8d,0x74,0x00};				/* lea 0(%esi),%esi	*/
-  const char f16_4[] =
+  static const char f16_4[] =
     {0x8d,0xb4,0x00,0x00};			/* lea 0w(%si),%si	*/
-  const char f16_5[] =
+  static const char f16_5[] =
     {0x90,					/* nop			*/
      0x8d,0xb4,0x00,0x00};			/* lea 0w(%si),%si	*/
-  const char f16_6[] =
+  static const char f16_6[] =
     {0x89,0xf6,					/* mov %si,%si		*/
      0x8d,0xbd,0x00,0x00};			/* lea 0w(%di),%di	*/
-  const char f16_7[] =
+  static const char f16_7[] =
     {0x8d,0x74,0x00,				/* lea 0(%si),%si	*/
      0x8d,0xbd,0x00,0x00};			/* lea 0w(%di),%di	*/
-  const char f16_8[] =
+  static const char f16_8[] =
     {0x8d,0xb4,0x00,0x00,			/* lea 0w(%si),%si	*/
      0x8d,0xbd,0x00,0x00};			/* lea 0w(%di),%di	*/
-  const char jump_31[] =
+  static const char jump_31[] =
     {0xeb,0x1d,0x90,0x90,0x90,0x90,0x90,	/* jmp .+31; lotsa nops	*/
      0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,
      0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,
      0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90};
-  const char *const f32_patt[] = {
+  static const char *const f32_patt[] = {
     f32_1, f32_2, f32_3, f32_4, f32_5, f32_6, f32_7, f32_8,
     f32_9, f32_10, f32_11, f32_12, f32_13, f32_14
   };
-  const char *const f16_patt[] = {
+  static const char *const f16_patt[] = {
     f32_1, f32_2, f16_3, f16_4, f16_5, f16_6, f16_7, f16_8
   };
   /* nopl (%[re]ax) */
-  const char alt_3[] =
+  static const char alt_3[] =
     {0x0f,0x1f,0x00};
   /* nopl 0(%[re]ax) */
-  const char alt_4[] =
+  static const char alt_4[] =
     {0x0f,0x1f,0x40,0x00};
   /* nopl 0(%[re]ax,%[re]ax,1) */
-  const char alt_5[] =
+  static const char alt_5[] =
     {0x0f,0x1f,0x44,0x00,0x00};
   /* nopw 0(%[re]ax,%[re]ax,1) */
-  const char alt_6[] =
+  static const char alt_6[] =
     {0x66,0x0f,0x1f,0x44,0x00,0x00};
   /* nopl 0L(%[re]ax) */
-  const char alt_7[] =
+  static const char alt_7[] =
     {0x0f,0x1f,0x80,0x00,0x00,0x00,0x00};
   /* nopl 0L(%[re]ax,%[re]ax,1) */
-  const char alt_8[] =
+  static const char alt_8[] =
     {0x0f,0x1f,0x84,0x00,0x00,0x00,0x00,0x00};
   /* nopw 0L(%[re]ax,%[re]ax,1) */
-  const char alt_9[] =
+  static const char alt_9[] =
     {0x66,0x0f,0x1f,0x84,0x00,0x00,0x00,0x00,0x00};
   /* nopw %cs:0L(%[re]ax,%[re]ax,1) */
-  const char alt_10[] =
+  static const char alt_10[] =
     {0x66,0x2e,0x0f,0x1f,0x84,0x00,0x00,0x00,0x00,0x00};
   /* data16
      nopw %cs:0L(%[re]ax,%[re]ax,1) */
-  const char alt_long_11[] =
+  static const char alt_long_11[] =
     {0x66,
      0x66,0x2e,0x0f,0x1f,0x84,0x00,0x00,0x00,0x00,0x00};
   /* data16
      data16
      nopw %cs:0L(%[re]ax,%[re]ax,1) */
-  const char alt_long_12[] =
+  static const char alt_long_12[] =
     {0x66,
      0x66,
      0x66,0x2e,0x0f,0x1f,0x84,0x00,0x00,0x00,0x00,0x00};
@@ -848,19 +843,8 @@ i386_align_code (fragS *fragP, int count)
      data16
      data16
      nopw %cs:0L(%[re]ax,%[re]ax,1) */
-  const char alt_long_13[] =
+  static const char alt_long_13[] =
     {0x66,
-     0x66,
-     0x66,
-     0x66,0x2e,0x0f,0x1f,0x84,0x00,0x00,0x00,0x00,0x00};
-  /* data16
-     data16
-     data16
-     data16
-     nopw %cs:0L(%[re]ax,%[re]ax,1) */
-  const char alt_long_14[] =
-    {0x66,
-     0x66,
      0x66,
      0x66,
      0x66,0x2e,0x0f,0x1f,0x84,0x00,0x00,0x00,0x00,0x00};
@@ -868,9 +852,20 @@ i386_align_code (fragS *fragP, int count)
      data16
      data16
      data16
+     nopw %cs:0L(%[re]ax,%[re]ax,1) */
+  static const char alt_long_14[] =
+    {0x66,
+     0x66,
+     0x66,
+     0x66,
+     0x66,0x2e,0x0f,0x1f,0x84,0x00,0x00,0x00,0x00,0x00};
+  /* data16
+     data16
+     data16
+     data16
      data16
      nopw %cs:0L(%[re]ax,%[re]ax,1) */
-  const char alt_long_15[] =
+  static const char alt_long_15[] =
     {0x66,
      0x66,
      0x66,
@@ -879,35 +874,35 @@ i386_align_code (fragS *fragP, int count)
      0x66,0x2e,0x0f,0x1f,0x84,0x00,0x00,0x00,0x00,0x00};
   /* nopl 0(%[re]ax,%[re]ax,1)
      nopw 0(%[re]ax,%[re]ax,1) */
-  const char alt_short_11[] =
+  static const char alt_short_11[] =
     {0x0f,0x1f,0x44,0x00,0x00,
      0x66,0x0f,0x1f,0x44,0x00,0x00};
   /* nopw 0(%[re]ax,%[re]ax,1)
      nopw 0(%[re]ax,%[re]ax,1) */
-  const char alt_short_12[] =
+  static const char alt_short_12[] =
     {0x66,0x0f,0x1f,0x44,0x00,0x00,
      0x66,0x0f,0x1f,0x44,0x00,0x00};
   /* nopw 0(%[re]ax,%[re]ax,1)
      nopl 0L(%[re]ax) */
-  const char alt_short_13[] =
+  static const char alt_short_13[] =
     {0x66,0x0f,0x1f,0x44,0x00,0x00,
      0x0f,0x1f,0x80,0x00,0x00,0x00,0x00};
   /* nopl 0L(%[re]ax)
      nopl 0L(%[re]ax) */
-  const char alt_short_14[] =
+  static const char alt_short_14[] =
     {0x0f,0x1f,0x80,0x00,0x00,0x00,0x00,
      0x0f,0x1f,0x80,0x00,0x00,0x00,0x00};
   /* nopl 0L(%[re]ax)
      nopl 0L(%[re]ax,%[re]ax,1) */
-  const char alt_short_15[] =
+  static const char alt_short_15[] =
     {0x0f,0x1f,0x80,0x00,0x00,0x00,0x00,
      0x0f,0x1f,0x84,0x00,0x00,0x00,0x00,0x00};
-  const char *const alt_short_patt[] = {
+  static const char *const alt_short_patt[] = {
     f32_1, f32_2, alt_3, alt_4, alt_5, alt_6, alt_7, alt_8,
     alt_9, alt_10, alt_short_11, alt_short_12, alt_short_13,
     alt_short_14, alt_short_15
   };
-  const char *const alt_long_patt[] = {
+  static const char *const alt_long_patt[] = {
     f32_1, f32_2, alt_3, alt_4, alt_5, alt_6, alt_7, alt_8,
     alt_9, alt_10, alt_long_11, alt_long_12, alt_long_13,
     alt_long_14, alt_long_15
@@ -1082,7 +1077,7 @@ i386_align_code (fragS *fragP, int count)
   fragP->fr_var = count;
 }
 
-INLINE int
+static INLINE int
 operand_type_all_zero (const union i386_operand_type *x)
 {
   switch (ARRAY_SIZE(x->array))
@@ -1100,7 +1095,7 @@ operand_type_all_zero (const union i386_operand_type *x)
     }
 }
 
-INLINE void
+static INLINE void
 operand_type_set (union i386_operand_type *x, unsigned int v)
 {
   switch (ARRAY_SIZE(x->array))
@@ -1117,7 +1112,7 @@ operand_type_set (union i386_operand_type *x, unsigned int v)
     }
 }
 
-INLINE int
+static INLINE int
 operand_type_equal (const union i386_operand_type *x,
 		    const union i386_operand_type *y)
 {
@@ -1137,7 +1132,7 @@ operand_type_equal (const union i386_operand_type *x,
     }
 }
 
-INLINE int
+static INLINE int
 cpu_flags_all_zero (const union i386_cpu_flags *x)
 {
   switch (ARRAY_SIZE(x->array))
@@ -1155,7 +1150,7 @@ cpu_flags_all_zero (const union i386_cpu_flags *x)
     }
 }
 
-INLINE void
+static INLINE void
 cpu_flags_set (union i386_cpu_flags *x, unsigned int v)
 {
   switch (ARRAY_SIZE(x->array))
@@ -1172,7 +1167,7 @@ cpu_flags_set (union i386_cpu_flags *x, unsigned int v)
     }
 }
 
-INLINE int
+static INLINE int
 cpu_flags_equal (const union i386_cpu_flags *x,
 		 const union i386_cpu_flags *y)
 {
@@ -1192,14 +1187,14 @@ cpu_flags_equal (const union i386_cpu_flags *x,
     }
 }
 
-INLINE int
+static INLINE int
 cpu_flags_check_cpu64 (i386_cpu_flags f)
 {
   return !((flag_code == CODE_64BIT && f.bitfield.cpuno64)
 	   || (flag_code != CODE_64BIT && f.bitfield.cpu64));
 }
 
-INLINE i386_cpu_flags
+static INLINE i386_cpu_flags
 cpu_flags_and (i386_cpu_flags x, i386_cpu_flags y)
 {
   switch (ARRAY_SIZE (x.array))
@@ -1217,7 +1212,7 @@ cpu_flags_and (i386_cpu_flags x, i386_cpu_flags y)
   return x;
 }
 
-INLINE i386_cpu_flags
+static INLINE i386_cpu_flags
 cpu_flags_or (i386_cpu_flags x, i386_cpu_flags y)
 {
   switch (ARRAY_SIZE (x.array))
@@ -1235,7 +1230,7 @@ cpu_flags_or (i386_cpu_flags x, i386_cpu_flags y)
   return x;
 }
 
-INLINE i386_cpu_flags
+static INLINE i386_cpu_flags
 cpu_flags_and_not (i386_cpu_flags x, i386_cpu_flags y)
 {
   switch (ARRAY_SIZE (x.array))
@@ -1267,7 +1262,7 @@ cpu_flags_and_not (i386_cpu_flags x, i386_cpu_flags y)
 
 /* Return CPU flags match bits. */
 
-int
+static int
 cpu_flags_match (const insn_template *t)
 {
   i386_cpu_flags x = t->cpu_flags;
@@ -1320,7 +1315,7 @@ cpu_flags_match (const insn_template *t)
   return match;
 }
 
-INLINE i386_operand_type
+static INLINE i386_operand_type
 operand_type_and (i386_operand_type x, i386_operand_type y)
 {
   switch (ARRAY_SIZE (x.array))
@@ -1338,7 +1333,7 @@ operand_type_and (i386_operand_type x, i386_operand_type y)
   return x;
 }
 
-INLINE i386_operand_type
+static INLINE i386_operand_type
 operand_type_or (i386_operand_type x, i386_operand_type y)
 {
   switch (ARRAY_SIZE (x.array))
@@ -1356,7 +1351,7 @@ operand_type_or (i386_operand_type x, i386_operand_type y)
   return x;
 }
 
-INLINE i386_operand_type
+static INLINE i386_operand_type
 operand_type_xor (i386_operand_type x, i386_operand_type y)
 {
   switch (ARRAY_SIZE (x.array))
@@ -1374,36 +1369,36 @@ operand_type_xor (i386_operand_type x, i386_operand_type y)
   return x;
 }
 
-const i386_operand_type acc32 = OPERAND_TYPE_ACC32;
-const i386_operand_type acc64 = OPERAND_TYPE_ACC64;
-const i386_operand_type control = OPERAND_TYPE_CONTROL;
-const i386_operand_type inoutportreg
+static const i386_operand_type acc32 = OPERAND_TYPE_ACC32;
+static const i386_operand_type acc64 = OPERAND_TYPE_ACC64;
+static const i386_operand_type control = OPERAND_TYPE_CONTROL;
+static const i386_operand_type inoutportreg
   = OPERAND_TYPE_INOUTPORTREG;
-const i386_operand_type reg16_inoutportreg
+static const i386_operand_type reg16_inoutportreg
   = OPERAND_TYPE_REG16_INOUTPORTREG;
-const i386_operand_type disp16 = OPERAND_TYPE_DISP16;
-const i386_operand_type disp32 = OPERAND_TYPE_DISP32;
-const i386_operand_type disp32s = OPERAND_TYPE_DISP32S;
-const i386_operand_type disp16_32 = OPERAND_TYPE_DISP16_32;
-const i386_operand_type anydisp
+static const i386_operand_type disp16 = OPERAND_TYPE_DISP16;
+static const i386_operand_type disp32 = OPERAND_TYPE_DISP32;
+static const i386_operand_type disp32s = OPERAND_TYPE_DISP32S;
+static const i386_operand_type disp16_32 = OPERAND_TYPE_DISP16_32;
+static const i386_operand_type anydisp
   = OPERAND_TYPE_ANYDISP;
-const i386_operand_type regxmm = OPERAND_TYPE_REGXMM;
-const i386_operand_type regymm = OPERAND_TYPE_REGYMM;
-const i386_operand_type imm8 = OPERAND_TYPE_IMM8;
-const i386_operand_type imm8s = OPERAND_TYPE_IMM8S;
-const i386_operand_type imm16 = OPERAND_TYPE_IMM16;
-const i386_operand_type imm32 = OPERAND_TYPE_IMM32;
-const i386_operand_type imm32s = OPERAND_TYPE_IMM32S;
-const i386_operand_type imm64 = OPERAND_TYPE_IMM64;
-const i386_operand_type imm16_32 = OPERAND_TYPE_IMM16_32;
-const i386_operand_type imm16_32s = OPERAND_TYPE_IMM16_32S;
-const i386_operand_type imm16_32_32s = OPERAND_TYPE_IMM16_32_32S;
-const i386_operand_type vec_imm4 = OPERAND_TYPE_VEC_IMM4;
+static const i386_operand_type regxmm = OPERAND_TYPE_REGXMM;
+static const i386_operand_type regymm = OPERAND_TYPE_REGYMM;
+static const i386_operand_type imm8 = OPERAND_TYPE_IMM8;
+static const i386_operand_type imm8s = OPERAND_TYPE_IMM8S;
+static const i386_operand_type imm16 = OPERAND_TYPE_IMM16;
+static const i386_operand_type imm32 = OPERAND_TYPE_IMM32;
+static const i386_operand_type imm32s = OPERAND_TYPE_IMM32S;
+static const i386_operand_type imm64 = OPERAND_TYPE_IMM64;
+static const i386_operand_type imm16_32 = OPERAND_TYPE_IMM16_32;
+static const i386_operand_type imm16_32s = OPERAND_TYPE_IMM16_32S;
+static const i386_operand_type imm16_32_32s = OPERAND_TYPE_IMM16_32_32S;
+static const i386_operand_type vec_imm4 = OPERAND_TYPE_VEC_IMM4;
 
 /* Return 1 if there is no conflict in 8bit/16bit/32bit/64bit on
    operand J for instruction template T.  */
 
-INLINE int
+static INLINE int
 match_reg_size (const insn_template *t, unsigned int j)
 {
   return !((i.types[j].bitfield.byte
@@ -1419,7 +1414,7 @@ match_reg_size (const insn_template *t, unsigned int j)
 /* Return 1 if there is no conflict in any size on operand J for
    instruction template T.  */
 
-INLINE int
+static INLINE int
 match_mem_size (const insn_template *t, unsigned int j)
 {
   return (match_reg_size (t, j)
@@ -1438,7 +1433,7 @@ match_mem_size (const insn_template *t, unsigned int j)
 /* Return 1 if there is no size conflict on any operands for
    instruction template T.  */
 
-INLINE int
+static INLINE int
 operand_size_match (const insn_template *t)
 {
   unsigned int j;
@@ -1497,7 +1492,7 @@ mismatch:
   return match;
 }
 
-INLINE int
+static INLINE int
 operand_type_match (i386_operand_type overlap,
 		    i386_operand_type given)
 {
@@ -1529,7 +1524,7 @@ mismatch:
    unless the expected operand type register overlap is null.
    Note that Acc in a template matches every size of reg.  */
 
-INLINE int
+static INLINE int
 operand_type_register_match (i386_operand_type m0,
 			     i386_operand_type g0,
 			     i386_operand_type t0,
@@ -1576,7 +1571,7 @@ operand_type_register_match (i386_operand_type m0,
   return 0;
 }
 
-INLINE unsigned int
+static INLINE unsigned int
 mode_from_disp_size (i386_operand_type t)
 {
   if (t.bitfield.disp8)
@@ -1589,31 +1584,31 @@ mode_from_disp_size (i386_operand_type t)
     return 0;
 }
 
-INLINE int
+static INLINE int
 fits_in_signed_byte (offsetT num)
 {
   return (num >= -128) && (num <= 127);
 }
 
-INLINE int
+static INLINE int
 fits_in_unsigned_byte (offsetT num)
 {
   return (num & 0xff) == num;
 }
 
-INLINE int
+static INLINE int
 fits_in_unsigned_word (offsetT num)
 {
   return (num & 0xffff) == num;
 }
 
-INLINE int
+static INLINE int
 fits_in_signed_word (offsetT num)
 {
   return (-32768 <= num) && (num <= 32767);
 }
 
-INLINE int
+static INLINE int
 fits_in_signed_long (offsetT num ATTRIBUTE_UNUSED)
 {
 #ifndef BFD64
@@ -1624,7 +1619,7 @@ fits_in_signed_long (offsetT num ATTRIBUTE_UNUSED)
 #endif
 }				/* fits_in_signed_long() */
 
-INLINE int
+static INLINE int
 fits_in_unsigned_long (offsetT num ATTRIBUTE_UNUSED)
 {
 #ifndef BFD64
@@ -1634,13 +1629,13 @@ fits_in_unsigned_long (offsetT num ATTRIBUTE_UNUSED)
 #endif
 }				/* fits_in_unsigned_long() */
 
-INLINE int
+static INLINE int
 fits_in_imm4 (offsetT num)
 {
   return (num & 0xf) == num;
 }
 
-i386_operand_type
+static i386_operand_type
 smallest_imm_type (offsetT num)
 {
   i386_operand_type t;
@@ -1711,7 +1706,7 @@ enum PREFIX_GROUP
    d. PREFIX_OTHER if other prefix is added.
  */
 
-enum PREFIX_GROUP
+static enum PREFIX_GROUP
 add_prefix (unsigned int prefix)
 {
   enum PREFIX_GROUP ret = PREFIX_OTHER;
@@ -1781,7 +1776,7 @@ add_prefix (unsigned int prefix)
   return ret;
 }
 
-void
+static void
 update_code_flag (int value, int check)
 {
   PRINTF_LIKE ((*as_error));
@@ -1819,13 +1814,13 @@ update_code_flag (int value, int check)
   link_code_directive(flag_code, 0);
 }
 
-void
+static void
 set_code_flag (int value)
 {
   update_code_flag (value, 0);
 }
 
-void
+static void
 set_16bit_gcc_code_flag (int new_code_flag)
 {
   flag_code = (enum flag_code) new_code_flag;
@@ -1839,7 +1834,7 @@ set_16bit_gcc_code_flag (int new_code_flag)
   link_code_directive(flag_code, 1);
 }
 
-void
+static void
 set_intel_syntax (int syntax_flag)
 {
   /* Find out if register prefixing is specified.  */
@@ -1876,13 +1871,13 @@ set_intel_syntax (int syntax_flag)
   register_prefix = allow_naked_reg ? "" : "%";
 }
 
-void
+static void
 set_intel_mnemonic (int mnemonic_flag)
 {
   intel_mnemonic = mnemonic_flag;
 }
 
-void
+static void
 set_allow_index_reg (int flag)
 {
   allow_index_reg = flag;
@@ -1894,7 +1889,7 @@ set_allow_index_reg (int flag)
     link_disallow_index_reg_directive();
 }
 
-void
+static void
 set_sse_check (int dummy ATTRIBUTE_UNUSED)
 {
   SKIP_WHITESPACE ();
@@ -1920,12 +1915,12 @@ set_sse_check (int dummy ATTRIBUTE_UNUSED)
   demand_empty_rest_of_line ();
 }
 
-void
+static void
 check_cpu_arch_compatible (const char *name ATTRIBUTE_UNUSED,
 			   i386_cpu_flags new_flag ATTRIBUTE_UNUSED)
 {
 #if defined (OBJ_ELF) || defined (OBJ_MAYBE_ELF)
-  const char *arch;
+  static const char *arch;
 
   /* Intel LIOM is only supported on ELF.  */
   if (!IS_ELF)
@@ -1954,7 +1949,7 @@ check_cpu_arch_compatible (const char *name ATTRIBUTE_UNUSED,
 #endif
 }
 
-void
+static void
 set_cpu_arch (int dummy ATTRIBUTE_UNUSED)
 {
   SKIP_WHITESPACE ();
@@ -2254,12 +2249,12 @@ i386_print_statistics (FILE *file)
 #ifdef DEBUG386
 
 /* Debugging routines for md_assemble.  */
-void pte (insn_template *);
-void pt (i386_operand_type);
-void pe (expressionS *);
-void ps (symbolS *);
+static void pte (insn_template *);
+static void pt (i386_operand_type);
+static void pe (expressionS *);
+static void ps (symbolS *);
 
-void
+static void
 pi (char *line, i386_insn *x)
 {
   unsigned int j;
@@ -2304,7 +2299,7 @@ pi (char *line, i386_insn *x)
     }
 }
 
-void
+static void
 pte (insn_template *t)
 {
   unsigned int j;
@@ -2325,7 +2320,7 @@ pte (insn_template *t)
     }
 }
 
-void
+static void
 pe (expressionS *e)
 {
   fprintf (stdout, "    operation     %d\n", e->X_op);
@@ -2345,7 +2340,7 @@ pe (expressionS *e)
     }
 }
 
-void
+static void
 ps (symbolS *s)
 {
   fprintf (stdout, "%s type %s%s",
@@ -2354,7 +2349,7 @@ ps (symbolS *s)
 	   segment_name (S_GET_SEGMENT (s)));
 }
 
-struct type_name
+static struct type_name
   {
     i386_operand_type mask;
     const char *name;
@@ -2395,7 +2390,7 @@ const type_names[] =
   { OPERAND_TYPE_ESSEG, "es" },
 };
 
-void
+static void
 pt (i386_operand_type t)
 {
   unsigned int j;
@@ -2412,7 +2407,7 @@ pt (i386_operand_type t)
 
 #endif /* DEBUG386 */
 
-bfd_reloc_code_real_type
+static bfd_reloc_code_real_type
 reloc (unsigned int size,
        int pcrel,
        int sign,
@@ -2564,7 +2559,7 @@ tc_i386_fix_adjustable (fixS *fixP ATTRIBUTE_UNUSED)
   return 1;
 }
 
-int
+static int
 intel_float_operand (const char *mnemonic)
 {
   /* Note that the value returned is meaningful only for opcodes with (memory)
@@ -2619,7 +2614,7 @@ intel_float_operand (const char *mnemonic)
 
 /* Build the VEX prefix.  */
 
-void
+static void
 build_vex_prefix (const insn_template *t)
 {
   unsigned int register_specifier;
@@ -2767,7 +2762,7 @@ build_vex_prefix (const insn_template *t)
     }
 }
 
-void
+static void
 process_immext (void)
 {
   expressionS *exp;
@@ -2810,10 +2805,6 @@ process_immext (void)
   exp->X_add_number = i.tm.extension_opcode;
   i.tm.extension_opcode = None;
 }
-
-
-
-
 
 /* This is the guts of the machine-dependent assembler.  LINE points to a
    machine dependent instruction.  This function is supposed to emit
@@ -3148,7 +3139,7 @@ void finish_md_assemble(){
     }
 }
 
-char *
+static char *
 parse_insn(char *line, char *mnemonic) {
     char *l = line;
     char *token_start = l;
@@ -3346,7 +3337,7 @@ parse_insn(char *line, char *mnemonic) {
     return l;
 }
 
-char *
+static char *
 parse_operands(char *l, const char *mnemonic) {
     char *token_start;
 
@@ -3444,7 +3435,7 @@ parse_operands(char *l, const char *mnemonic) {
     return l;
 }
 
-void
+static void
 swap_2_operands (int xchg1, int xchg2)
 {
   union i386_op temp_op;
@@ -3462,7 +3453,7 @@ swap_2_operands (int xchg1, int xchg2)
   i.reloc[xchg1] = temp_reloc;
 }
 
-void
+static void
 swap_operands (void)
 {
   switch (i.operands)
@@ -3489,7 +3480,7 @@ swap_operands (void)
 
 /* Try to ensure constant immediates are represented in the smallest
    opcode possible.  */
-void
+static void
 optimize_imm (void)
 {
   char guess_suffix = 0;
@@ -3635,7 +3626,7 @@ optimize_imm (void)
 }
 
 /* Try to use the smallest displacement type too.  */
-void
+static void
 optimize_disp (void)
 {
   int op;
@@ -3712,7 +3703,7 @@ optimize_disp (void)
 
 /* Check if operands are valid for the instruction.  */
 
-int
+static int
 check_VecOperands (const insn_template *t)
 {
   /* Without VSIB byte, we can't have a vector register for index.  */
@@ -3745,7 +3736,7 @@ check_VecOperands (const insn_template *t)
 /* Check if operands are valid for the instruction.  Update VEX
    operand types.  */
 
-int
+static int
 VEX_check_operands (const insn_template *t)
 {
   if (!t->opcode_modifier.vex)
@@ -3768,7 +3759,7 @@ VEX_check_operands (const insn_template *t)
   return 0;
 }
 
-const insn_template *
+static const insn_template *
 match_template (void)
 {
   /* Points to template once we've found it.  */
@@ -4180,7 +4171,7 @@ check_reverse:
   return t;
 }
 
-int
+static int
 check_string (void)
 {
   int mem_op = operand_type_check (i.types[0], anymem) ? 0 : 1;
@@ -4214,7 +4205,7 @@ check_string (void)
   return 1;
 }
 
-int
+static int
 process_suffix (void)
 {
   /* If matched instruction specifies an explicit instruction mnemonic
@@ -4487,7 +4478,7 @@ process_suffix (void)
   return 1;
 }
 
-int
+static int
 check_byte_reg (void)
 {
   int op;
@@ -4559,7 +4550,7 @@ check_byte_reg (void)
   return 1;
 }
 
-int
+static int
 check_long_reg (void)
 {
   int op;
@@ -4627,7 +4618,7 @@ check_long_reg (void)
   return 1;
 }
 
-int
+static int
 check_qword_reg (void)
 {
   int op;
@@ -4673,7 +4664,7 @@ check_qword_reg (void)
   return 1;
 }
 
-int
+static int
 check_word_reg (void)
 {
   int op;
@@ -4720,7 +4711,7 @@ check_word_reg (void)
   return 1;
 }
 
-int
+static int
 update_imm (unsigned int j)
 {
   i386_operand_type overlap = i.types[j];
@@ -4784,7 +4775,7 @@ update_imm (unsigned int j)
   return 1;
 }
 
-int
+static int
 finalize_imm (void)
 {
   unsigned int j, n;
@@ -4804,7 +4795,7 @@ finalize_imm (void)
   return 1;
 }
 
-int
+static int
 bad_implicit_operand (int xmm)
 {
   const char *ireg = xmm ? "xmm0" : "ymm0";
@@ -4818,7 +4809,7 @@ bad_implicit_operand (int xmm)
   return 0;
 }
 
-int
+static int
 process_operands (void)
 {
   /* Default segment register this instruction will use for memory
@@ -5040,7 +5031,7 @@ duplicate:
   return 1;
 }
 
-const seg_entry *
+static const seg_entry *
 build_modrm_byte (void)
 {
   const seg_entry *default_seg = 0;
@@ -5733,8 +5724,8 @@ build_modrm_byte (void)
 
 /* x86_cons_fix_new is called via the expression parsing code when a
    reloc is needed.  We use this hook to get the correct .got reloc.  */
-enum bfd_reloc_code_real got_reloc = NO_RELOC;
-int cons_sign = -1;
+static enum bfd_reloc_code_real got_reloc = NO_RELOC;
+static int cons_sign = -1;
 
 void
 x86_cons_fix_new (fragS *frag, unsigned int off, unsigned int len,
@@ -5767,7 +5758,7 @@ x86_cons_fix_new (fragS *frag, unsigned int off, unsigned int len,
    parsing by the calling routine.  Return this buffer, and if ADJUST
    is non-null set it to the length of the string we removed from the
    input line.  Otherwise return NULL.  */
-char *
+static char *
 lex_got (enum bfd_reloc_code_real *rel,
 	 int *adjust,
 	 i386_operand_type *types)
@@ -5777,7 +5768,7 @@ lex_got (enum bfd_reloc_code_real *rel,
      we don't yet know the operand size (this will be set by insn
      matching).  Hence we record the word32 relocation here,
      and adjust the reloc according to the real size in reloc().  */
-  const struct {
+  static const struct {
     const char *str;
     int len;
     const enum bfd_reloc_code_real rel[2];
@@ -5964,7 +5955,7 @@ x86_cons (expressionS *exp, int size)
     i386_intel_simplify (exp);
 }
 
-void
+static void
 signed_cons (int size)
 {
   if (flag_code == CODE_64BIT)
@@ -5974,7 +5965,7 @@ signed_cons (int size)
 }
 
 #ifdef TE_PE
-void
+static void
 pe_directive_secrel (int dummy ATTRIBUTE_UNUSED)
 {
   expressionS exp;
@@ -5994,7 +5985,7 @@ pe_directive_secrel (int dummy ATTRIBUTE_UNUSED)
 }
 #endif
 
-int
+static int
 i386_immediate (char *imm_start)
 {
   char *save_input_line_pointer;
@@ -6043,7 +6034,7 @@ i386_immediate (char *imm_start)
   return i386_finalize_immediate (exp_seg, exp, types, imm_start);
 }
 
-int
+static int
 i386_finalize_immediate (segT exp_seg ATTRIBUTE_UNUSED, expressionS *exp,
 			 i386_operand_type types, const char *imm_start)
 {
@@ -6100,7 +6091,7 @@ i386_finalize_immediate (segT exp_seg ATTRIBUTE_UNUSED, expressionS *exp,
   return 1;
 }
 
-char *
+static char *
 i386_scale (char *scale)
 {
   offsetT val;
@@ -6146,7 +6137,7 @@ i386_scale (char *scale)
   return scale;
 }
 
-int
+static int
 i386_displacement (char *disp_start, char *disp_end)
 {
   expressionS *exp;
@@ -6296,7 +6287,7 @@ i386_displacement (char *disp_start, char *disp_end)
   return ret;
 }
 
-int
+static int
 i386_finalize_displacement (segT exp_seg ATTRIBUTE_UNUSED, expressionS *exp,
 			    i386_operand_type types, const char *disp_start)
 {
@@ -6388,7 +6379,7 @@ i386_finalize_displacement (segT exp_seg ATTRIBUTE_UNUSED, expressionS *exp,
 /* Make sure the memory operand we've been dealt is valid.
    Return 1 on success, 0 on a failure.  */
 
-int
+static int
 i386_index_check (const char *operand_string)
 {
   int ok;
@@ -6557,7 +6548,7 @@ i386_index_check (const char *operand_string)
 /* Parse OPERAND_STRING into the i386_insn structure I.  Returns zero
    on error.  */
 
-int
+static int
 i386_att_operand (char *operand_string)
 {
   const reg_entry *r;
@@ -7272,7 +7263,7 @@ md_atof (int type, char *litP, int *sizeP)
 
 char output_invalid_buf[sizeof (unsigned char) * 2 + 6];
 
-char *
+static char *
 output_invalid (int c)
 {
   if (ISPRINT (c))
@@ -7286,7 +7277,7 @@ output_invalid (int c)
 
 /* REG_STRING starts *before* REGISTER_PREFIX.  */
 
-const reg_entry *
+static const reg_entry *
 parse_real_register (char *reg_string, char **end_op)
 {
   char *s = reg_string;
@@ -7397,7 +7388,7 @@ parse_real_register (char *reg_string, char **end_op)
 
 /* REG_STRING starts *before* REGISTER_PREFIX.  */
 
-const reg_entry *
+static const reg_entry *
 parse_register (char *reg_string, char **end_op)
 {
   const reg_entry *r;
@@ -7788,10 +7779,10 @@ md_parse_option (int c, char *arg)
 #define MESSAGE_TEMPLATE \
 "                                                                                "
 
-void
+static void
 show_arch (FILE *stream, int ext, int check)
 {
-  char message[] = MESSAGE_TEMPLATE;
+  static char message[] = MESSAGE_TEMPLATE;
   char *start = message + 27;
   char *p;
   int size = sizeof (MESSAGE_TEMPLATE);
@@ -8114,7 +8105,7 @@ md_pcrel_from (fixS *fixP)
 
 #ifndef I386COFF
 
-void
+static void
 s_bss (int ignore ATTRIBUTE_UNUSED)
 {
   int temp;
@@ -8383,7 +8374,7 @@ tc_x86_parse_to_dw2regnum (expressionS *exp)
 void
 tc_x86_frame_initial_instructions (void)
 {
-  unsigned int sp_regno[2];
+  static unsigned int sp_regno[2];
 
   if (!sp_regno[flag_code >> 1])
     {
@@ -8472,7 +8463,7 @@ x86_64_section_word (char *str, size_t len)
   return -1;
 }
 
-void
+static void
 handle_large_common (int small ATTRIBUTE_UNUSED)
 {
   if (flag_code != CODE_64BIT)
@@ -8482,7 +8473,7 @@ handle_large_common (int small ATTRIBUTE_UNUSED)
     }
   else
     {
-      segT lbss_section;
+      static segT lbss_section;
       asection *saved_com_section_ptr = elf_com_section_ptr;
       asection *saved_bss_section = bss_section;
 
