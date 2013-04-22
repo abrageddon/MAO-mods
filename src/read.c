@@ -205,7 +205,7 @@ symbolS *mri_common_symbol;
    need to align to an even byte boundary unless the next pseudo-op is
    dc.b, ds.b, or dcb.b.  This variable is set to 1 if an alignment
    may be needed.  */
-static int mri_pending_align;
+int mri_pending_align;
 
 
 
@@ -567,7 +567,7 @@ scrub_from_string (char *buf, int buflen)
 }
 
 /* Helper function of read_a_source_file, which tries to expand a macro.  */
-static int
+int
 try_macro (char term, const char *line)
 {
   sb out;
@@ -616,6 +616,9 @@ read_a_source_file (char *name)
      this file as the "main" source file and not a subordinate one
      (e.g. N_SO vs N_SOL in stabs).  */
     generate_file_debug();
+
+    //SNEISIUS
+    init_md_assemble();
 
     while ((buffer_limit = input_scrub_next_buffer(&input_line_pointer)) != 0) { /* We have another line to parse.  */
 #ifndef NO_LISTING
@@ -764,6 +767,7 @@ read_a_source_file (char *name)
                  [In case of pseudo-op, s->'.'.]
                  Input_line_pointer->'\0' where c was.  */
                 if (TC_START_LABEL (c, s, input_line_pointer)) {
+                    finish_md_assemble();//SNEISIUS TESTING
                     if (flag_m68k_mri) {
                         char *rest = input_line_pointer + 1;
 
@@ -826,6 +830,7 @@ read_a_source_file (char *name)
                     }
 #endif
                     if (NO_PSEUDO_DOT || flag_m68k_mri) {
+
                         /* The MRI assembler uses pseudo-ops without
                          a period.  */
                         pop = (pseudo_typeS *) hash_find(po_hash, s);
@@ -834,6 +839,8 @@ read_a_source_file (char *name)
                     }
 
                     if (pop != NULL || (!flag_m68k_mri && *s == '.')) {
+
+                        finish_md_assemble();//SNEISIUS TESTING
                         /* PSEUDO - OP.
 
                          WARNING: c has next char, which may be end-of-line.
@@ -923,8 +930,8 @@ read_a_source_file (char *name)
                         }
 
                         //SNEISIUS if thread available; spawn
-
-                        spawn_md_assemble(s);
+                        char *asmStr = strdup(s);
+                        spawn_md_assemble(asmStr);
                         //md_assemble(s); /* Assemble 1 instruction.  */
 
 
@@ -942,6 +949,7 @@ read_a_source_file (char *name)
                 continue;
 
             if ((LOCAL_LABELS_DOLLAR || LOCAL_LABELS_FB) && ISDIGIT (c)) {
+
                 /* local label  ("4:")  */
                 char *backup = input_line_pointer;
 
@@ -1088,6 +1096,7 @@ read_a_source_file (char *name)
             /* Report unknown char as error.  */
             demand_empty_rest_of_line();
         }
+        finish_md_assemble();
         //SNEISIUS
         //combine threads
     }
@@ -1195,7 +1204,7 @@ s_abort (int ignore ATTRIBUTE_UNUSED)
    the maximum number of characters to skip when doing the alignment,
    or 0 if there is no maximum.  */
 
-static void
+void
 do_align (int n, char *fill, int len, int max)
 {
   if (now_seg == absolute_section)
@@ -6002,7 +6011,7 @@ input_scrub_insert_file (char *path)
 # define TC_SINGLE_QUOTE_STRINGS 1
 #endif
 
-static char *
+char *
 _find_end_of_line (char *s, int mri_string, int insn ATTRIBUTE_UNUSED,
 		   int in_macro)
 {
