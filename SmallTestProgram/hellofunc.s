@@ -12,7 +12,7 @@ myPrintHelloMake:                       # @myPrintHelloMake
 	.cfi_def_cfa_offset 16
 .Ltmp4:
 	.cfi_offset %rbp, -16
-	movq	%rsp, %rbp
+	movq	%rsp, %rbp # MC=M
 .Ltmp5:
 	.cfi_def_cfa_register %rbp
 	subq	$16, %rsp

@@ -3,18 +3,35 @@ import sys
 import re
 import random
 
-##parser = argparse.ArgumentParser(description='Diversify Annotated Assembly.')
-##parser.add_argument('integers', metavar='N', type=int, nargs='+',
-##                   help='an integer for the accumulator')
+def nop64(x):
+    return {
+        0:'\tnop\n',
+        1:'\tmovq\t%rbp, %rbp\n',
+        2:'\tmovq\t%rsp, %rsp\n',
+        3:'\tleaq\t(%rdi), %rdi\n',
+        4:'\tleaq\t(%rsi), %rsi\n',
+    }[x]
+    
+def nop32(x):
+    return {
+        0:'\tnop\n',
+        1:'\tmovl\t%ebp, %ebp\n',
+        2:'\tmovl\t%esp, %esp\n',
+        3:'\tleal\t(%edi), %edi\n',
+        4:'\tleal\t(%esi), %esi\n',
+    }[x]
 
+def roll():
+    return (random.randint(0,100) <= 30)
 
+##TODO: Get file better
 #Get file
 if(len(sys.argv)<=1):
     inFile="SmallTestProgram/hellofunc.a.s"
 else:
     inFile=sys.argv[1]
 
-#TODO: check for proper extension (.a.s) annotated source
+##TODO: check for proper extension (.a.s) annotated source
     
 print inFile
 
@@ -30,28 +47,36 @@ outf = open(outFile,'w')
 for line in inf:
     #If MC exists for this line; then diversify
     if ('# MC=' in line):
-        print('\n'+line.rstrip())
-        mcArgs=re.sub(r'.*# MC=(?P<OUT>[^ ]*).*',r'\g<OUT>',line.rstrip())
-        print('mcArgs: ' + mcArgs)
+        mcArgs=re.sub(r'.*# MC=(?P<OUT>[^ ]*).*',r'\g<OUT>',line)
         
         #TODO: PROFILE DATA!!!
         
-        #If can insert NOP and we roll success; then insert it before line
-        if ('N' in mcArgs and random.randint(0,100) <= 30):
-            #TODO: other NOPS
-            print ('NOP')
-            outf.write('\tnop\n')
+        #If can insert NOP and we roll success; then insert NOP before current line
+        if ('N' in mcArgs):
+            if (roll()):
+                outf.write( nop64(random.randint(0,4)) )#64bit
+        elif ('n' in mcArgs ):
+            if (roll()):
+                outf.write( nop32(random.randint(0,4)) )#32bit
             
         #If can MOV To LEA and we roll success; then modify line
-        if ('M' in mcArgs and random.randint(0,100) <= 30):
-            #TODO: re.sub for MOVToLEA
+        if ('M' in mcArgs and roll()):
+            outf.write(re.sub(r'mov(?P<SUF>\w+)\s+(?P<ONE>.+),\s*(?P<TWO>.+)',
+                               'lea\g<SUF>\t(\g<ONE>), \g<TWO>'
+                               ,line))
+        else:#Else print line unchanged
             outf.write(line)
-            print ('MOVToLEA')
-        else:#Else just copy
-            outf.write(line)
-    else:#Else just copy
+    else:#Else no annotations, just write
         outf.write(line)
     
     
 inf.close()
 outf.close()
+
+
+
+    
+    
+    
+    
+    
