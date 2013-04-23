@@ -2091,141 +2091,119 @@ i386_mach (void)
 }
 
 void
-md_begin (void)
-{
-  const char *hash_err;
+md_begin(void) {
+    const char *hash_err;
 
-  /* Initialize op_hash hash table.  */
-  op_hash = hash_new ();
+    /* Initialize op_hash hash table.  */
+    op_hash = hash_new();
 
-  {
-    const insn_template *optab;
-    templates *core_optab;
+    {
+        const insn_template *optab;
+        templates *core_optab;
 
-    /* Setup for loop.  */
-    optab = i386_optab;
-    core_optab = (templates *) xmalloc (sizeof (templates));
-    core_optab->start = optab;
+        /* Setup for loop.  */
+        optab = i386_optab;
+        core_optab = (templates *) xmalloc(sizeof(templates));
+        core_optab->start = optab;
 
-    while (1)
-      {
-	++optab;
-	if (optab->name == NULL
-	    || strcmp (optab->name, (optab - 1)->name) != 0)
-	  {
-	    /* different name --> ship out current template list;
-	       add to hash table; & begin anew.  */
-	    core_optab->end = optab;
-	    hash_err = hash_insert (op_hash,
-				    (optab - 1)->name,
-				    (void *) core_optab);
-	    if (hash_err)
-	      {
-		as_fatal (_("internal Error:  Can't hash %s: %s"),
-			  (optab - 1)->name,
-			  hash_err);
-	      }
-	    if (optab->name == NULL)
-	      break;
-	    core_optab = (templates *) xmalloc (sizeof (templates));
-	    core_optab->start = optab;
-	  }
-      }
-  }
+        while (1) {
+            ++optab;
+            if (optab->name == NULL || strcmp(optab->name, (optab - 1)->name) != 0) {
+                /* different name --> ship out current template list;
+                 add to hash table; & begin anew.  */
+                core_optab->end = optab;
+                hash_err = hash_insert(op_hash, (optab - 1)->name, (void *) core_optab);
+                if (hash_err) {
+                    as_fatal(_("internal Error:  Can't hash %s: %s"), (optab - 1)->name, hash_err);
+                }
+                if (optab->name == NULL )
+                    break;
+                core_optab = (templates *) xmalloc(sizeof(templates));
+                core_optab->start = optab;
+            }
+        }
+    }
 
-  /* Initialize reg_hash hash table.  */
-  reg_hash = hash_new ();
-  {
-    const reg_entry *regtab;
-    unsigned int regtab_size = i386_regtab_size;
+    /* Initialize reg_hash hash table.  */
+    reg_hash = hash_new();
+    {
+        const reg_entry *regtab;
+        unsigned int regtab_size = i386_regtab_size;
 
-    for (regtab = i386_regtab; regtab_size--; regtab++)
-      {
-	hash_err = hash_insert (reg_hash, regtab->reg_name, (void *) regtab);
-	if (hash_err)
-	  as_fatal (_("internal Error:  Can't hash %s: %s"),
-		    regtab->reg_name,
-		    hash_err);
-      }
-  }
+        for (regtab = i386_regtab; regtab_size--; regtab++) {
+            hash_err = hash_insert(reg_hash, regtab->reg_name, (void *) regtab);
+            if (hash_err)
+                as_fatal(_("internal Error:  Can't hash %s: %s"), regtab->reg_name, hash_err);
+        }
+    }
 
-  /* Fill in lexical tables:  mnemonic_chars, operand_chars.  */
-  {
-    int c;
-    char *p;
+    /* Fill in lexical tables:  mnemonic_chars, operand_chars.  */
+    {
+        int c;
+        char *p;
 
-    for (c = 0; c < 256; c++)
-      {
-	if (ISDIGIT (c))
-	  {
-	    digit_chars[c] = c;
-	    mnemonic_chars[c] = c;
-	    register_chars[c] = c;
-	    operand_chars[c] = c;
-	  }
-	else if (ISLOWER (c))
-	  {
-	    mnemonic_chars[c] = c;
-	    register_chars[c] = c;
-	    operand_chars[c] = c;
-	  }
-	else if (ISUPPER (c))
-	  {
-	    mnemonic_chars[c] = TOLOWER (c);
-	    register_chars[c] = mnemonic_chars[c];
-	    operand_chars[c] = c;
-	  }
+        for (c = 0; c < 256; c++) {
+            if (ISDIGIT (c)) {
+                digit_chars[c] = c;
+                mnemonic_chars[c] = c;
+                register_chars[c] = c;
+                operand_chars[c] = c;
+            } else if (ISLOWER (c)) {
+                mnemonic_chars[c] = c;
+                register_chars[c] = c;
+                operand_chars[c] = c;
+            } else if (ISUPPER (c)) {
+                mnemonic_chars[c] = TOLOWER (c);
+                register_chars[c] = mnemonic_chars[c];
+                operand_chars[c] = c;
+            }
 
-	if (ISALPHA (c) || ISDIGIT (c))
-	  identifier_chars[c] = c;
-	else if (c >= 128)
-	  {
-	    identifier_chars[c] = c;
-	    operand_chars[c] = c;
-	  }
-      }
+            if (ISALPHA (c) || ISDIGIT (c))
+            identifier_chars[c] = c;
+            else if (c >= 128)
+            {
+                identifier_chars[c] = c;
+                operand_chars[c] = c;
+            }
+        }
 
 #ifdef LEX_AT
-    identifier_chars['@'] = '@';
+                identifier_chars['@'] = '@';
 #endif
 #ifdef LEX_QM
-    identifier_chars['?'] = '?';
-    operand_chars['?'] = '?';
+                identifier_chars['?'] = '?';
+                operand_chars['?'] = '?';
 #endif
-    digit_chars['-'] = '-';
-    mnemonic_chars['_'] = '_';
-    mnemonic_chars['-'] = '-';
-    mnemonic_chars['.'] = '.';
-    identifier_chars['_'] = '_';
-    identifier_chars['.'] = '.';
+        digit_chars['-'] = '-';
+        mnemonic_chars['_'] = '_';
+        mnemonic_chars['-'] = '-';
+        mnemonic_chars['.'] = '.';
+        identifier_chars['_'] = '_';
+        identifier_chars['.'] = '.';
 
-    for (p = operand_special_chars; *p != '\0'; p++)
-      operand_chars[(unsigned char) *p] = *p;
-  }
+        for (p = operand_special_chars; *p != '\0'; p++)
+            operand_chars[(unsigned char) *p] = *p;
+    }
 
 #if defined (OBJ_ELF) || defined (OBJ_MAYBE_ELF)
-  if (IS_ELF)
-    {
-      record_alignment (text_section, 2);
-      record_alignment (data_section, 2);
-      record_alignment (bss_section, 2);
+    if (IS_ELF) {
+        record_alignment(text_section, 2);
+        record_alignment(data_section, 2);
+        record_alignment(bss_section, 2);
     }
 #endif
 
-  if (flag_code == CODE_64BIT)
-    {
+    if (flag_code == CODE_64BIT) {
 #if defined (OBJ_COFF) && defined (TE_PE)
-      x86_dwarf2_return_column = (OUTPUT_FLAVOR == bfd_target_coff_flavour
-				  ? 32 : 16);
+        x86_dwarf2_return_column = (OUTPUT_FLAVOR == bfd_target_coff_flavour
+                ? 32 : 16);
 #else
-      x86_dwarf2_return_column = 16;
+        x86_dwarf2_return_column = 16;
 #endif
-      x86_cie_data_alignment = -8;
-    }
-  else
-    {
-      x86_dwarf2_return_column = 8;
-      x86_cie_data_alignment = -4;
+        x86_cie_data_alignment = -8;
+    } else {
+        x86_dwarf2_return_column = 8;
+        x86_cie_data_alignment = -4;
     }
 }
 
@@ -5735,148 +5713,109 @@ x86_cons_fix_new (fragS *frag, unsigned int off, unsigned int len,
    is non-null set it to the length of the string we removed from the
    input line.  Otherwise return NULL.  */
 static char *
-lex_got (enum bfd_reloc_code_real *rel,
-	 int *adjust,
-	 i386_operand_type *types)
-{
-  /* Some of the relocations depend on the size of what field is to
+lex_got(enum bfd_reloc_code_real *rel, int *adjust, i386_operand_type *types) {
+    /* Some of the relocations depend on the size of what field is to
      be relocated.  But in our callers i386_immediate and i386_displacement
      we don't yet know the operand size (this will be set by insn
      matching).  Hence we record the word32 relocation here,
      and adjust the reloc according to the real size in reloc().  */
-  static const struct {
-    const char *str;
-    int len;
-    const enum bfd_reloc_code_real rel[2];
-    const i386_operand_type types64;
-  } gotrel[] = {
-    { STRING_COMMA_LEN ("PLTOFF"),   { _dummy_first_bfd_reloc_code_real,
-				       BFD_RELOC_X86_64_PLTOFF64 },
-      OPERAND_TYPE_IMM64 },
-    { STRING_COMMA_LEN ("PLT"),      { BFD_RELOC_386_PLT32,
-				       BFD_RELOC_X86_64_PLT32    },
-      OPERAND_TYPE_IMM32_32S_DISP32 },
-    { STRING_COMMA_LEN ("GOTPLT"),   { _dummy_first_bfd_reloc_code_real,
-				       BFD_RELOC_X86_64_GOTPLT64 },
-      OPERAND_TYPE_IMM64_DISP64 },
-    { STRING_COMMA_LEN ("GOTOFF"),   { BFD_RELOC_386_GOTOFF,
-				       BFD_RELOC_X86_64_GOTOFF64 },
-      OPERAND_TYPE_IMM64_DISP64 },
-    { STRING_COMMA_LEN ("GOTPCREL"), { _dummy_first_bfd_reloc_code_real,
-				       BFD_RELOC_X86_64_GOTPCREL },
-      OPERAND_TYPE_IMM32_32S_DISP32 },
-    { STRING_COMMA_LEN ("TLSGD"),    { BFD_RELOC_386_TLS_GD,
-				       BFD_RELOC_X86_64_TLSGD    },
-      OPERAND_TYPE_IMM32_32S_DISP32 },
-    { STRING_COMMA_LEN ("TLSLDM"),   { BFD_RELOC_386_TLS_LDM,
-				       _dummy_first_bfd_reloc_code_real },
-      OPERAND_TYPE_NONE },
-    { STRING_COMMA_LEN ("TLSLD"),    { _dummy_first_bfd_reloc_code_real,
-				       BFD_RELOC_X86_64_TLSLD    },
-      OPERAND_TYPE_IMM32_32S_DISP32 },
-    { STRING_COMMA_LEN ("GOTTPOFF"), { BFD_RELOC_386_TLS_IE_32,
-				       BFD_RELOC_X86_64_GOTTPOFF },
-      OPERAND_TYPE_IMM32_32S_DISP32 },
-    { STRING_COMMA_LEN ("TPOFF"),    { BFD_RELOC_386_TLS_LE_32,
-				       BFD_RELOC_X86_64_TPOFF32  },
-      OPERAND_TYPE_IMM32_32S_64_DISP32_64 },
-    { STRING_COMMA_LEN ("NTPOFF"),   { BFD_RELOC_386_TLS_LE,
-				       _dummy_first_bfd_reloc_code_real },
-      OPERAND_TYPE_NONE },
-    { STRING_COMMA_LEN ("DTPOFF"),   { BFD_RELOC_386_TLS_LDO_32,
-				       BFD_RELOC_X86_64_DTPOFF32 },
-      OPERAND_TYPE_IMM32_32S_64_DISP32_64 },
-    { STRING_COMMA_LEN ("GOTNTPOFF"),{ BFD_RELOC_386_TLS_GOTIE,
-				       _dummy_first_bfd_reloc_code_real },
-      OPERAND_TYPE_NONE },
-    { STRING_COMMA_LEN ("INDNTPOFF"),{ BFD_RELOC_386_TLS_IE,
-				       _dummy_first_bfd_reloc_code_real },
-      OPERAND_TYPE_NONE },
-    { STRING_COMMA_LEN ("GOT"),      { BFD_RELOC_386_GOT32,
-				       BFD_RELOC_X86_64_GOT32    },
-      OPERAND_TYPE_IMM32_32S_64_DISP32 },
-    { STRING_COMMA_LEN ("TLSDESC"),  { BFD_RELOC_386_TLS_GOTDESC,
-				       BFD_RELOC_X86_64_GOTPC32_TLSDESC },
-      OPERAND_TYPE_IMM32_32S_DISP32 },
-    { STRING_COMMA_LEN ("TLSCALL"),  { BFD_RELOC_386_TLS_DESC_CALL,
-				       BFD_RELOC_X86_64_TLSDESC_CALL },
-      OPERAND_TYPE_IMM32_32S_DISP32 },
-  };
-  char *cp;
-  unsigned int j;
+    static const struct {
+        const char *str;
+        int len;
+        const enum bfd_reloc_code_real rel[2];
+        const i386_operand_type types64;
+    } gotrel[] = { { STRING_COMMA_LEN ("PLTOFF"), { _dummy_first_bfd_reloc_code_real, BFD_RELOC_X86_64_PLTOFF64 },
+            OPERAND_TYPE_IMM64 }, { STRING_COMMA_LEN ("PLT"), { BFD_RELOC_386_PLT32, BFD_RELOC_X86_64_PLT32 },
+            OPERAND_TYPE_IMM32_32S_DISP32 }, { STRING_COMMA_LEN ("GOTPLT"), { _dummy_first_bfd_reloc_code_real,
+            BFD_RELOC_X86_64_GOTPLT64 }, OPERAND_TYPE_IMM64_DISP64 }, { STRING_COMMA_LEN ("GOTOFF"), {
+            BFD_RELOC_386_GOTOFF, BFD_RELOC_X86_64_GOTOFF64 }, OPERAND_TYPE_IMM64_DISP64 }, {
+            STRING_COMMA_LEN ("GOTPCREL"), { _dummy_first_bfd_reloc_code_real, BFD_RELOC_X86_64_GOTPCREL },
+                    OPERAND_TYPE_IMM32_32S_DISP32 }, { STRING_COMMA_LEN ("TLSGD"), { BFD_RELOC_386_TLS_GD,
+            BFD_RELOC_X86_64_TLSGD }, OPERAND_TYPE_IMM32_32S_DISP32 }, { STRING_COMMA_LEN ("TLSLDM"), {
+            BFD_RELOC_386_TLS_LDM, _dummy_first_bfd_reloc_code_real }, OPERAND_TYPE_NONE }, {
+            STRING_COMMA_LEN ("TLSLD"), { _dummy_first_bfd_reloc_code_real, BFD_RELOC_X86_64_TLSLD },
+                    OPERAND_TYPE_IMM32_32S_DISP32 }, { STRING_COMMA_LEN ("GOTTPOFF"), { BFD_RELOC_386_TLS_IE_32,
+            BFD_RELOC_X86_64_GOTTPOFF }, OPERAND_TYPE_IMM32_32S_DISP32 }, { STRING_COMMA_LEN ("TPOFF"), {
+            BFD_RELOC_386_TLS_LE_32, BFD_RELOC_X86_64_TPOFF32 }, OPERAND_TYPE_IMM32_32S_64_DISP32_64 }, {
+            STRING_COMMA_LEN ("NTPOFF"), { BFD_RELOC_386_TLS_LE, _dummy_first_bfd_reloc_code_real },
+                    OPERAND_TYPE_NONE }, { STRING_COMMA_LEN ("DTPOFF"), { BFD_RELOC_386_TLS_LDO_32,
+            BFD_RELOC_X86_64_DTPOFF32 }, OPERAND_TYPE_IMM32_32S_64_DISP32_64 }, { STRING_COMMA_LEN ("GOTNTPOFF"), {
+            BFD_RELOC_386_TLS_GOTIE, _dummy_first_bfd_reloc_code_real }, OPERAND_TYPE_NONE }, {
+            STRING_COMMA_LEN ("INDNTPOFF"), { BFD_RELOC_386_TLS_IE, _dummy_first_bfd_reloc_code_real },
+                    OPERAND_TYPE_NONE }, { STRING_COMMA_LEN ("GOT"),
+            { BFD_RELOC_386_GOT32, BFD_RELOC_X86_64_GOT32 }, OPERAND_TYPE_IMM32_32S_64_DISP32 }, {
+            STRING_COMMA_LEN ("TLSDESC"), { BFD_RELOC_386_TLS_GOTDESC, BFD_RELOC_X86_64_GOTPC32_TLSDESC },
+                    OPERAND_TYPE_IMM32_32S_DISP32 }, { STRING_COMMA_LEN ("TLSCALL"), { BFD_RELOC_386_TLS_DESC_CALL,
+            BFD_RELOC_X86_64_TLSDESC_CALL }, OPERAND_TYPE_IMM32_32S_DISP32 }, };
+    char *cp;
+    unsigned int j;
 
-  if (!IS_ELF)
-    return NULL;
+    if (!IS_ELF)
+        return NULL ;
 
-  for (cp = input_line_pointer; *cp != '@'; cp++)
-    if (is_end_of_line[(unsigned char) *cp] || *cp == ',')
-      return NULL;
+    for (cp = input_line_pointer; *cp != '@'; cp++)
+        if (is_end_of_line[(unsigned char) *cp] || *cp == ',')
+            return NULL ;
 
-  for (j = 0; j < ARRAY_SIZE (gotrel); j++)
-    {
-      int len = gotrel[j].len;
-      if (strncasecmp (cp + 1, gotrel[j].str, len) == 0)
-	{
-	  if (gotrel[j].rel[object_64bit] != 0)
-	    {
-	      int first, second;
-	      char *tmpbuf, *past_reloc;
+    for (j = 0; j < ARRAY_SIZE (gotrel); j++) {
+        int len = gotrel[j].len;
+        if (strncasecmp(cp + 1, gotrel[j].str, len) == 0) {
+            if (gotrel[j].rel[object_64bit] != 0) {
+                int first, second;
+                char *tmpbuf, *past_reloc;
 
-	      *rel = gotrel[j].rel[object_64bit];
+                *rel = gotrel[j].rel[object_64bit];
 
-              // Link back to MAO that the next .cons will
-              // have a relocation
-              link_cons_reloc(*rel);
+                // Link back to MAO that the next .cons will
+                // have a relocation
+                link_cons_reloc(*rel);
 
-	      if (adjust)
-		*adjust = len;
+                if (adjust)
+                    *adjust = len;
 
-	      if (types)
-		{
-		  if (flag_code != CODE_64BIT)
-		    {
-		      types->bitfield.imm32 = 1;
-		      types->bitfield.disp32 = 1;
-		    }
-		  else
-		    *types = gotrel[j].types64;
-		}
+                if (types) {
+                    if (flag_code != CODE_64BIT) {
+                        types->bitfield.imm32 = 1;
+                        types->bitfield.disp32 = 1;
+                    } else
+                        *types = gotrel[j].types64;
+                }
 
-	      if (GOT_symbol == NULL)
-		GOT_symbol = symbol_find_or_make (GLOBAL_OFFSET_TABLE_NAME);
+                if (GOT_symbol == NULL )
+                    GOT_symbol = symbol_find_or_make(GLOBAL_OFFSET_TABLE_NAME);
 
-	      /* The length of the first part of our input line.  */
-	      first = cp - input_line_pointer;
+                /* The length of the first part of our input line.  */
+                first = cp - input_line_pointer;
 
-	      /* The second part goes from after the reloc token until
-		 (and including) an end_of_line char or comma.  */
-	      past_reloc = cp + 1 + len;
-	      cp = past_reloc;
-	      while (!is_end_of_line[(unsigned char) *cp] && *cp != ',')
-		++cp;
-	      second = cp + 1 - past_reloc;
+                /* The second part goes from after the reloc token until
+                 (and including) an end_of_line char or comma.  */
+                past_reloc = cp + 1 + len;
+                cp = past_reloc;
+                while (!is_end_of_line[(unsigned char) *cp] && *cp != ',')
+                    ++cp;
+                second = cp + 1 - past_reloc;
 
-	      /* Allocate and copy string.  The trailing NUL shouldn't
-		 be necessary, but be safe.  */
-	      tmpbuf = (char *) xmalloc (first + second + 2);
-	      memcpy (tmpbuf, input_line_pointer, first);
-	      if (second != 0 && *past_reloc != ' ')
-		/* Replace the relocation token with ' ', so that
-		   errors like foo@GOTOFF1 will be detected.  */
-		tmpbuf[first++] = ' ';
-	      memcpy (tmpbuf + first, past_reloc, second);
-	      tmpbuf[first + second] = '\0';
-	      return tmpbuf;
-	    }
+                /* Allocate and copy string.  The trailing NUL shouldn't
+                 be necessary, but be safe.  */
+                tmpbuf = (char *) xmalloc(first + second + 2);
+                memcpy(tmpbuf, input_line_pointer, first);
+                if (second != 0 && *past_reloc != ' ')
+                    /* Replace the relocation token with ' ', so that
+                     errors like foo@GOTOFF1 will be detected.  */
+                    tmpbuf[first++] = ' ';
+                memcpy(tmpbuf + first, past_reloc, second);
+                tmpbuf[first + second] = '\0';
+                return tmpbuf;
+            }
 
-	  as_bad (_("@%s reloc is not supported with %d-bit output format"),
-		  gotrel[j].str, 1 << (5 + object_64bit));
-	  return NULL;
-	}
+            as_bad(_("@%s reloc is not supported with %d-bit output format"), gotrel[j].str,
+                    1 << (5 + object_64bit));
+            return NULL ;
+        }
     }
 
-  /* Might be a symbol version string.  Don't as_bad here.  */
-  return NULL;
+    /* Might be a symbol version string.  Don't as_bad here.  */
+    return NULL ;
 }
 #endif
 

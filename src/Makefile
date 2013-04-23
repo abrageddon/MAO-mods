@@ -52,8 +52,9 @@ CFLAGS=						\
 	-I$(BINUTILOBJ)/include			\
 	-DLOCALEDIR="\"$(LOCALEDIR)\""		\
 	-DHAVE_DECL_BASENAME=1                  \
-	-O3 -g #-ltcmalloc
+	-O3  -fno-exceptions  -fomit-frame-pointer
 	#-O3 -fno-exceptions -ltcmalloc_minimal -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free -fomit-frame-pointer 
+        # -ltcmalloc
 	
 #-ltcmalloc_minimal -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free \
 #-Wall -Werror -fno-exceptions

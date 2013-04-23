@@ -670,7 +670,7 @@ void LabelEntry::PrintEntry(FILE *out) const {
   MAO_ASSERT(name_);
   std::string s;
   ToString(&s);
-  MaoEntry::SourceInfoToString(&s);
+//  MaoEntry::SourceInfoToString(&s);
   fprintf(out, "%s\n", s.c_str());
 }
 
@@ -787,7 +787,7 @@ void DirectiveEntry::PrintEntry(::FILE *out) const {
   s.append(GetOpcodeName());
   s.append("\t");
   OperandsToString(&s, GetOperandSeparator());
-  SourceInfoToString(&s);
+//  SourceInfoToString(&s);
   fprintf(out, "%s\n", s.c_str());
 }
 
@@ -1083,8 +1083,8 @@ InstructionEntry::~InstructionEntry() {
 void InstructionEntry::PrintEntry(FILE *out) const {
   std::string s;
   InstructionToString(&s);
-  ProfileToString(&s);
-  SourceInfoToString(&s);
+//  ProfileToString(&s);
+//  SourceInfoToString(&s);
   fprintf(out, "%s\n", s.c_str());
 }
 
