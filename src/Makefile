@@ -192,6 +192,8 @@ PLUGIN_TARGETS=$(patsubst %,$(BINDIR)/%-$(TARGET).$(DYNLIBEXT),$(PLUGINS))
 MC_OBJDIR=../obj-$(TARGET)
 MC_PLUGINS=MaoNOPInsertion				\
 		MaoMOVToLEA						\
+		MaoNOPInsertionAnnotate				\
+		MaoMOVToLEAAnnotate						\
 		MaoEquivSubst           \
 		MaoSchedRand
 MC_SRCS=$(patsubst %,$(PLUGINSRC)/%.cc,$(notdir $(MC_PLUGINS)))

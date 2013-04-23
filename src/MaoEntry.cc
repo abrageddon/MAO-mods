@@ -1037,7 +1037,7 @@ InstructionEntry::InstructionEntry(i386_insn *instruction,
                                    const char* line_verbatim,
                                    MaoUnit *maounit) :
     MaoEntry(line_number, line_verbatim, maounit), code_flag_(code_flag),
-    execution_count_valid_(false), execution_count_(0) {
+    execution_count_valid_(false), execution_count_(0), canNOPInsert_(false), canMOVToLEA_(false) {
   op_ = GetOpcode(instruction->tm.name);
   MAO_ASSERT(op_ != OP_invalid);
   MAO_ASSERT(instruction);
@@ -1083,6 +1083,7 @@ InstructionEntry::~InstructionEntry() {
 void InstructionEntry::PrintEntry(FILE *out) const {
   std::string s;
   InstructionToString(&s);
+  MCToString(&s);
 //  ProfileToString(&s);
 //  SourceInfoToString(&s);
   fprintf(out, "%s\n", s.c_str());
@@ -1963,7 +1964,7 @@ std::string &InstructionEntry::InstructionToString(std::string *out) const {
 	//SNEISIUS
 	//TODO return input if nothing has changed
 	if (line_verbatim() != NULL && !hasChanged()){
-		out->append("\t\t");
+		out->append("\t");
 		out->append( line_verbatim() );
 		return ( *out );
 	}
@@ -2200,6 +2201,19 @@ std::string &InstructionEntry::ProfileToString(std::string *out) const {
   std::ostringstream string_stream;
   if (execution_count_valid_)
     string_stream << "\t# ecount=" << execution_count_;
+  out->append(string_stream.str());
+  return *out;
+}
+
+std::string &InstructionEntry::MCToString(std::string *out) const {
+  std::ostringstream string_stream;
+  if (canNOPInsert_){
+    string_stream << "\t# MC=N";
+    if (canMOVToLEA_)
+    	string_stream << "M";
+  }else if (canMOVToLEA_){
+	string_stream << "\t# MC=M";
+  }
   out->append(string_stream.str());
   return *out;
 }

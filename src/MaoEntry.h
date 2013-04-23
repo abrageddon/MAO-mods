@@ -520,6 +520,9 @@ class InstructionEntry : public MaoEntry {
   // instruction entry and store that representation in out.
   std::string &ProfileToString(std::string *out) const;
 
+  //SNEISIUS
+  std::string &MCToString(std::string *out) const;
+
   // Returns the opcode of this instruction as a string.
   const char *op_str() const;
   // Returns the opcode of this instruction.
@@ -764,6 +767,22 @@ class InstructionEntry : public MaoEntry {
                               int bit_size,
                               int value);
 
+  //SNEISIUS
+  void SetCanNOPInsert(bool can) {
+	canNOPInsert_ = can;
+  }
+  bool CanNOPInsert() {
+	return (canNOPInsert_);
+  }
+  void SetCanMOVToLEA(bool can) {
+	canMOVToLEA_ = can;
+  }
+  bool CanMOVToLEA() {
+	return (canMOVToLEA_);
+  }
+
+
+
  private:
   i386_insn *instruction_;
   MaoOpcode  op_;
@@ -777,6 +796,10 @@ class InstructionEntry : public MaoEntry {
   // usable data if and only if execution_count_valid_ is true.
   bool execution_count_valid_;
   long execution_count_;
+
+  //SNEISIUS
+  bool canNOPInsert_;
+  bool canMOVToLEA_;
 
   // Allocates memory for a new instruction and populates it.
   // The instruction passed from gas might not be allocated
