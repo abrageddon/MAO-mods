@@ -290,7 +290,6 @@ public:
           i->sib = movIns->sib;
     }
 
-    //TODO 32 bit
     void LEAL(i386_insn *i, i386_insn *movIns) {
         // Zero out the structure.
         memset(i, 0, sizeof(*i));
