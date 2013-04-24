@@ -31,18 +31,18 @@ string movToLeaReplace(){
     if (is64bit){
         movLoc = line.find("movq");
         if (movLoc==string::npos) {
-            return line;
+            return line << "\n";
         }
         lea = "leaq";
-    }else if (is32bit){
+    }else if (is32bit){//not needed? just do it?
         movLoc = line.find("movl");
         if (movLoc==string::npos) {
-            return line;
+            return line << "\n";
         }
         lea = "leal";
     }else{
         cerr << "Unknown Arch" << endl;
-        return line;
+        return line << "\n";
     }
 
     size_t pOne = line.find("%");
@@ -87,7 +87,7 @@ int main(int argc, char* argv[]) {
             //IF not contains '# MC=' then write and continue
             size_t argPos = line.find("# MC=");
             if (argPos==string::npos) {
-                outFile << line << endl;
+                outFile << line << "\n";
                 continue;
             }
 
@@ -132,7 +132,7 @@ int main(int argc, char* argv[]) {
             if (canMOVToLEA) {
                 Roll = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(100);
                 if (Roll <= insertPercent){
-                    outFile << movToLeaReplace();
+                    outFile << movToLeaReplace() ;
                 }else{
                     //print
                     outFile << line << "\n";

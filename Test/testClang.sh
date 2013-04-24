@@ -1,3 +1,3 @@
 time clang++ \
--o /home/sneisius/Test/vim.div.s -S /home/sneisius/Test/vim.blob.s.bc
-#-Xclang -multicompiler-seed=2308785836 -Xclang -nop-insertion-percentage=30 \
+-Xclang -multicompiler-seed=2308785836 -Xclang -nop-insertion-percentage=30 \
+-o /home/ubuntu/workspace/MAO/Test/vim.div.s -S /home/ubuntu/workspace/MAO/Test/vim.blob.s.bc
