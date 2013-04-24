@@ -43,11 +43,15 @@ print outFile
 inf = open(inFile,'r')
 outf = open(outFile,'w')
 
+reArgs = re.compile(r'.*# MC=(?P<OUT>[^ ]*).*')
+##TODO: change SUF to arch compatable version
+reMov2Lea = re.compile(r'mov(?P<SUF>[lq]+)\s+(?P<ONE>.+),\s*(?P<TWO>.+)')
+
 #For each line in input
 for line in inf:
     #If MC exists for this line; then diversify
     if ('# MC=' in line):
-        mcArgs=re.sub(r'.*# MC=(?P<OUT>[^ ]*).*',r'\g<OUT>',line)
+        mcArgs=re.sub(reArgs,r'\g<OUT>',line)
         
         #TODO: PROFILE DATA!!!
         
@@ -61,7 +65,8 @@ for line in inf:
             
         #If can MOV To LEA and we roll success; then modify line
         if ('M' in mcArgs and roll()):
-            outf.write(re.sub(r'mov(?P<SUF>\w+)\s+(?P<ONE>.+),\s*(?P<TWO>.+)',
+            ##TODO: change SUF to arch compatable version
+            outf.write(re.sub(reMov2Lea,
                                'lea\g<SUF>\t(\g<ONE>), \g<TWO>'
                                ,line))
         else:#Else print line unchanged

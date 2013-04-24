@@ -54,9 +54,18 @@ public:
                 continue;
             }
 
-            //Found MOV candidate, roll for insertion
+            if (entry->AsInstruction()->op()==OP_movq) {
+                entry->AsInstruction()->SetCanMOVToLEA(true);
+            } else if (entry->AsInstruction()->op()==OP_mov && entry->AsInstruction()->instruction()->suffix == 108) {
+                entry->AsInstruction()->SetCanMOVToLEA(true);
+            } else {
+                if (tracing_level() > 0){
+                    fprintf(stderr, "NEW MOV TYPE: ");
+                    entry->PrintEntry(stderr);
+                }
+                continue;
+            }
             ++MOVCandidates;
-            entry->AsInstruction()->SetCanMOVToLEA(true);
 
             if (tracing_level() > 0){
                 entry->PrintEntry(stderr);
