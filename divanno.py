@@ -30,28 +30,32 @@ def main():
     #For each line in input
     for line in inf:
         #If MC exists for this line; then diversify
-        if ('# MC=' in line):
-            mcArgs=re.sub(reArgs,r'\g<OUT>',line)
+        if ('# MC=' not in line):
+            outf.write(line)
+            continue
+
+        mcArgs=re.sub(reArgs,r'\g<OUT>',line)
+        
+        #TODO: PROFILE DATA!!!
+        
+        #If can insert NOP and we roll success; then insert NOP before current line
+        if ('N' in mcArgs):
+            if (roll()):
+                outf.write( nop64(random.randint(0,4)) )#64bit
+        elif ('n' in mcArgs ):
+            if (roll()):
+                outf.write( nop32(random.randint(0,4)) )#32bit
             
-            #TODO: PROFILE DATA!!!
-            
-            #If can insert NOP and we roll success; then insert NOP before current line
-            if ('N' in mcArgs):
-                if (roll()):
-                    outf.write( nop64(random.randint(0,4)) )#64bit
-            elif ('n' in mcArgs ):
-                if (roll()):
-                    outf.write( nop32(random.randint(0,4)) )#32bit
-                
-            #If can MOV To LEA and we roll success; then modify line
-            if ('M' in mcArgs and roll()):
+        #If can MOV To LEA and we roll success; then modify line
+        if ('M' in mcArgs):
+            if (roll()):
                 ##TODO: change SUF to arch compatable version
                 outf.write(re.sub(reMov2Lea,
-                                   'lea\g<SUF>\t(\g<ONE>), \g<TWO>'
-                                   ,line))
-            else:#Else print line unchanged
+                               'lea\g<SUF>\t(\g<ONE>), \g<TWO>'
+                               ,line))
+            else:
                 outf.write(line)
-        else:#Else no annotations, just write
+        else:#Else print line unchanged
             outf.write(line)
         
         

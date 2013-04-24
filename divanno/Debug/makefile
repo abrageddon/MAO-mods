@@ -8,6 +8,7 @@ RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
+-include src/MultiCompiler/subdir.mk
 -include src/subdir.mk
 -include subdir.mk
 -include objects.mk
@@ -44,7 +45,7 @@ all: divanno
 divanno: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C++ Linker'
-	g++  -o "divanno" $(OBJS) $(USER_OBJS) $(LIBS)
+	g++ -L"/home/s7even/workspace/MAO/divanno/Debug" -L/lib -L/usr/lib -o "divanno" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
