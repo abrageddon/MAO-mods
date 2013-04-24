@@ -1,28 +1,83 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <regex>
 
+#include "MultiCompiler/MultiCompilerOptions.h"
 #include "MultiCompiler/AESRandomNumberGenerator.h"
 
 using namespace std;
 
-static const char * const nop64[] = { "\tnop", "\tmovq\t%rbp, %rbp", "\tmovq\t%rsp, %rsp", "\tleaq\t(%rdi), %rdi",
-        "\tleaq\t(%rsi), %rsi" };
+static const char * const nop64[] = { "\tnop\n", "\tmovq\t%rbp, %rbp\n"
+        , "\tmovq\t%rsp, %rsp\n", "\tleaq\t(%rdi), %rdi\n",
+        "\tleaq\t(%rsi), %rsi\n" };
 
-static const char * const nop32[] = { "\tnop", "\tmovl\t%ebp, %ebp", "\tmovl\t%esp, %esp", "\tleal\t(%edi), %edi",
-        "\tleal\t(%esi), %esi" };
+static const char * const nop32[] = { "\tnop\n", "\tmovl\t%ebp, %ebp\n"
+        , "\tmovl\t%esp, %esp\n", "\tleal\t(%edi), %edi\n",
+        "\tleal\t(%esi), %esi\n" };
 
-static const int insertPercent = 30;
+static int insertPercent = 30;
 static int Roll;
+static bool canNOP;
+static bool canMOVToLEA;
+static bool is64bit;
+static bool is32bit;
 
-int main() {
-    //TODO read filename from commandline
-    string line;
-    //TODO check correct file
-    ifstream inFile("hellofunc.a.s");
-    ofstream outFile("hellofunc.div.s");
+static string line;
 
-    multicompiler::Random::EntropyData = "hellofunc.a.s";
+string movToLeaReplace(){
+    size_t movLoc = 0;
+    string lea = "";
+    if (is64bit){
+        movLoc = line.find("movq");
+        if (movLoc==string::npos) {
+            return line;
+        }
+        lea = "leaq";
+    }else if (is32bit){
+        movLoc = line.find("movl");
+        if (movLoc==string::npos) {
+            return line;
+        }
+        lea = "leal";
+    }else{
+        cerr << "Unknown Arch" << endl;
+        return line;
+    }
+
+    size_t pOne = line.find("%");
+    size_t comma = line.find(",",pOne);
+    size_t pTwo = line.find("%",comma);
+
+    string rOne = line.substr(pOne, comma-pOne);
+    string rTwo = line.substr(pTwo);
+
+    return "\t" + lea + "\t(" + rOne + ")," + rTwo + "\n";
+}
+
+int main(int argc, char* argv[]) {
+    string inFileName(argv[1]);
+
+    size_t ext = inFileName.find(".a.s");
+    if (ext==string::npos) {
+        cerr << "Incorrect extension." <<endl;
+        return 1;
+    }
+
+    ifstream inFile(inFileName);
+    ofstream outFile(inFileName.substr(0,ext) + ".div.s");
+
+    //TODO read arch from file
+    is64bit = true;
+    is32bit = false;
+
+
+    //TODO read seed and percentages from cmdline
+    srand (time(NULL));
+    multicompiler::MultiCompilerSeed = to_string(rand());
+    multicompiler::Random::EntropyData = to_string(rand());
+    insertPercent = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(100);
+//    cout << insertPercent << endl;
 
     if (inFile.is_open() && outFile.is_open()) {
         while (inFile.good()) {
@@ -31,52 +86,69 @@ int main() {
 
             //IF not contains '# MC=' then write and continue
             size_t argPos = line.find("# MC=");
-            if (argPos==std::string::npos) {
+            if (argPos==string::npos) {
                 outFile << line << endl;
                 continue;
             }
 
+            canNOP = false;
+            canMOVToLEA = false;
+            string lineArgs = line.substr(argPos+5);
 
-            //IF mcArgs contains [Nn] then try NOP Insertion before current line
-            if (true) {//64bit
-                Roll = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(100);
-                if (Roll <= insertPercent){
-                    Roll = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(5);
-                    outFile << nop64[Roll] << endl;
+            //Parse args
+            for (unsigned int i = 0; i < lineArgs.length(); i++){
+                if (isspace(lineArgs[i])){
+                    break;
+                }else if (lineArgs[i]=='N'){
+                    canNOP = true;
+                    continue;
+                }else if (lineArgs[i]=='M'){
+                    canMOVToLEA = true;
+                    continue;
+                }else {
+                    cerr << "Unknown Arg: " << lineArgs[i] << endl;
                 }
-            }else if (Roll <= insertPercent){//32bit
+
+            }
+
+
+            //IF mcArgs contains [N] then try NOP Insertion before current line
+            if (canNOP) {
                 Roll = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(100);
                 if (Roll <= insertPercent){
                     Roll = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(5);
-                    outFile << nop32[Roll] << endl;
+                    if(is64bit){
+                        outFile << nop64[Roll] ;
+                    }else if (is32bit){
+                        outFile << nop32[Roll] ;
+                    }else{
+                        cerr << "Unknown Arch" << endl;
+                    }
                 }
             }
 
 
-            //IF mcArgs contains [Mm] then try MOVToLEA
-            if (false) {
+            //IF mcArgs contains [M] then try MOVToLEA
+            if (canMOVToLEA) {
                 Roll = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(100);
                 if (Roll <= insertPercent){
-//##TODO: change SUF to arch compatable version
-//outf.write(re.sub(reMov2Lea,
-//                   'lea\g<SUF>\t(\g<ONE>), \g<TWO>'
-//                   ,line))
+                    outFile << movToLeaReplace();
                 }else{
                     //print
-                    outFile << line << endl;
-                    continue;
+                    outFile << line << "\n";
                 }
             }else{
                 //print
-                cout << line << endl;
-                outFile << line << endl;
-                continue;
+//                cout << line << endl;
+                outFile << line << "\n";
             }
 //            cout << line << endl;
         }
         inFile.close();
+        outFile.close();
     } else {
-        cout << "Unable to open file";
+        cerr << "Unable to open file"<<endl;
+        return 2;
     }
 
     return 0;

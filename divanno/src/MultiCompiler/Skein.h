@@ -32,8 +32,6 @@ extern "C"
 {
 #endif
 
-//#include <stdint.h>
-//#include <cstdint>
 #include <stdint.h>
 #include <stddef.h>                                /* get size_t definition */
 #include "SkeinPortability.h"                      /* get platform-specific definitions */

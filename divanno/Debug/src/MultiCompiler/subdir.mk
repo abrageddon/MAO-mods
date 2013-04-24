@@ -38,56 +38,56 @@ CPP_DEPS += \
 src/MultiCompiler/AESCounterModeRNG.o: ../src/MultiCompiler/AESCounterModeRNG.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C++ Compiler'
-	g++ -I/usr/include -I/usr/local/include -O0 -g3 -Wall -c -fmessage-length=0 -std=c++11 -MMD -MP -MF"$(@:%.o=%.d)" -MT"src/MultiCompiler/AESCounterModeRNG.d" -o "$@" "$<"
+	g++ -DMAO_MULTI_COMPILER -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -I/usr/include -I/usr/local/include -O3 -Wall -c -std=c++11 -fPIC -MMD -MP -MF"$(@:%.o=%.d)" -MT"src/MultiCompiler/AESCounterModeRNG.d" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
 src/MultiCompiler/AESRandomNumberGenerator.o: ../src/MultiCompiler/AESRandomNumberGenerator.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C++ Compiler'
-	g++ -I/usr/include -I/usr/local/include -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"src/MultiCompiler/AESRandomNumberGenerator.d" -o "$@" "$<"
+	g++ -DMAO_MULTI_COMPILER -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -I/usr/include -I/usr/local/include -O3 -Wall -c -std=c++11 -fPIC -MMD -MP -MF"$(@:%.o=%.d)" -MT"src/MultiCompiler/AESRandomNumberGenerator.d" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
 src/MultiCompiler/MultiCompilerOptions.o: ../src/MultiCompiler/MultiCompilerOptions.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C++ Compiler'
-	g++ -I/usr/include -I/usr/local/include -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"src/MultiCompiler/MultiCompilerOptions.d" -o "$@" "$<"
+	g++ -DMAO_MULTI_COMPILER -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -I/usr/include -I/usr/local/include -O3 -Wall -c -std=c++11 -fPIC -MMD -MP -MF"$(@:%.o=%.d)" -MT"src/MultiCompiler/MultiCompilerOptions.d" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
 src/MultiCompiler/Rand48.o: ../src/MultiCompiler/Rand48.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C++ Compiler'
-	g++ -I/usr/include -I/usr/local/include -O0 -g3 -Wall -c -fmessage-length=0 -std=c++11 -MMD -MP -MF"$(@:%.o=%.d)" -MT"src/MultiCompiler/Rand48.d" -o "$@" "$<"
+	g++ -DMAO_MULTI_COMPILER -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -I/usr/include -I/usr/local/include -O3 -Wall -c -std=c++11 -fPIC -MMD -MP -MF"$(@:%.o=%.d)" -MT"src/MultiCompiler/Rand48.d" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
 src/MultiCompiler/Random.o: ../src/MultiCompiler/Random.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C++ Compiler'
-	g++ -I/usr/include -I/usr/local/include -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"src/MultiCompiler/Random.d" -o "$@" "$<"
+	g++ -DMAO_MULTI_COMPILER -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -I/usr/include -I/usr/local/include -O3 -Wall -c -std=c++11 -fPIC -MMD -MP -MF"$(@:%.o=%.d)" -MT"src/MultiCompiler/Random.d" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
 src/MultiCompiler/Skein.o: ../src/MultiCompiler/Skein.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C++ Compiler'
-	g++ -I/usr/include -I/usr/local/include -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"src/MultiCompiler/Skein.d" -o "$@" "$<"
+	g++ -DMAO_MULTI_COMPILER -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -I/usr/include -I/usr/local/include -O3 -Wall -c -std=c++11 -fPIC -MMD -MP -MF"$(@:%.o=%.d)" -MT"src/MultiCompiler/Skein.d" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
 src/MultiCompiler/SkeinBlock.o: ../src/MultiCompiler/SkeinBlock.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C++ Compiler'
-	g++ -I/usr/include -I/usr/local/include -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"src/MultiCompiler/SkeinBlock.d" -o "$@" "$<"
+	g++ -DMAO_MULTI_COMPILER -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -I/usr/include -I/usr/local/include -O3 -Wall -c -std=c++11 -fPIC -MMD -MP -MF"$(@:%.o=%.d)" -MT"src/MultiCompiler/SkeinBlock.d" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
 src/MultiCompiler/SkeinPBKDF2.o: ../src/MultiCompiler/SkeinPBKDF2.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C++ Compiler'
-	g++ -I/usr/include -I/usr/local/include -O0 -g3 -Wall -c -fmessage-length=0 -std=c++11 -MMD -MP -MF"$(@:%.o=%.d)" -MT"src/MultiCompiler/SkeinPBKDF2.d" -o "$@" "$<"
+	g++ -DMAO_MULTI_COMPILER -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -I/usr/include -I/usr/local/include -O3 -Wall -c -std=c++11 -fPIC -MMD -MP -MF"$(@:%.o=%.d)" -MT"src/MultiCompiler/SkeinPBKDF2.d" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 

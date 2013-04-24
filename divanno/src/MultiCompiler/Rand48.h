@@ -1,9 +1,6 @@
 #ifndef RAND48_H_
 #define RAND48_H_
 
-#define MAO_MULTI_COMPILER
-#define __STDC_LIMIT_MACROS
-
 #include "Random.h"
 #include "MultiCompilerOptions.h"
 #include "Rand48.h"
@@ -13,9 +10,6 @@
 #include <fstream>
 #include <cstdlib>
 #include <inttypes.h>
-#include <stdint.h>
-#include <cstdint>
-
 
 namespace multicompiler
 {

@@ -19,15 +19,7 @@
 #ifndef SKEINPBKDF2_H_
 #define SKEINPBKDF2_H_
 
-//dirty trick for a bad IDE
-# define UINT32_MAX     (4294967295U)
-
-//#include <stdint.h>
-//#include <cstdint>
-#include <math.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

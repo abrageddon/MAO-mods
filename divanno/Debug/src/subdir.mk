@@ -17,7 +17,7 @@ CPP_DEPS += \
 src/divanno.o: ../src/divanno.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C++ Compiler'
-	g++ -I/usr/include -I/usr/local/include -O0 -g3 -Wall -c -fmessage-length=0 -std=c++11 -MMD -MP -MF"$(@:%.o=%.d)" -MT"src/divanno.d" -o "$@" "$<"
+	g++ -DMAO_MULTI_COMPILER -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -I/usr/include -I/usr/local/include -O3 -Wall -c -std=c++11 -fPIC -MMD -MP -MF"$(@:%.o=%.d)" -MT"src/divanno.d" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 

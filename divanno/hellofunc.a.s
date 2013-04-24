@@ -12,11 +12,11 @@ myPrintHelloMake:
 	.cfi_def_cfa_offset	16
 .Ltmp4:
 	.cfi_offset	%rbp, -16
-	movq %rsp,%rbp	# MC=NM
+	movq %rsp,%rbp	# MC=NM  #
 .Ltmp5:
 	.cfi_def_cfa_register	%rbp
 	subq $16,%rsp	# MC=N
-	leaq .L.str,%rdi	# MC=N
+	leaq .L.str,%rdi	# MC=N  #
 	movb $0,%al	# MC=N
 	callq printf	# MC=N
 	movl %eax,-4(%rbp)	# MC=N

@@ -33,7 +33,6 @@
  */
 
 //#define DEBUG_TYPE "aesrng"
-#define MAO_MULTI_COMPILER
 
 #include "MultiCompilerOptions.h"
 #include "AESRandomNumberGenerator.h"
