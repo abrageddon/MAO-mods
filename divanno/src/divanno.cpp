@@ -31,18 +31,18 @@ string movToLeaReplace(){
     if (is64bit){
         movLoc = line.find("movq");
         if (movLoc==string::npos) {
-            return line << "\n";
+            return line + "\n";
         }
         lea = "leaq";
     }else if (is32bit){//not needed? just do it?
         movLoc = line.find("movl");
         if (movLoc==string::npos) {
-            return line << "\n";
+            return line + "\n";
         }
         lea = "leal";
     }else{
         cerr << "Unknown Arch" << endl;
-        return line << "\n";
+        return line + "\n";
     }
 
     size_t pOne = line.find("%");
