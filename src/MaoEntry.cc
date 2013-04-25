@@ -1084,7 +1084,7 @@ void InstructionEntry::PrintEntry(FILE *out) const {
   std::string s;
   InstructionToString(&s);
   MCToString(&s);
-//  ProfileToString(&s);
+  ProfileToString(&s);
 //  SourceInfoToString(&s);
   fprintf(out, "%s\n", s.c_str());
 }
@@ -1962,12 +1962,12 @@ int InstructionEntry::StripRexPrefix(int prefix) const {
 std::string &InstructionEntry::InstructionToString(std::string *out) const {
 
 	//SNEISIUS
-	//TODO return input if nothing has changed
-	if (line_verbatim() != NULL && !hasChanged()){
-		out->append("\t");
-		out->append( line_verbatim() );
-		return ( *out );
-	}
+	//TODO return input if nothing has changed; HAZARDOUS! if labels change then everything blows up!
+//	if (line_verbatim() != NULL && !hasChanged()){
+//		out->append("\t");
+//		out->append( line_verbatim() );
+//		return ( *out );
+//	}
 
   const MaoOpcode rep_ops[] = {OP_ins, OP_outs, OP_movs, OP_lods, OP_stos};
   const MaoOpcode repe_ops[]= {OP_cmps, OP_scas};
