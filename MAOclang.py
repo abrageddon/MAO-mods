@@ -12,6 +12,7 @@ def main():
     
     # output to std err
     prDebug=False
+    #prDebug=True
     # really make dirs, not just print
     mkdirFlag=True 
     # really build, not just print
@@ -27,11 +28,13 @@ def main():
     global gccExec
     global retCode
     global doExcludeBuild
+    global Moverride
     
     clangExec = 'clang'
     gccExec = 'gcc'
     retCode = 0
     doExcludeBuild = False
+    Moverride = False
 
     # make args a single string
     #TODO pullout flags
@@ -84,11 +87,10 @@ def main():
 
     # TODO make portable; raw compile configure
     if ( doExcludeBuild
-         #or bool(re.search(r'workspace/[^/]+/[^/]+\Z',os.getcwd())) #FIREFOX
          or bool(re.search(r'conftest\.?[ocC]*\s?',cmdLine)) #conf exempt
          or bool(re.search(r'/config/?',os.getcwd())) #FIREFOX
-        ):
-        excludeBuild()
+         #or bool(re.search(r'workspace/[^/]+/[^/]+\Z',os.getcwd())) #FIREFOX
+        ):excludeBuild()
 
     
 
@@ -111,14 +113,14 @@ def main():
         if (doBuildObj):
             cacheAssembly(asmFile)
 
-	    if useMAO:
-	        annotate(annotatedAsmFile, asmFile)
-                diversify(cachedFile+".div.s", annotatedAsmFile)
-            else:
-                diversifyClang(asmFile+"div.s", bcFile)
-
             useS=''
             if doDiv:
+                if useMAO:
+                    annotate(annotatedAsmFile, asmFile)
+                    diversify(cachedFile+".div.s", annotatedAsmFile)
+                else:
+                    diversifyClang(asmFile+"div.s", bcFile)
+
                 useS = cachedFile+".div.s"
             else:
                 useS = asmFile
@@ -137,7 +139,7 @@ def main():
             linkAndCacheAssemblyBlob(blobS)
         
             #Diversify
-	    if useMAO:
+            if useMAO:
                 diversify(blobSDiv, blobS)
             else:
                 diversifyClang(blobSDiv, blobS+".bc")
@@ -165,47 +167,62 @@ def main():
 
 def cacheAssembly(output, inFile=None):
     global retCode
-    if not os.path.isfile(output):
-        if prDebug: sys.stderr.write ("=== Cache Assembly ===" +'\n\n')
+    if ( os.path.isfile(output) ):
+        if (Moverride):
+            if prDebug: sys.stderr.write ("=== -M Override ===" +'\n\n')
+            assemble = [gccExec, '-o', objFile, '-E'] + generateAssemblyFlags + sources
+            if prDebug: sys.stderr.write (string.join(assemble,' ')+'\n\n')
+            if realBuild:
+                devNull = open('/dev/null', "w")
+                process = subprocess.Popen(assemble,stdout=devNull)#PIPE TO /DEV/NULL
+                retCode = process.wait()
+            return retCode
+            #return execBuild(assemble, "-M Override"
+            
+        return retCode
+    if prDebug: sys.stderr.write ("=== Cache Assembly ===" +'\n\n')
 
-        if doBuildObj:
-            if(inFile is None):
-	        if len(sources) == 0:
-		    return retCode
+    if doBuildObj:
+        if(inFile is None):
+            if len(sources) == 0:
+                return retCode
 
-		if len(sources) == 1 and sources[0][-2:] == '.S' :
-                    assemble = [gccExec, '-o', output, '-S'] + generateAssemblyFlags + sources
-                    if realBuild:
-		        outputFile = open(output, "w")
-                        process = subprocess.Popen(assemble,stdout=outputFile)
-                        retCode = process.wait()
-                    return errorCatch(retCode, string.join(assemble,' '), 'Parsing .S File')
-		else:
-                    #assemble = [clangExec, '-o', output] + generateAssemblyFlags + sources
-                    assemble = [gccExec, '-o', output, '-S'] + generateAssemblyFlags + sources
+            if len(sources) == 1 and sources[0][-2:] == '.S' :
+                if prDebug: sys.stderr.write ("=== Cache S Assembly ===" +'\n\n')
+                #assemble = [clangExec, '-o', output, '-S'] + generateAssemblyFlags + sources
+                assemble = [gccExec, '-o', output, '-S'] + generateAssemblyFlags + sources
+                if prDebug: sys.stderr.write (string.join(assemble,' ')+'\n\n')
+                if realBuild:
+                    outputFile = open(output, "w")
+                    process = subprocess.Popen(assemble,stdout=outputFile)
+                    retCode = process.wait()
+                return errorCatch(retCode, string.join(assemble,' '), 'Parsing .S File')
             else:
-                #assemble = [clangExec, '-o', output, '-S', inFile]
-                assemble = [gccExec, '-o', output, '-S', inFile]
+                #assemble = [clangExec, '-o', output, '-S'] + generateAssemblyFlags + sources
+                assemble = [gccExec, '-o', output, '-S'] + generateAssemblyFlags + sources
         else:
-            if(inFile is None):
-	        if len(sources) == 0:
-		    return retCode
-                assemble = [clangExec, "-o", output, "-S"] + generateAssemblyFlags + sources
-	    else:
-                assemble = [clangExec, "-o", output, "-S", inFile] + generateAssemblyFlags
+            #assemble = [clangExec, '-o', output, '-S', inFile]
+            assemble = [gccExec, '-o', output, '-S', inFile] + generateAssemblyFlags
+    else:
+        if(inFile is None):
+            if len(sources) == 0:
+                return retCode
+            assemble = [clangExec, "-o", output, "-S"] + generateAssemblyFlags + sources
+        else:
+            assemble = [clangExec, "-o", output, "-S", inFile] + generateAssemblyFlags
 
-        if prDebug: sys.stderr.write (string.join(assemble,' ')+'\n\n')
-        return execBuild(assemble, "Cache Assembly")
-    return retCode
+    if prDebug: sys.stderr.write (string.join(assemble,' ')+'\n\n')
+    return execBuild(assemble, "Cache Assembly")
     
 def diversify(output, inFile):
     #TODO use output file name
-    if doDiv:
-        if prDebug: sys.stderr.write ("=== Diversify ===" +'\n\n')
-        diversify = ["divanno", inFile ]
+    if not doDiv:
+        return retCode
+    if prDebug: sys.stderr.write ("=== Diversify ===" +'\n\n')
+    diversify = ["divanno", inFile ]
         
-        if prDebug: sys.stderr.write (string.join(diversify,' ')+'\n\n')
-        return execBuild(diversify, "Diversify")
+    if prDebug: sys.stderr.write (string.join(diversify,' ')+'\n\n')
+    return execBuild(diversify, "Diversify")
 
 
 def annotate(output, inFile):
@@ -248,10 +265,14 @@ def diversifyClang(output, inFile):
 def buildObjFromASM(output, inFile):
     if prDebug: sys.stderr.write ("=== ASM To Obj ===" +'\n\n')
 
-    buildObj = [gccExec, '-Wa', '-c', inFile, '-o', output] + blobCompilerFlags
+    #buildObj = [clangExec, '-o', output, '-c'] + assemblerFlags + [inFile]
+    #buildObj = [gccExec, '-o', output, '-c'] + blobCompilerFlags + [inFile]
+    buildObj = [gccExec, '-o', output, '-c'] + assemblerFlags + [inFile]
+    #buildObj = [gccExec, '-Wa', '-c', inFile, '-o', output] + assemblerFlags
     #buildObj = [gccExec, '-Wa', inFile, '-o', output] + blobCompilerFlags
     #TODO explore using 'as' further
     #buildObj = ['as', inFile, '-o', output] + assemblerFlags
+
 
     #TODO TIME THIS STEP
     if prDebug: sys.stderr.write (string.join(buildObj,' ')+'\n\n')
@@ -261,7 +282,9 @@ def buildObjFromASM(output, inFile):
 def buildBinFromObjs():
     if prDebug: sys.stderr.write ("=== Build Bin From Objs ===" +'\n\n')
 
-    buildBin = [gccExec] + compilerFlags
+    #buildBin = [gccExec] + compilerFlags
+    buildBin = [clangExec] + compilerFlags
+    #TODO try manual linking again
     #buildBin = ['gold'] + compilerFlags
     #buildBin = ['ld.gold'] + compilerFlags
 
@@ -302,7 +325,7 @@ def linkAndCacheAssemblyBlob(output):
             inObj[i] = cacheDir + "/" + item[:-1] + 'bc'
         
         for i,item in enumerate(sources):
-	    cacheThis = item
+            cacheThis = item
             inSrc[i] = cacheDir + "/" + re.sub(r'\.[cC]+[pPxX+]*','.bc',item)
             cacheBitcode(inSrc[i], cacheThis)
 
@@ -323,13 +346,13 @@ def buildBinFromBlobS(output, inFile):
 
         #TODO figure out how to build final bin
         #buildBin = ['as', "-o", output, inFile]
-        buildBin = [gccExec, '-Wa', "-o", output, inFile] + blobCompilerFlags
+        buildBin = [gccExec, "-o", output, inFile] + blobCompilerFlags
         #buildBin = [gccExec, "-Wa,-alh,-L", "-o", output, inFile] + blobCompilerFlags
         #buildBin = [clangExec, "-o", output, inFile] + blobCompilerFlags
 
         if prDebug: sys.stderr.write (string.join(buildBin,' ')+'\n\n')
-	retCode = execBuild(buildBin, "Build Bin From BlobS") and retCode
-	os.chmod(output, 0775)
+        retCode = execBuild(buildBin, "Build Bin From BlobS") and retCode
+        os.chmod(output, 0775)
         return retCode
     return retCode
     
@@ -345,11 +368,13 @@ def execBuild(cmd, mesg):
 def failBuild():
     # Something didn't work. Fail back to compile from scratch.
     if prDebug: sys.stderr.write ("=== Fail Build Attempt ===" +'\n\n')
-    return execBuild([clangExec] +  cmdLine.strip().split(), "Fail Build")
+    return execBuild([gccExec] +  cmdLine.strip().split(), "Fail Build")
+    #return execBuild([clangExec] +  cmdLine.strip().split(), "Fail Build")
     
 def excludeBuild():
     # Something didn't work. Fail back to compile from scratch.
     if prDebug: sys.stderr.write ("=== Excluded Build Attempt ===" +'\n\n')
+    if prDebug: sys.stderr.write (string.join([clangExec] + compilerFlags,' ')+'\n\n')
     #retCode = execBuild([gccExec] + compilerFlags, "Excluded Build")
     retCode = execBuild([clangExec] + compilerFlags, "Excluded Build")
     sys.exit(retCode)
@@ -394,19 +419,21 @@ def initVars(varList):
     global doBuildObj
     global doBuildBlob
     global doExcludeBuild
+    global Moverride
     
     isOutput = False
     isCompGen = False
+    isObjGen = False
 
     for var in varList:
         #Final compile must be ordered specifically
 
         #-Qunused-arguments caused problems and is therefore ...unused...
-	if var == '-Qunused-arguments':
+        if var == '-Qunused-arguments':
             continue
 
 
-	compilerFlags += [var]
+        compilerFlags += [var]
 
         
         if isOutput:
@@ -427,6 +454,19 @@ def initVars(varList):
             blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
             isCompGen=False
+            continue
+
+        if isObjGen:
+            isObjGen=False
+            if var == '-MF' or var == '-MT' or var == '-MQ':
+                #assemblerFlags += [var]
+                #blobCompilerFlags += [var]
+                generateAssemblyFlags += [var]
+                isObjGen=True
+                continue
+            #assemblerFlags += [var]
+            #blobCompilerFlags += [var]
+            generateAssemblyFlags += [var]
             continue
                 
         # Exclude from genAssembly     -D_FORTIFY_SOURCE=1
@@ -455,6 +495,17 @@ def initVars(varList):
             blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
             isCompGen = True
+        elif var == '-M' or var == '-MM' or var == '-MD' or var == '-MMD' or  var == '-MP' or var == '-MG':
+            Moverride=True
+            #assemblerFlags += [var]
+            #blobCompilerFlags += [var]
+            generateAssemblyFlags += [var]
+        elif var == '-MF' or var == '-MT' or var == '-MQ':
+            Moverride=True
+            #assemblerFlags += [var]
+            #blobCompilerFlags += [var]
+            generateAssemblyFlags += [var]
+            isObjGen = True
         elif (var[:4] == '-std'
             or var == '-pthread'
             or var == '-pedantic'
@@ -480,9 +531,16 @@ def initVars(varList):
         elif var[:2] == '-I':
             blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
-        elif var[:2] == '-W':
-            blobCompilerFlags += [var]
+        elif var[:3] == '-Wp':
             generateAssemblyFlags += [var]
+        elif var[:3] == '-Wa':
+            blobCompilerFlags += [var]
+            assemblerFlags +=[var]
+        elif var[:3] == '-Wl':
+            blobCompilerFlags += [var]
+            assemblerFlags +=[var]
+        elif var[:2] == '-W':
+            addFlagsAll(var)
         elif var[:2] == '-f':
             blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
@@ -507,10 +565,12 @@ def initVars(varList):
             or var[-4:] == '.CXX' or var[-4:] == '.CXX'):
             sources += [var]
         elif (var[-2:] == '.S'):
-	    #TODO preprocess .S
-	    sources += [var]
-        elif (var[-3:] == '.pp' or var[-3:] == '.PP'  or var[-2:] == '.a' or var[-3:] == '.so' or var[-3:] == '.SO'):
+            #TODO preprocess .S
+            sources += [var]
+        elif (var[-3:] == '.pp' or var[-3:] == '.PP'):
             #FIREFOX
+            blobCompilerFlags += [var]
+        elif (var[-2:] == '.a' or var[-3:] == '.so' or var[-3:] == '.SO'):
             blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
         elif (var[-2:] == '.s'):
@@ -528,8 +588,9 @@ def initVars(varList):
 #         or bool(re.search(r'/config/?',os.getcwd())) #config folder exempt
 #       ):
     
-    generateAssemblyFlags += ['-fPIC']
-    compilerFlags += ['-fPIC']
+    #Not sure if needed
+    #generateAssemblyFlags += ['-fPIC']
+    #compilerFlags += ['-fPIC']
     
     if len(binFile)!=0 and len(sources)!=0 :
         if len(sources) == 1 :
