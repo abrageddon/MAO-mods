@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /usr/bin/make.real "${@}" SHELL="/usr/local/bin/recordsh.py" MAKE="/usr/bin/make"

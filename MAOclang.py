@@ -170,14 +170,13 @@ def cacheAssembly(output, inFile=None):
     if ( os.path.isfile(output) ):
         if (Moverride):
             if prDebug: sys.stderr.write ("=== -M Override ===" +'\n\n')
-            assemble = [gccExec, '-o', objFile, '-E'] + generateAssemblyFlags + sources
+            assemble = [gccExec, '-o', objFile, '-E'] + generateAssemblyFlags + sources #-E
             if prDebug: sys.stderr.write (string.join(assemble,' ')+'\n\n')
             if realBuild:
                 devNull = open('/dev/null', "w")
                 process = subprocess.Popen(assemble,stdout=devNull)#PIPE TO /DEV/NULL
                 retCode = process.wait()
             return retCode
-            #return execBuild(assemble, "-M Override"
             
         return retCode
     if prDebug: sys.stderr.write ("=== Cache Assembly ===" +'\n\n')
