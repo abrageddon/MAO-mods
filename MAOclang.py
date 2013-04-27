@@ -18,8 +18,8 @@ def main():
     # really build, not just print
     realBuild=True
 
-    doBuildObj=True
-    doBuildBlob=False
+    doBuildObj=False
+    doBuildBlob=True
     doDiv=True
     useMAO=True
     
@@ -101,6 +101,7 @@ def main():
     annotatedAsmFile = cachedFile + ".a.s"
     blobS = cachedFile + ".blob.s"
     blobSDiv = cachedFile + ".blob.div.s"
+    annotatedAsmBlobFile = cachedFile + ".blob.a.s"
 
 
     
@@ -140,7 +141,8 @@ def main():
         
             #Diversify
             if useMAO:
-                diversify(blobSDiv, blobS)
+                annotate(annotatedAsmBlobFile, blobS)
+                diversify(blobSDiv, annotatedAsmBlobFile)
             else:
                 diversifyClang(blobSDiv, blobS+".bc")
 

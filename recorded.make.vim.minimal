@@ -1,0 +1,40 @@
+/home/ubuntu/workspace/vim73/src:-c CC="MAOclang.pyc -Iproto -DHAVE_CONFIG_H -DFEAT_GUI_GTK  -pthread -I/usr/include/gtk-2.0 -I/usr/lib/x86_64-linux-gnu/gtk-2.0/include -I/usr/include/atk-1.0 -I/usr/include/cairo -I/usr/include/gdk-pixbuf-2.0 -I/usr/include/pango-1.0 -I/usr/include/gio-unix-2.0/ -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -I/usr/include/pixman-1 -I/usr/include/freetype2 -I/usr/include/libpng12         " srcdir=. sh ./osdef.sh
+/home/ubuntu/workspace/vim73/src:-c MAOclang.pyc -c -I. -Iproto -DHAVE_CONFIG_H -DFEAT_GUI_GTK  -pthread -I/usr/include/gtk-2.0 -I/usr/lib/x86_64-linux-gnu/gtk-2.0/include -I/usr/include/atk-1.0 -I/usr/include/cairo -I/usr/include/gdk-pixbuf-2.0 -I/usr/include/pango-1.0 -I/usr/include/gio-unix-2.0/ -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -I/usr/include/pixman-1 -I/usr/include/freetype2 -I/usr/include/libpng12     -O2 -fno-strength-reduce -Wall -D_FORTIFY_SOURCE=1       -o objects/pathdef.o auto/pathdef.c
+/home/ubuntu/workspace/vim73/src:-c cd xxd; CC="MAOclang.pyc" CFLAGS=" -O2 -fno-strength-reduce -Wall -D_FORTIFY_SOURCE=1" \
+	/usr/bin/make -f Makefile
+/home/ubuntu/workspace/vim73/src/xxd:-c MAOclang.pyc  -O2 -fno-strength-reduce -Wall -D_FORTIFY_SOURCE=1  -DUNIX -o xxd xxd.c
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o af.mo af.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o ca.mo ca.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o cs.mo cs.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o de.mo de.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o en_GB.mo en_GB.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o eo.mo eo.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o es.mo es.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o fi.mo fi.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o fr.mo fr.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o ga.mo ga.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o it.mo it.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o ja.mo ja.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o ko.mo ko.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o ko.UTF-8.mo ko.UTF-8.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o nb.mo nb.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o no.mo no.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o pl.mo pl.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o pt_BR.mo pt_BR.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o ru.mo ru.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o sk.mo sk.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o sv.mo sv.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o uk.mo uk.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o vi.mo vi.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o zh_CN.UTF-8.mo zh_CN.UTF-8.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o zh_CN.mo zh_CN.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o zh_TW.UTF-8.mo zh_TW.UTF-8.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o zh_TW.mo zh_TW.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o cs.cp1250.mo cs.cp1250.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o ja.sjis.mo ja.sjis.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o pl.cp1250.mo pl.cp1250.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o pl.UTF-8.mo pl.UTF-8.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o ru.cp1251.mo ru.cp1251.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o sk.cp1250.mo sk.cp1250.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o uk.cp1251.mo uk.cp1251.po
+/home/ubuntu/workspace/vim73/src/po:-c OLD_PO_FILE_INPUT=yes msgfmt -v -o zh_CN.cp936.mo zh_CN.cp936.po
