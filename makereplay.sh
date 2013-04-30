@@ -1,6 +1,7 @@
 #!/bin/bash
 while read line
-  do echo -e "\nLINE: $line"
+  do #echo -e "\nLINE: $line"
+     echo ""
      export OIFS=$IFS
      export IFS=":"
      iter=0
@@ -47,7 +48,7 @@ while read line
      if [ $retVal -ne 0 ]
      then 
         echo $cmd | sed 's/(/\\(/g'  | sed 's/)/\\)/g'  | sed 's/"/\\"/g' > /tmp/run.sh
-        echo "RECMD: $cmd"
+        echo "ERROR: $cmd"
         (cd $dir && (sh /tmp/run.sh))
 	retVal=$?
 
