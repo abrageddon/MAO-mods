@@ -11,8 +11,8 @@ def main():
     global useMAO
     
     # output to std err
-    prDebug=False
     #prDebug=True
+    prDebug=False
     # really make dirs, not just print
     mkdirFlag=True 
     # really build, not just print
@@ -171,8 +171,10 @@ def main():
 
 def cacheAssembly(output, inFile=None):
     global retCode
+    global Moverride
     if ( os.path.isfile(output) ):
-        if (Moverride):
+        if (False): #and Moverride):
+        #TODO cache this!
             if prDebug: sys.stderr.write ("=== -M Override ===" +'\n\n')
             assemble = [gccExec, '-o', objFile, '-E'] + generateAssemblyFlags + sources #-E
             if prDebug: sys.stderr.write (string.join(assemble,' ')+'\n\n')
@@ -180,9 +182,9 @@ def cacheAssembly(output, inFile=None):
                 devNull = open('/dev/null', "w")
                 process = subprocess.Popen(assemble,stdout=devNull)#PIPE TO /DEV/NULL
                 retCode = process.wait()
-            return retCode
             
         return retCode
+
     if prDebug: sys.stderr.write ("=== Cache Assembly ===" +'\n\n')
 
     if doBuildObj:
@@ -318,7 +320,7 @@ def cacheBitcode(output, inFile=None):    # Build .bc file if there is no cached
             return retCode
         if prDebug: sys.stderr.write (string.join(buildBc,' ')+'\n\n')
         return execBuild(buildBc,"To Bitcode Cache")
-    if (Moverride):
+    if (False and Moverride):
         if prDebug: sys.stderr.write ("=== -M Override ===" +'\n\n')
         assemble = [gccExec, '-o', objFile, '-E'] + generateAssemblyFlags + sources #-E
         if prDebug: sys.stderr.write (string.join(assemble,' ')+'\n\n')
@@ -451,7 +453,7 @@ def initVars(varList):
     global Moverride
     
     isOutput = False
-    isCompGen = False
+    isParam = False
     isObjGen = False
     doGrabInc = False
 
@@ -480,10 +482,10 @@ def initVars(varList):
             isOutput = False
             continue
         
-        if isCompGen:
+        if isParam:
             blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
-            isCompGen=False
+            isParam=False
             continue
 
         if isObjGen:
@@ -500,6 +502,7 @@ def initVars(varList):
             continue
                 
         if doGrabInc:
+            blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
             doGrabInc=False
             continue
@@ -525,10 +528,14 @@ def initVars(varList):
             or var == '-qversion' 
             or var == '-dumpversion'):
             doExcludeBuild = True
-        elif var == '-include' or var == '--param':
+        elif var == '--param':
             blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
-            isCompGen = True
+            isParam = True
+        elif var == '-include':
+            blobCompilerFlags += [var]
+            generateAssemblyFlags += [var]
+            doGrabInc = True
         elif var == '-M' or var == '-MM' or var == '-MD' or var == '-MMD' or  var == '-MP' or var == '-MG':
             Moverride=True
             #assemblerFlags += [var]
@@ -614,8 +621,8 @@ def initVars(varList):
         elif (var[-3:] == '.pp' or var[-3:] == '.PP'):
             #FIREFOX
             blobCompilerFlags += [var]
-        elif (var[-2:] == '.a' or var[-3:] == '.so' or var[-3:] == '.SO'):
-            archives += [var] #TODO IMPLEMENT!!!
+        elif (var[-2:] == '.a' or var[-3:] == '.so' or var[-3:] == '.SO' or var[-2:] == '.h'):
+            archives += [var]
         elif (var[-2:] == '.s'):
             assemblys += [var]
         elif (var[-2:] == '.o' or var[-2:] == '.O' or var[-3:] == '.lo'):
