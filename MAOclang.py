@@ -19,7 +19,7 @@ def main():
     realBuild=True
 
     doBuildObj=True
-    doBuildBlob=True
+    doBuildBlob=False
     doDiv=True
     useMAO=True
     
@@ -63,11 +63,15 @@ def main():
     global cacheDir
     global binFile
     global objFile
+    global MFile
+    global MCacheFile
     rawFile=''
     cachedFile=''
     cacheDir=''
     binFile=''
     objFile=''
+    MFile=''
+    MCacheFile=''
     
     
     global bcFile
@@ -91,7 +95,7 @@ def main():
     if ( doExcludeBuild
          or bool(re.search(r'conftest\.?[ocC]*\s?',cmdLine)) #conf exempt
          or bool(re.search(r'/config/?',os.getcwd())) #FIREFOX
-         #or bool(re.search(r'workspace/[^/]+/[^/]+\Z',os.getcwd())) #FIREFOX
+         or bool(re.search(r'workspace/[^/]+/[^/]+\Z',os.getcwd())) #FIREFOX
         ):excludeBuild()
 
     
@@ -112,9 +116,26 @@ def main():
         # determine location of cached bitcode
         if not doBuildObj or doBuildBlob:
             cacheBitcode(bcFile)
+            if (Moverride and not os.path.isfile(MCacheFile)):
+                if prDebug: sys.stderr.write ("=== -M Override ===" +'\n\n')
+                cmd = ['cp', MFile, MCacheFile]
+                if prDebug: sys.stderr.write (string.join(cmd,' ')+'\n\n')
+                if realBuild:
+                    process = subprocess.Popen(cmd)
+                    retCode = process.wait()
+                retCode = errorCatch(retCode, string.join(cmd,' '), 'Cache -M Output')
 
         if (doBuildObj):
             cacheAssembly(asmFile)
+
+            if (Moverride and not os.path.isfile(MCacheFile)):
+                if prDebug: sys.stderr.write ("=== -M Override ===" +'\n\n')
+                cmd = ['cp', MFile, MCacheFile]
+                if prDebug: sys.stderr.write (string.join(cmd,' ')+'\n\n')
+                if realBuild:
+                    process = subprocess.Popen(cmd)
+                    retCode = process.wait()
+                retCode = errorCatch(retCode, string.join(cmd,' '), 'Cache -M Output')
 
             useS=''
             if doDiv:
@@ -173,16 +194,16 @@ def cacheAssembly(output, inFile=None):
     global retCode
     global Moverride
     if ( os.path.isfile(output) ):
-        if (False): #and Moverride):
+        if (Moverride and os.path.isfile(MCacheFile) ):
         #TODO cache this!
             if prDebug: sys.stderr.write ("=== -M Override ===" +'\n\n')
-            assemble = [gccExec, '-o', objFile, '-E'] + generateAssemblyFlags + sources #-E
-            if prDebug: sys.stderr.write (string.join(assemble,' ')+'\n\n')
+            #assemble = [gccExec, '-o', objFile, '-E'] + generateAssemblyFlags + sources #-E
+            cmd = ['cp', MCacheFile, MFile]
+            if prDebug: sys.stderr.write (string.join(cmd,' ')+'\n\n')
             if realBuild:
-                devNull = open('/dev/null', "w")
-                process = subprocess.Popen(assemble,stdout=devNull)#PIPE TO /DEV/NULL
+                process = subprocess.Popen(cmd)
                 retCode = process.wait()
-            
+            return errorCatch(retCode, string.join(cmd,' '), 'Copy -M Output')
         return retCode
 
     if prDebug: sys.stderr.write ("=== Cache Assembly ===" +'\n\n')
@@ -320,15 +341,15 @@ def cacheBitcode(output, inFile=None):    # Build .bc file if there is no cached
             return retCode
         if prDebug: sys.stderr.write (string.join(buildBc,' ')+'\n\n')
         return execBuild(buildBc,"To Bitcode Cache")
-    if (False and Moverride):
+    if (Moverride and os.path.isfile(MCacheFile) ):
         if prDebug: sys.stderr.write ("=== -M Override ===" +'\n\n')
-        assemble = [gccExec, '-o', objFile, '-E'] + generateAssemblyFlags + sources #-E
-        if prDebug: sys.stderr.write (string.join(assemble,' ')+'\n\n')
+        cmd = ['cp', MCacheFile, MFile]
+        #assemble = [gccExec, '-o', objFile, '-E'] + generateAssemblyFlags + sources #-E
+        if prDebug: sys.stderr.write (string.join(cmd,' ')+'\n\n')
         if realBuild:
-            devNull = open('/dev/null', "w")
-            process = subprocess.Popen(assemble,stdout=devNull)#PIPE TO /DEV/NULL
+            process = subprocess.Popen(cmd)
             retCode = process.wait()
-        return retCode
+        return errorCatch(retCode, string.join(cmd,' '), 'Restore -M Output')
     return retCode
 
 def linkAndCacheAssemblyBlob(output):
@@ -416,7 +437,8 @@ def errorCatch(retCode, cmd, mesg):
         sys.stderr.write( 'rawFile: ' + rawFile +'\n')
         sys.stderr.write( 'cachedFile: ' + cachedFile +'\n')
         sys.stderr.write( 'objFile: ' + objFile +'\n')
-        sys.stderr.write( 'binFile: ' + binFile +'\n\n')
+        sys.stderr.write( 'binFile: ' + binFile +'\n')
+        sys.stderr.write( 'MFile: ' + MFile +'\n\n')
         
         sys.stderr.write( 'compilerFlags: ' + str(compilerFlags) +'\n\n')
         sys.stderr.write( 'generateAssemblyFlags: ' + str(generateAssemblyFlags) +'\n\n')
@@ -451,6 +473,8 @@ def initVars(varList):
     global doBuildBlob
     global doExcludeBuild
     global Moverride
+    global MFile
+    global MCacheFile
     
     isOutput = False
     isParam = False
@@ -499,6 +523,7 @@ def initVars(varList):
             #assemblerFlags += [var]
             #blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
+	    MFile = var
             continue
                 
         if doGrabInc:
@@ -653,6 +678,7 @@ def initVars(varList):
     
     rawFile = os.path.realpath(rawFile)
     cachedFile = re.sub(r'/home/'+getpass.getuser()+r'/workspace/','/home/'+getpass.getuser()+r'/workspace/bcache/',rawFile)
+    MCacheFile = re.sub(r'/home/'+getpass.getuser()+r'/workspace/','/home/'+getpass.getuser()+r'/workspace/bcache/',os.path.realpath(MFile))
 
     # make path to file if needed
     cacheDir = os.path.dirname(cachedFile)
@@ -666,6 +692,16 @@ def initVars(varList):
             else:
                 sys.stderr.write ('mkdir file\'s dir: '+cacheDir +'\n')
                 
+    McacheDir = os.path.dirname(MCacheFile)
+    if McacheDir != '':
+        if not os.path.isdir(McacheDir) :
+            if mkdirFlag :
+                try:
+                    os.makedirs(McacheDir)
+                except:
+                    pass
+            else:
+                sys.stderr.write ('mkdir file\'s dir: '+McacheDir +'\n')
     
     #Copy assembly files now to save time later
     for item in assemblys:
@@ -677,6 +713,7 @@ def initVars(varList):
         return errorCatch(retCode, string.join(cmd,' '), 'Copy Existing Assembly')
     #DEBUG
     #errorCatch(1,'Testing initVars','initVars')
+    #Moverride=False
     
     
 def addFlagsAll(flag):
