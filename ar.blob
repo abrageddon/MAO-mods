@@ -1,0 +1,199 @@
+#!/usr/bin/python
+import sys, os, re, string, subprocess, shutil, random, getpass, pickle
+
+def main():
+    global prDebug
+    prDebug = False
+    global retCode
+    retCode = 0
+    global clangExec
+    clangExec = "clang"
+
+    global cmdLine
+    cmdLine = ' ' + string.join(sys.argv[1:],' ') + ' '
+
+    initVars(sys.argv[1:])
+
+    linkAndCacheAssemblyBlob(cachedFile+'.blob.s')
+    annotate(cachedFile+".blob.a.s", cachedFile+'.blob.s')
+    diversify(cachedFile+".blob.div.s", cachedFile+".blob.a.s")
+    buildObjFromASM(cachedFile+'.o', cachedFile+".blob.div.s")
+
+    if prDebug: sys.stderr.write ("=== AR ===" +'\n\n')
+    execAR = 'ar.real'
+    #execAR = 'ar.gold'
+#    runAR = [execAR] + sys.argv[1:]
+    runAR = [execAR] + [args] + [destFile] + [cachedFile+'.o']
+    if prDebug: sys.stderr.write (string.join(runAR,' ')+'\n\n')
+    execBuild(runAR, "Run AR")
+
+
+    #sys.stderr.write ( os.getenv("CC", "NONE") + "\n")
+    #sys.stderr.write ( os.getenv("CXX", "NONE") + "\n")
+    #sys.stderr.write ( os.getenv("CFLAGS", "NONE") + "\n")
+    #sys.stderr.write ( os.getenv("CXXFLAGS", "NONE") + "\n")
+    
+
+
+
+
+
+def execBuild(cmd, mesg):
+    global retCode
+    process = subprocess.Popen(cmd)
+    retCode = process.wait()
+    return errorCatch(retCode, string.join(cmd,' '), mesg)
+
+def errorCatch(retCode, cmd, mesg):
+    if (retCode != 0):
+        sys.stderr.write ('========= Error: '+ mesg +' failed\n'+cmd+'\n\n')
+        sys.stderr.write( 'os.getcwd(): '+ os.getcwd() +'\n\n')
+        sys.stderr.write( 'cmdLine: ' + str(cmdLine) +'\n\n')
+
+        sys.stderr.write( 'args: ' + str(args) +'\n')
+        sys.stderr.write( 'destFile: ' + str(destFile) +'\n')
+        sys.stderr.write( 'objects: ' + str(objects) +'\n\n')
+        sys.exit(retCode)
+    return retCode
+
+def readLineFlags(filename):
+    #global flags
+    flags=None
+    with open(filename, 'rb') as inFile:
+        flags = pickle.load(inFile)
+    return flags
+    sys.stderr.write (flags)
+
+def linkAndCacheAssemblyBlob(output):
+    global retCode
+    if not os.path.isfile(output):
+        if prDebug: sys.stderr.write ("=== Linking Bitcode Files ===" +'\n\n')
+
+        blobBc = output + ".bc"
+        llvmLink = ["llvm-link", "-S", "-o", blobBc] + inObj
+
+        if prDebug: sys.stderr.write (string.join(llvmLink,' ')+'\n\n')
+        retCode = execBuild(llvmLink, "Linking Bitcode Files") and retCode
+
+        if retCode == 0:
+            return cacheAssembly(output, blobBc);
+    return retCode
+
+def cacheAssembly(output, inFile=None):
+    global retCode
+    global Moverride
+    if ( os.path.isfile(output) ):
+        return retCode
+
+    if prDebug: sys.stderr.write ("=== Cache Assembly ===" +'\n\n')
+
+    if(inFile is None):
+        sys.stderr.write ("ERROR in cacheAssembly" )
+    else:
+        assemble = [clangExec, '-fPIC', "-o", output, "-S", inFile]
+
+    if prDebug: sys.stderr.write (string.join(assemble,' ')+'\n\n')
+    return execBuild(assemble, "Cache Assembly")
+
+def annotate(output, inFile):
+    if os.path.isfile(output):
+        return retCode
+    if prDebug: sys.stderr.write ("=== Annotate ===" +'\n\n')
+
+    #TODO read from command line and purge after use
+    tests = ""
+
+    #tests += "--plugin=/usr/local/lib/MaoSchedRand-x86_64-linux.so:SCHEDRAND=MultiCompilerSeed["+seed+"]+ISchedRandPercentage["+percent+"]:"
+    tests += "--plugin=/usr/local/lib/MaoMOVToLEAAnnotate-x86_64-linux.so:MOVTOLEAA:"
+    tests += "--plugin=/usr/local/lib/MaoNOPInsertionAnnotate-x86_64-linux.so:NOPINSERTIONA:"
+
+    annotate = ["mao", "--mao="+tests+"ASM=o["+output+"]", inFile ]
+
+    if prDebug: sys.stderr.write (string.join(annotate,' ')+'\n\n')
+    return execBuild(annotate, "Annotate")
+
+def diversify(output, inFile):
+    #TODO use output file name
+    if prDebug: sys.stderr.write ("=== Diversify ===" +'\n\n')
+    diversify = ["divanno", inFile ]
+
+    if prDebug: sys.stderr.write (string.join(diversify,' ')+'\n\n')
+    return execBuild(diversify, "Diversify")
+
+def buildObjFromASM(output, inFile):
+    if prDebug: sys.stderr.write ("=== ASM To Obj ===" +'\n\n')
+
+    #buildObj = [clangExec, '-o', output, '-c'] + assemblerFlags + [inFile]
+    #buildObj = [gccExec, '-o', output, '-c'] + blobCompilerFlags + [inFile]
+    buildObj = [gccExec, '-o', output, '-c'] + assemblyGenFlags + [inFile]
+    #buildObj = [gccExec, '-Wa', '-c', inFile, '-o', output] + assemblerFlags
+    #buildObj = [gccExec, '-Wa', inFile, '-o', output] + blobCompilerFlags
+    #TODO explore using 'as' further
+    #buildObj = ['as', inFile, '-o', output] + assemblerFlags
+
+
+    #TODO TIME THIS STEP
+    if prDebug: sys.stderr.write (string.join(buildObj,' ')+'\n\n')
+    return execBuild(buildObj,"ASM To Obj")
+
+
+def initVars(varList):
+    global args
+    global destFile
+    global objects
+    global cachedFile
+    global cacheDir
+
+    args = varList[0]
+    destFile = varList[1]
+    objects = varList[2:]
+
+    user=getpass.getuser()
+
+    rawFile = os.path.realpath(destFile[:-2])
+    cachedFile = re.sub(r'/home/'+user+r'/workspace/','/home/'+user+r'/workspace/bcache/',rawFile)
+    cacheDir = os.path.dirname(cachedFile)
+    if cacheDir != '':
+        if not os.path.isdir(cacheDir) :
+            try:
+                os.makedirs(cacheDir)
+            except:
+                pass
+
+    global inObj
+    inObj = [None] * len(objects)
+    user = getpass.getuser()
+    global assemblyGenFlags
+    global buildFlags
+    global clangExec
+    global gccExec
+    assemblyGenFlags = []
+    buildFlags = []
+
+    #For each obj .o located cached .bc file
+    for i,item in enumerate(objects):
+        source = os.path.realpath(item)
+        tempBC = re.sub(r'\.[ol][o]?','.bc',source)
+        inObj[i] = re.sub(r'/home/'+user+r'/workspace/','/home/'+user+r'/workspace/bcache/',tempBC)
+
+        flags = readLineFlags(inObj[i][:-2]+'line')
+        #TODO DIVIDE BY COMPILER!!!
+        if prDebug: sys.stderr.write ("Execs: "+flags[0]+'/'+flags[1]+'\n')
+        clangExec = flags[0]
+        gccExec = flags[1]
+        assemblyGenFlags += flags[2]
+        buildFlags += flags[3]
+
+    assemblyGenFlags = list(set(assemblyGenFlags))
+    buildFlags = list(set(buildFlags))
+    
+    if prDebug: sys.stderr.write( 'args: ' + str(args) +'\n')
+    if prDebug: sys.stderr.write( 'destFile: ' + str(destFile) +'\n')
+    if prDebug: sys.stderr.write( 'objects: ' + str(objects) +'\n\n')
+    if prDebug: sys.stderr.write ('assemblyGenFlags: '+string.join(assemblyGenFlags,' ')+'\n')
+    if prDebug: sys.stderr.write ('buildFlags: '+string.join(buildFlags,' ')+'\n\n')
+
+
+
+if __name__ == "__main__":
+    main()

@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import sys, os, re, string, subprocess, shutil, random, getpass
+import sys, os, re, string, subprocess, shutil, random, getpass, pickle
 
 def main():
     global prDebug
@@ -11,15 +11,15 @@ def main():
     global useMAO
     
     # output to std err
-    #prDebug=True
     prDebug=False
+    #prDebug=False
     # really make dirs, not just print
     mkdirFlag=True 
     # really build, not just print
     realBuild=True
 
-    doBuildObj=True
-    doBuildBlob=False
+    doBuildObj=False
+    doBuildBlob=True
     doDiv=True
     useMAO=True
     
@@ -44,6 +44,7 @@ def main():
     global blobCompilerFlags
     global assemblerFlags
     global generateAssemblyFlags
+    global generateAssemblyCacheFlags
     global sources
     global assemblys
     global objects
@@ -53,6 +54,7 @@ def main():
     blobCompilerFlags = []
     assemblerFlags = []
     generateAssemblyFlags = []
+    generateAssemblyCacheFlags = []
     sources = []
     assemblys = []
     objects = []
@@ -95,7 +97,7 @@ def main():
     if ( doExcludeBuild
          or bool(re.search(r'conftest\.?[ocC]*\s?',cmdLine)) #conf exempt
          or bool(re.search(r'/config/?',os.getcwd())) #FIREFOX
-         or bool(re.search(r'workspace/[^/]+/[^/]+\Z',os.getcwd())) #FIREFOX
+         #or bool(re.search(r'workspace/[^/]+/[^/]+\Z',os.getcwd())) #FIREFOX
         ):excludeBuild()
 
     
@@ -325,10 +327,21 @@ def buildBinFromObjs():
 
 ### BLOB FUNCTIONS ###
 
+def cacheLineFlags(filename):
+    obj = [None] * 4
+    obj[0]=clangExec
+    obj[1]=gccExec
+    obj[2]=generateAssemblyCacheFlags
+    obj[3]=assemblerFlags
+    with open(filename, 'wb') as output:
+        pickle.dump(obj, output, pickle.HIGHEST_PROTOCOL)
+
+
 def cacheBitcode(output, inFile=None):    # Build .bc file if there is no cached version
     global retCode
     if ( not os.path.isfile(output) ):        
         if prDebug: sys.stderr.write ("=== To Bitcode Cache ===" +'\n\n')
+	cacheLineFlags(output[:-2]+'line')
 	#print "====== CACHE BITCODE OUTPUT: " + output
         buildBc = ''
         if(inFile is None):
@@ -359,17 +372,19 @@ def linkAndCacheAssemblyBlob(output):
 
         inObj = [None] * len(objects)
         inSrc = [None] * len(sources)
+
+	user = getpass.getuser()
         
         #For each obj .o located cached .bc file
         for i,item in enumerate(objects):
             source = os.path.realpath(item)
             tempBC = re.sub(r'\.[ol][o]?','.bc',source)
-            inObj[i] = re.sub(r'/home/'+getpass.getuser()+r'/workspace/','/home/'+getpass.getuser()+r'/workspace/bcache/',tempBC)
+            inObj[i] = re.sub(r'/home/'+user+r'/workspace/','/home/'+user+r'/workspace/bcache/',tempBC)
         
         for i,item in enumerate(sources):
             source = os.path.realpath(item)
             tempBC = re.sub(r'\.[cC]+[pPxX+]*','.bc',source)
-            inSrc[i] = re.sub(r'/home/'+getpass.getuser()+r'/workspace/','/home/'+getpass.getuser()+r'/workspace/bcache/',tempBC)
+            inSrc[i] = re.sub(r'/home/'+user+r'/workspace/','/home/'+user+r'/workspace/bcache/',tempBC)
             #TODO FIXME
             cacheBitcode(inSrc[i], source)
 
@@ -388,14 +403,29 @@ def buildBinFromBlobS(output, inFile):
     if retCode == 0:
         if prDebug: sys.stderr.write ("=== Build Bin From BlobS ===" +'\n\n')
 
+	user = getpass.getuser()
+        inArs = [None] * len(archives)
+
+        for i,item in enumerate(archives):
+            source = os.path.realpath(item)
+            tempBC = source[:-1]+'o'
+            inArs[i] = re.sub(r'/home/'+user+r'/workspace/','/home/'+user+r'/workspace/bcache/',tempBC)
+
+        addFlags = []
+        #TODO REMOVE HACK IMPLEMENTATION
+        if 'tar' in os.getcwd():
+            addFlags += ['-lrt']
+
         #TODO figure out how to build final bin
         #buildBin = ['as', "-o", output, inFile]
         if (output == 'a.out'):
             #buildBin = [clangExec, inFile] + blobCompilerFlags
-            buildBin = [gccExec, inFile] + blobCompilerFlags + archives
+            buildBin = [gccExec, inFile, '-Xlinker', '-zmuldefs'] + blobCompilerFlags + addFlags + archives
+            #buildBin = [gccExec, inFile] + blobCompilerFlags + inArs
         else:
-            ##buildBin = [clangExec] + blobCompilerFlags + ["-o", output, inFile]
-            buildBin = [gccExec] + blobCompilerFlags + ["-o", output, inFile] + archives
+           ##buildBin = [clangExec] + blobCompilerFlags + ["-o", output, inFile]
+            buildBin = [gccExec] + blobCompilerFlags + ["-o", output, inFile, '-Xlinker', '-zmuldefs'] + addFlags + archives
+            #buildBin = [gccExec] + blobCompilerFlags + ["-o", output, inFile] + inArs
             #buildBin = [gccExec, "-o", output, inFile] + blobCompilerFlags
         #buildBin = [gccExec, "-Wa,-alh,-L", "-o", output, inFile] + blobCompilerFlags
         #buildBin = [clangExec, "-o", output, inFile] + blobCompilerFlags
@@ -465,6 +495,7 @@ def initVars(varList):
     global blobCompilerFlags
     global assemblerFlags
     global generateAssemblyFlags
+    global generateAssemblyCacheFlags
     global sources
     global assemblys
     global objects
@@ -509,6 +540,7 @@ def initVars(varList):
         if isParam:
             blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
+            generateAssemblyCacheFlags += [var]
             isParam=False
             continue
 
@@ -529,6 +561,7 @@ def initVars(varList):
         if doGrabInc:
             blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
+            generateAssemblyCacheFlags += [var]
             doGrabInc=False
             continue
         # Exclude from genAssembly     -D_FORTIFY_SOURCE=1
@@ -556,10 +589,12 @@ def initVars(varList):
         elif var == '--param':
             blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
+            generateAssemblyCacheFlags += [var]
             isParam = True
         elif var == '-include':
             blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
+            generateAssemblyCacheFlags += [var]
             doGrabInc = True
         elif var == '-M' or var == '-MM' or var == '-MD' or var == '-MMD' or  var == '-MP' or var == '-MG':
             Moverride=True
@@ -575,6 +610,7 @@ def initVars(varList):
         elif (var == '-rpath'):
             ###blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
+            generateAssemblyCacheFlags += [var]
             isObjGen = True
         elif (var == '-pthread'):
 	    assemblerFlags += [var]
@@ -582,6 +618,7 @@ def initVars(varList):
         elif (var == '-avoid-version'):# or var == '-module'):
 	    assemblerFlags += [var]
 	    generateAssemblyFlags += [var]
+            generateAssemblyCacheFlags += [var]
         elif (var[:4] == '-std'
             or var == '-pedantic'
             or var == '-pipe'
@@ -594,21 +631,27 @@ def initVars(varList):
             ):
             blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
+            generateAssemblyCacheFlags += [var]
         elif var[:2] == '-L':
             blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
+            generateAssemblyCacheFlags += [var]
         elif var[:2] == '-D' or var[:2] == '-U':
             blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
+            generateAssemblyCacheFlags += [var]
         elif var[:2] == '-O':
             blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
+            generateAssemblyCacheFlags += [var]
         elif var[:2] == '-I':
 	    if len(var)==2:doGrabInc=True
             #blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
+            generateAssemblyCacheFlags += [var]
         elif var[:3] == '-Wp':
             generateAssemblyFlags += [var]
+            generateAssemblyCacheFlags += [var]
         elif var[:3] == '-Wa':
             blobCompilerFlags += [var]
             assemblerFlags +=[var]
@@ -620,6 +663,7 @@ def initVars(varList):
         elif var[:2] == '-f':
             blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
+            generateAssemblyCacheFlags += [var]
         elif var[:2] == '-l':
             #compilerFlags = ['-L/usr/local/lib', '-L/lib/x86_64-linux-gnu', '-L/usr/lib/x86_64-linux-gnu'] + compilerFlags
             blobCompilerFlags += [var]
@@ -720,9 +764,11 @@ def addFlagsAll(flag):
     global blobCompilerFlags
     global assemblerFlags
     global generateAssemblyFlags
+    global generateAssemblyCacheFlags
     blobCompilerFlags += [flag]
     assemblerFlags += [flag]
     generateAssemblyFlags += [flag]
+    generateAssemblyCacheFlags += [flag]
     
 
 if __name__ == "__main__":
