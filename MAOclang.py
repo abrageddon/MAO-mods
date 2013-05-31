@@ -12,13 +12,13 @@ def main():
     
     # output to std err
     prDebug=False
-    #prDebug=False
+    #prDebug=True
     # really make dirs, not just print
     mkdirFlag=True 
     # really build, not just print
     realBuild=True
 
-    doBuildObj=False
+    doBuildObj=True
     doBuildBlob=True
     doDiv=True
     useMAO=True
@@ -29,12 +29,14 @@ def main():
     global retCode
     global doExcludeBuild
     global Moverride
+    global isAsm
     
     clangExec = 'clang'
     gccExec = 'gcc'
     retCode = 0
     doExcludeBuild = False
     Moverride = False
+    isAsm = False
 
     # make args a single string
     #TODO pullout flags
@@ -97,7 +99,7 @@ def main():
     if ( doExcludeBuild
          or bool(re.search(r'conftest\.?[ocC]*\s?',cmdLine)) #conf exempt
          or bool(re.search(r'/config/?',os.getcwd())) #FIREFOX
-         #or bool(re.search(r'workspace/[^/]+/[^/]+\Z',os.getcwd())) #FIREFOX
+         or bool(re.search(r'workspace/[^/]+/[^/]+\Z',os.getcwd())) #FIREFOX
         ):excludeBuild()
 
     
@@ -328,11 +330,12 @@ def buildBinFromObjs():
 ### BLOB FUNCTIONS ###
 
 def cacheLineFlags(filename):
-    obj = [None] * 4
-    obj[0]=clangExec
-    obj[1]=gccExec
-    obj[2]=generateAssemblyCacheFlags
-    obj[3]=assemblerFlags
+    obj = [None] * 5
+    obj[0]=isAsm
+    obj[1]=clangExec
+    obj[2]=gccExec
+    obj[3]=generateAssemblyCacheFlags
+    obj[4]=assemblerFlags
     with open(filename, 'wb') as output:
         pickle.dump(obj, output, pickle.HIGHEST_PROTOCOL)
 
@@ -351,7 +354,9 @@ def cacheBitcode(output, inFile=None):    # Build .bc file if there is no cached
             buildBc = [clangExec, '-o', output, '-S', '-emit-llvm', inFile] + generateAssemblyFlags
         
         if len(buildBc)==0:
+            if prDebug: sys.stderr.write ('Build Nothing!?\n\n')
             return retCode
+
         if prDebug: sys.stderr.write (string.join(buildBc,' ')+'\n\n')
         return execBuild(buildBc,"To Bitcode Cache")
     if (Moverride and os.path.isfile(MCacheFile) ):
@@ -415,6 +420,8 @@ def buildBinFromBlobS(output, inFile):
         #TODO REMOVE HACK IMPLEMENTATION
         if 'tar' in os.getcwd():
             addFlags += ['-lrt']
+        #if 'js' in os.getcwd():
+        #    addFlags += ['-ljs']
 
         #TODO figure out how to build final bin
         #buildBin = ['as', "-o", output, inFile]
@@ -485,6 +492,9 @@ def errorCatch(retCode, cmd, mesg):
 
 
 def initVars(varList):
+    #mustBuildObj = ['stdc++compat.o', 
+    #                'bignum-dtoa.o', 'bignum.o', 'cached-powers.o', 'diy-fp.o', 'double-conversion.o', 'fast-dtoa.o', 'fixed-dtoa.o','strtod.o', 'HashFunctions.o', 'SHA1.o',]#... never the right idea...
+
     global rawFile
     global cachedFile
     global cacheDir
@@ -506,6 +516,7 @@ def initVars(varList):
     global Moverride
     global MFile
     global MCacheFile
+    global isAsm
     
     isOutput = False
     isParam = False
@@ -524,6 +535,9 @@ def initVars(varList):
 
         
         if isOutput:
+            #if var in mustBuildObj:
+            #    doBuildObj = True
+
             if var[-2:] == '.o':
                 objFile = var
                 rawFile = var[:-2]
@@ -685,6 +699,7 @@ def initVars(varList):
             or var[-4:] == '.CXX' or var[-4:] == '.CXX'):
             sources += [var]
         elif (var[-2:] == '.S'):
+            isAsm = True
             #TODO preprocess .S
             sources += [var]
         elif (var[-3:] == '.pp' or var[-3:] == '.PP'):
@@ -693,6 +708,7 @@ def initVars(varList):
         elif (var[-2:] == '.a' or var[-3:] == '.so' or var[-3:] == '.SO' or var[-2:] == '.h'):
             archives += [var]
         elif (var[-2:] == '.s'):
+            #TODO Can there ever be more than one source?
             assemblys += [var]
         elif (var[-2:] == '.o' or var[-2:] == '.O' or var[-3:] == '.lo'):
             objects += [var]
@@ -754,6 +770,7 @@ def initVars(varList):
         if realBuild:
             process = subprocess.Popen(cmd)
             retCode = process.wait()
+        isAsm = True
         return errorCatch(retCode, string.join(cmd,' '), 'Copy Existing Assembly')
     #DEBUG
     #errorCatch(1,'Testing initVars','initVars')
