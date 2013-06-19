@@ -11,7 +11,7 @@ def main():
     global useMAO
     
     # output to std err
-    prDebug=False
+    prDebug=True
     #prDebug=True
     # really make dirs, not just print
     mkdirFlag=True 
@@ -99,7 +99,7 @@ def main():
     if ( doExcludeBuild
          or bool(re.search(r'conftest\.?[ocC]*\s?',cmdLine)) #conf exempt
          or bool(re.search(r'/config/?',os.getcwd())) #FIREFOX
-         or bool(re.search(r'workspace/[^/]+/[^/]+\Z',os.getcwd())) #FIREFOX
+         #or bool(re.search(r'workspace/[^/]+/[^/]+\Z',os.getcwd())) #FIREFOX
         ):excludeBuild()
 
     
@@ -345,6 +345,29 @@ def cacheBitcode(output, inFile=None):    # Build .bc file if there is no cached
     if ( not os.path.isfile(output) ):        
         if prDebug: sys.stderr.write ("=== To Bitcode Cache ===" +'\n\n')
 	cacheLineFlags(output[:-2]+'line')
+        #TODO CACHE INCLUDES
+        headers = set()
+        visited = set()
+        includes = set()
+        for sF in sources:
+            headers |= set([sF, re.sub(r'\.[cCsS]+[^o]?[pPxX+]*', r'.h', sF)])
+            while (len(headers) > 0):
+                #print "HEADERS: "+str(headers)
+                header = headers.pop()
+                #print "HEADER: "+str(header)
+                visited.add(header)
+                #TODO FOR ALL DIR IN -I ...
+                if not os.path.isfile(header):
+                    #print "SKIPPING"
+                    continue
+                for line in open(header):
+                    if "#include" in line:
+                        headers |= set(re.findall(r'["<](.*?)[>"]', line, re.I|re.DOTALL))
+                        headers = headers - visited
+                        incItem = re.findall(r'["<](.*?)\.\w+[>"]', line, re.I|re.DOTALL)
+                        includes |= set(incItem)
+                        #print str(incItem)
+        print "INCLUDES: "+ str(includes)
 	#print "====== CACHE BITCODE OUTPUT: " + output
         buildBc = ''
         if(inFile is None):
@@ -377,6 +400,7 @@ def linkAndCacheAssemblyBlob(output):
 
         inObj = [None] * len(objects)
         inSrc = [None] * len(sources)
+        inBC = []
 
 	user = getpass.getuser()
         
@@ -393,8 +417,26 @@ def linkAndCacheAssemblyBlob(output):
             #TODO FIXME
             cacheBitcode(inSrc[i], source)
 
+
+        #TODO scan include statements
+        #for file in sources, for line in file, if include then add to incSet
+        incSet = []
+        for sF in sources:
+            print sF
+            for line in open(sF):
+                print line
+                if "#include" in line:
+                    print str(line)
+
+        for i,item in enumerate(archives):
+            source = os.path.realpath(item)
+            tempPar = source[:-1]+'par'
+            tempPar = re.sub(r'/home/'+user+r'/workspace/','/home/'+user+r'/workspace/bcache/',tempPar)
+            arFiles = readLineFlags(tempPar)
+            inBC += arFiles[3]
+
         blobBc = output + ".bc"
-        llvmLink = ["llvm-link", "-S", "-o", blobBc] + inObj + inSrc
+        llvmLink = ["llvm-link", "-S", "-o", blobBc] + inObj + inSrc + inBC
 
         if prDebug: sys.stderr.write (string.join(llvmLink,' ')+'\n\n')
         retCode = execBuild(llvmLink, "Linking Bitcode Files") and retCode
@@ -403,23 +445,32 @@ def linkAndCacheAssemblyBlob(output):
             return cacheAssembly(output, blobBc);
     return retCode
 
+def readLineFlags(filename):
+    #global flags
+    flags=None
+    with open(filename, 'rb') as inFile:
+        flags = pickle.load(inFile)
+    #sys.stderr.write (str(flags))
+    return flags
+
 def buildBinFromBlobS(output, inFile):
     global retCode
     if retCode == 0:
         if prDebug: sys.stderr.write ("=== Build Bin From BlobS ===" +'\n\n')
 
 	user = getpass.getuser()
-        inArs = [None] * len(archives)
+        inArs = []
+        #inArs = [None] * len(archives)
 
-        for i,item in enumerate(archives):
-            source = os.path.realpath(item)
-            tempBC = source[:-1]+'o'
-            inArs[i] = re.sub(r'/home/'+user+r'/workspace/','/home/'+user+r'/workspace/bcache/',tempBC)
+        #for i,item in enumerate(archives):
+            #source = os.path.realpath(item)
+            #tempBC = source[:-1]+'o'
+            #inArs[i] = re.sub(r'/home/'+user+r'/workspace/','/home/'+user+r'/workspace/bcache/',tempBC)
 
-        addFlags = []
+        #addFlags = []
         #TODO REMOVE HACK IMPLEMENTATION
-        if 'tar' in os.getcwd():
-            addFlags += ['-lrt']
+        #if 'tar' in os.getcwd():
+            #addFlags += ['-lrt']
         #if 'js' in os.getcwd():
         #    addFlags += ['-ljs']
 
@@ -427,11 +478,13 @@ def buildBinFromBlobS(output, inFile):
         #buildBin = ['as', "-o", output, inFile]
         if (output == 'a.out'):
             #buildBin = [clangExec, inFile] + blobCompilerFlags
-            buildBin = [gccExec, inFile, '-Xlinker', '-zmuldefs'] + blobCompilerFlags + addFlags + archives
+            buildBin = [gccExec, inFile, '-Xlinker', '-zmuldefs'] + blobCompilerFlags
+            #buildBin = [gccExec, inFile, '-Xlinker', '-zmuldefs'] + blobCompilerFlags + addFlags + archives
             #buildBin = [gccExec, inFile] + blobCompilerFlags + inArs
         else:
            ##buildBin = [clangExec] + blobCompilerFlags + ["-o", output, inFile]
-            buildBin = [gccExec] + blobCompilerFlags + ["-o", output, inFile, '-Xlinker', '-zmuldefs'] + addFlags + archives
+            buildBin = [gccExec] + blobCompilerFlags + ["-o", output, inFile, '-Xlinker', '-zmuldefs'] 
+            #buildBin = [gccExec] + blobCompilerFlags + ["-o", output, inFile, '-Xlinker', '-zmuldefs'] + addFlags + archives
             #buildBin = [gccExec] + blobCompilerFlags + ["-o", output, inFile] + inArs
             #buildBin = [gccExec, "-o", output, inFile] + blobCompilerFlags
         #buildBin = [gccExec, "-Wa,-alh,-L", "-o", output, inFile] + blobCompilerFlags

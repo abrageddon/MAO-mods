@@ -12,6 +12,7 @@ def main():
     goldRun=False # use .bc files with gold plug-in
     
     if (sys.argv[1] == "-prDebug"):
+        sys.argv[1] = ""
         prDebug = True
     
     # Pick the correct clang....
@@ -23,8 +24,9 @@ def main():
 
 
     # TODO make portable; raw compile configure
-    if ( bool(re.search(r'workspace/[^/]+$',os.getcwd())) # configure fix 
-         or bool(re.search(r'[\w]*\.[sS]\b',cmdLine)) # skip .s files for now TODO find way to cache
+    if ( bool(re.search(r'conftest\.?[ocC]*\s?',cmdLine)) or #conf exempt
+         #bool(re.search(r'workspace/[^/]+$',os.getcwd())) or # configure fix 
+         bool(re.search(r'[\w]*\.[sS]\b',cmdLine)) # skip .s files for now TODO find way to cache
         ):
         if realBuild: 
             process = subprocess.Popen([clangExec] + cmdLine.split())
@@ -35,15 +37,29 @@ def main():
 
 
     # find output file
-    outFile = string.join(re.findall(r'-o [^ ]*\.o', cmdLine))
+    outFile = string.join(re.findall(r'-o [^ ]*\.(?:o|do|lo|to|lto|tdo|ltdo)', cmdLine))
+    if outFile == '' :
+        for i,item in enumerate(sys.argv):
+            if item == '-c':
+                outFile = re.sub(r'\.[cC]+[pPxX+]*','.o',sys.argv[i+1])
+
     if prDebug: sys.stderr.write( 'outFile: ' + str(outFile) +'\n')
     
     # trim output file string & get full, real path to object
-    objFile = os.path.realpath(re.sub(r'-o (?P<OUT>[^ ]*)\.o',r'\g<OUT>.o',outFile))
+    hasOut = False
+    for i,item in enumerate(sys.argv):
+        if item == '-o':
+            hasOut = True
+
+    if hasOut:
+        objFile = os.path.realpath(re.sub(r'-o (?P<OUT>[^ ]*)\.(?P<EXT>[^ ]*)',r'\g<OUT>.\g<EXT>',outFile))
+    else:
+        objFile = os.path.realpath(outFile)
+
     # change extension to .bc
     if prDebug: sys.stderr.write( 'objFile: ' + objFile +'\n')
     
-    bcFile = re.sub(r'\.o','.bc',objFile)
+    bcFile = re.sub(r'\.(?:o|do|lo|to|lto|tdo|ltdo)','.bc',objFile)
     bcFile = re.sub(r'/home/'+getpass.getuser()+r'/workspace/','/home/'+getpass.getuser()+r'/workspace/bcache/',bcFile)
     if prDebug: sys.stderr.write( 'bcFile: ' + bcFile +'\n')
     
@@ -70,9 +86,12 @@ def main():
 #            buildBC = re.sub(r'-Xclang -[^ ]*','',buildBC) 
             # use .bc to build objects; build tmp if going to opt
             if (optRun):
-                buildBC = re.sub(r'-o [^ ]*\.o',r'-o '+bcFile+".tmp", buildBC) 
+                buildBC = re.sub(r'-o [^ ]*\.(?:o|do|lo|to|lto|tdo|ltdo)',r'-o '+bcFile+".tmp", buildBC) 
             else:
-                buildBC = re.sub(r'-o [^ ]*\.o',r'-o '+bcFile, buildBC)
+                if hasOut:
+                    buildBC = re.sub(r'-o [^ ]*\.(o|do|lo|to|lto|tdo|ltdo)',r'-o '+bcFile, buildBC)
+                else:
+                    buildBC += " -o " + bcFile
             
             buildBC += " -emit-llvm"
             
@@ -99,8 +118,7 @@ def main():
             
                 # use bitcode to build object
                 #CHECK
-                buildOb = re.sub(r'[^ ]*/?(?P<OUT>[^ /]*)\.[cCsS]+[^o ][pPxX+]*', bcFile , cmdLine) #TODO better replacement for sources; handle .s/.S but not .so
-            
+                buildOb = re.sub('[^ ]*/?[^ /]*\.(?:[cC]+[pPxX+]*|[sS][^o])', bcFile , cmdLine) #TODO better replacement for sources; handle .s/.S but not .so
 #                 buildOb = re.sub(r'[^ ]*/?(?P<OUT>[^ /]*)\.[cC]+[pPxX+]*', bcFile, cmdLine)
                 buildOb += " -use-gold-plugin"
                 #TEMP DISABLE#buildOb += " -Xclang -just-codegen"
