@@ -1,96 +1,71 @@
 #!/usr/bin/python
-import sys, os, re, string, subprocess, shutil, random, getpass, pickle
+import sys, os, re, string, subprocess, shutil, random, getpass, pickle, time
+
+# output to std err
+#prDebug=True
+prDebug=False
+# really make dirs, not just print
+mkdirFlag=True 
+# really build, not just print
+realBuild=True
+doDiv=True
+useMAO=True
+
+doBuildObj=True
+doBuildBlob=False
+
+extraFlags = []
+extraFlags = ['-time', '-ftime-report'] ; prDebug=True
+
+
+
+
+clangExec = 'clang'
+gccExec = 'gcc'
+retCode = 0
+doExcludeBuild = False
+Moverride = False
+isAsm = False
+
+compilerFlags = []
+blobCompilerFlags = []
+assemblerFlags = []
+generateAssemblyFlags = []
+generateAssemblyCacheFlags = []
+sources = []
+assemblys = []
+objects = []
+archives = []
+
+rawFile=''
+cachedFile=''
+cacheDir=''
+binFile=''
+objFile=''
+MFile=''
+MCacheFile=''
+
+user = getpass.getuser()
 
 def main():
-    global prDebug
-    global mkdirFlag
-    global realBuild
-    global doBuildObj
-    global doBuildBlob
-    global doDiv
-    global useMAO
-    
-    # output to std err
-    prDebug=True
-    #prDebug=True
-    # really make dirs, not just print
-    mkdirFlag=True 
-    # really build, not just print
-    realBuild=True
+    global timeTest
+    timeTest = time.time()
 
-    doBuildObj=True
-    doBuildBlob=True
-    doDiv=True
-    useMAO=True
-    
-    
-    global clangExec
-    global gccExec
     global retCode
-    global doExcludeBuild
-    global Moverride
-    global isAsm
-    
-    clangExec = 'clang'
-    gccExec = 'gcc'
-    retCode = 0
-    doExcludeBuild = False
-    Moverride = False
-    isAsm = False
 
-    # make args a single string
-    #TODO pullout flags
-    #TODO -buildObject explicit flag
-
-    global compilerFlags
-    global blobCompilerFlags
-    global assemblerFlags
-    global generateAssemblyFlags
-    global generateAssemblyCacheFlags
-    global sources
-    global assemblys
-    global objects
-    global archives
-
-    compilerFlags = []
-    blobCompilerFlags = []
-    assemblerFlags = []
-    generateAssemblyFlags = []
-    generateAssemblyCacheFlags = []
-    sources = []
-    assemblys = []
-    objects = []
-    archives = []
-
-    global rawFile
-    global cachedFile
-    global cacheDir
-    global binFile
-    global objFile
-    global MFile
-    global MCacheFile
-    rawFile=''
-    cachedFile=''
-    cacheDir=''
-    binFile=''
-    objFile=''
-    MFile=''
-    MCacheFile=''
-    
-    
-    global bcFile
-    global blobS
-    global blobSDiv
     
     
     #TODO pull seed and percent from commandline 
     # Pick the correct clang....
     if ('++' in sys.argv[0]):
+        global clangExec
+        global gccExec
         clangExec = 'clang++'
         gccExec = 'g++'
     
     global cmdLine
     cmdLine = ' ' + string.join(sys.argv[1:],' ') + ' '
+    #print cmdLine
 
     initVars(sys.argv[1:])
 
@@ -99,13 +74,19 @@ def main():
     if ( doExcludeBuild
          or bool(re.search(r'conftest\.?[ocC]*\s?',cmdLine)) #conf exempt
          or bool(re.search(r'/config/?',os.getcwd())) #FIREFOX
-         #or bool(re.search(r'workspace/[^/]+/[^/]+\Z',os.getcwd())) #FIREFOX
+    #     or bool(re.search(r'workspace/[^/]+/[^/]+\Z',os.getcwd())) #FIREFOX
         ):excludeBuild()
 
     
 
     # name cached file
     #TODO REMOVE THESE 
+    global bcFile
+    global asmFile
+    global annotatedAsmFile
+    global blobS
+    global blobSDiv
+    global annotatedAsmBlobFile
     bcFile = cachedFile + ".bc"
     asmFile = cachedFile + ".s"
     annotatedAsmFile = cachedFile + ".a.s"
@@ -115,9 +96,11 @@ def main():
 
 
     
+    #print "TIME TO INIT: "+ str(time.time() - timeTest)
     # There is an .o output file we want to cache
     if len(objFile)!=0:
         # determine location of cached bitcode
+        #cacheBitcode(bcFile)#TEMP
         if not doBuildObj or doBuildBlob:
             cacheBitcode(bcFile)
             if (Moverride and not os.path.isfile(MCacheFile)):
@@ -188,6 +171,7 @@ def main():
     if len(objFile) == 0 and len(binFile) == 0:
         errorCatch(1,'No Output File','')
 
+    if prDebug: sys.stderr.write( "MAOclang RUNTIME: "+ str(time.time() - timeTest) +'\n')
     if prDebug: sys.stderr.write( "\n" )
     sys.exit(retCode)
 
@@ -201,7 +185,6 @@ def cacheAssembly(output, inFile=None):
         if (Moverride and os.path.isfile(MCacheFile) ):
         #TODO cache this!
             if prDebug: sys.stderr.write ("=== -M Override ===" +'\n\n')
-            #assemble = [gccExec, '-o', objFile, '-E'] + generateAssemblyFlags + sources #-E
             cmd = ['cp', MCacheFile, MFile]
             if prDebug: sys.stderr.write (string.join(cmd,' ')+'\n\n')
             if realBuild:
@@ -219,7 +202,6 @@ def cacheAssembly(output, inFile=None):
 
             if len(sources) == 1 and sources[0][-2:] == '.S' :
                 if prDebug: sys.stderr.write ("=== Cache S Assembly ===" +'\n\n')
-                #assemble = [clangExec, '-o', output, '-S'] + generateAssemblyFlags + sources
                 assemble = [gccExec, '-o', output, '-S'] + generateAssemblyFlags + sources
                 if prDebug: sys.stderr.write (string.join(assemble,' ')+'\n\n')
                 if realBuild:
@@ -228,11 +210,10 @@ def cacheAssembly(output, inFile=None):
                     retCode = process.wait()
                 return errorCatch(retCode, string.join(assemble,' '), 'Parsing .S File')
             else:
-                #assemble = [clangExec, '-o', output, '-S'] + generateAssemblyFlags + sources
                 assemble = [gccExec, '-o', output, '-S'] + generateAssemblyFlags + sources
         else:
             #From BC
-	    #TODO flag to add -fPIC if output is .so
+            #TODO flag to add -fPIC if output is .so
             assemble = [clangExec, '-fPIC', '-o', output, '-S', inFile]
             #assemble = [gccExec, '-o', output, '-S', inFile] #+ generateAssemblyFlags
     else:
@@ -241,7 +222,7 @@ def cacheAssembly(output, inFile=None):
                 return retCode
             assemble = [clangExec, "-o", output, "-S"] + generateAssemblyFlags + sources
         else:
-	    #TODO flag to add -fPIC if output is .so
+            #TODO flag to add -fPIC if output is .so
             assemble = [clangExec, '-fPIC', "-o", output, "-S", inFile] + generateAssemblyFlags
 
     if prDebug: sys.stderr.write (string.join(assemble,' ')+'\n\n')
@@ -315,8 +296,53 @@ def buildObjFromASM(output, inFile):
 def buildBinFromObjs():
     if prDebug: sys.stderr.write ("=== Build Bin From Objs ===" +'\n\n')
 
+    # if archive THEN store -l flags
+    addFlags = []
+        #addFlags = ['-I.', '-I..', '-I../gnu', '-I../', '-I../gnu', '-I../lib']
+    arLibs = set()
+    for ar in archives:
+        arCache =  os.path.realpath(str(ar[:-2])+'.libs')
+        arCache = re.sub(r'/home/'+user+r'/workspace/','/home/'+user+r'/workspace/bcache/',arCache)
+        #print "AR: " + arCache
+        arLibs = set(libs)
+        if os.path.isfile(arCache):
+            with open(arCache, 'rb') as inF:
+                arLibs |= pickle.load(inF)
+        
+        arCacheDir = os.path.dirname(arCache)
+        if not os.path.isdir(arCacheDir) :
+            try:
+                os.makedirs(arCacheDir)
+            except:
+                pass
+        try:
+            with open(arCache, 'wb') as outp:
+                pickle.dump(arLibs, outp, pickle.HIGHEST_PROTOCOL)
+        except:
+            if prDebug: sys.stderr.write ('Archive Access Error: '+ ar + '\n\n')
+    for lib in arLibs:
+        addFlags += ['-l'+lib]
+    #print "addFlags: "+ str(addFlags)
+
+
+
+    #for ar in archives:
+        #arCache =  os.path.realpath(str(ar[:-2])+'.libs')
+        #arCache = re.sub(r'/home/'+user+r'/workspace/','/home/'+user+r'/workspace/bcache/',arCache)
+        ##print "AR: " + arCache
+        #print "LIBS: " + str(libs)
+        #arLibs = set(libs)
+        #if os.path.isfile(arCache):
+            #with open(arCache, 'rb') as inFile:
+                #arLibs |= pickle.load(inFile)
+        #with open(arCache, 'wb') as output:
+            #pickle.dump(arLibs, output, pickle.HIGHEST_PROTOCOL)
+        #print "AR LIBS: " + str(arLibs)
+        
+
     #buildBin = [gccExec] + compilerFlags
-    buildBin = [clangExec] + compilerFlags
+    #buildBin = [clangExec, '-Xlinker', '-zmuldefs'] + addFlags+ compilerFlags
+    buildBin = [clangExec, '-Xlinker', '-zmuldefs'] + compilerFlags
     #TODO try manual linking again
     #buildBin = ['gold'] + compilerFlags
     #buildBin = ['ld.gold'] + compilerFlags
@@ -331,11 +357,13 @@ def buildBinFromObjs():
 
 def cacheLineFlags(filename):
     obj = [None] * 5
+    #obj = [None] * 6
     obj[0]=isAsm
     obj[1]=clangExec
     obj[2]=gccExec
     obj[3]=generateAssemblyCacheFlags
     obj[4]=assemblerFlags
+    #obj[5]=includes
     with open(filename, 'wb') as output:
         pickle.dump(obj, output, pickle.HIGHEST_PROTOCOL)
 
@@ -344,37 +372,48 @@ def cacheBitcode(output, inFile=None):    # Build .bc file if there is no cached
     global retCode
     if ( not os.path.isfile(output) ):        
         if prDebug: sys.stderr.write ("=== To Bitcode Cache ===" +'\n\n')
-	cacheLineFlags(output[:-2]+'line')
         #TODO CACHE INCLUDES
-        headers = set()
-        visited = set()
-        includes = set()
-        for sF in sources:
-            headers |= set([sF, re.sub(r'\.[cCsS]+[^o]?[pPxX+]*', r'.h', sF)])
-            while (len(headers) > 0):
+        #global includes
+        #headers = set()
+        #visited = set()
+        #includes = set()
+        #for sF in sources:
+            #headers |= set([sF, re.sub(r'\.[cCsS]+[^o]?[pPxX+]*', r'.h', sF)])
+            #while (len(headers) > 0):
                 #print "HEADERS: "+str(headers)
-                header = headers.pop()
+                #header = headers.pop()
                 #print "HEADER: "+str(header)
-                visited.add(header)
+                #visited.add(header)
                 #TODO FOR ALL DIR IN -I ...
-                if not os.path.isfile(header):
-                    #print "SKIPPING"
-                    continue
-                for line in open(header):
-                    if "#include" in line:
-                        headers |= set(re.findall(r'["<](.*?)[>"]', line, re.I|re.DOTALL))
-                        headers = headers - visited
-                        incItem = re.findall(r'["<](.*?)\.\w+[>"]', line, re.I|re.DOTALL)
-                        includes |= set(incItem)
+                #headerFile=''
+                #for folder in includeDir:
+                    #print "HEADER: "+str(folder+'/'+header)
+                    #if not os.path.isfile(folder+'/'+header):
+                        #print "SKIPPING"
+                        #continue
+                    #else:
+                        #headerFile = folder +'/'+header
+                #if len(headerFile)==0:
+                    #continue
+                #print "PASS"
+                #for line in open(headerFile):
+                    #if "#include" in line:
+                        #headers |= set(re.findall(r'["<](.*?)[>"]', line, re.I|re.DOTALL))
+                        #headers = headers - visited
+                        #incItem = re.findall(r'["<](.*?)\.\w+[>"]', line, re.I|re.DOTALL)
+                        #includes |= set(incItem)
                         #print str(incItem)
-        print "INCLUDES: "+ str(includes)
-	#print "====== CACHE BITCODE OUTPUT: " + output
+        #if prDebug: sys.stderr.write ("INCLUDES: "+ str(includes)+'\n\n')
+        cacheLineFlags(output[:-2]+'line')
+        #print "====== CACHE BITCODE OUTPUT: " + output
         buildBc = ''
         if(inFile is None):
             if len(sources)!=0:
-                buildBc = [clangExec, '-o', output, '-S', '-emit-llvm'] + generateAssemblyFlags + sources
+                #buildBc = [clangExec, '-o', output, '-S', '-emit-llvm'] + generateAssemblyFlags + sources
+                buildBc = [clangExec, '-o', output, '-c', '-emit-llvm'] + generateAssemblyFlags + sources
         else:
-            buildBc = [clangExec, '-o', output, '-S', '-emit-llvm', inFile] + generateAssemblyFlags
+            #buildBc = [clangExec, '-o', output, '-S', '-emit-llvm', inFile] + generateAssemblyFlags
+            buildBc = [clangExec, '-o', output, '-c', '-emit-llvm', inFile] + generateAssemblyFlags
         
         if len(buildBc)==0:
             if prDebug: sys.stderr.write ('Build Nothing!?\n\n')
@@ -400,14 +439,16 @@ def linkAndCacheAssemblyBlob(output):
 
         inObj = [None] * len(objects)
         inSrc = [None] * len(sources)
-        inBC = []
+        #inBC = set()
 
-	user = getpass.getuser()
         
         #For each obj .o located cached .bc file
         for i,item in enumerate(objects):
             source = os.path.realpath(item)
-            tempBC = re.sub(r'\.[ol][o]?','.bc',source)
+            #if source[-3:] == '.so' or source[-3:] == '.SO' or bool(re.search(r'.[sS][oO][.0-9]*$',source)):
+            #    pass
+            #else:
+            tempBC = re.sub(r'\.[ol][o]?$','.bc',source)
             inObj[i] = re.sub(r'/home/'+user+r'/workspace/','/home/'+user+r'/workspace/bcache/',tempBC)
         
         for i,item in enumerate(sources):
@@ -420,23 +461,19 @@ def linkAndCacheAssemblyBlob(output):
 
         #TODO scan include statements
         #for file in sources, for line in file, if include then add to incSet
-        incSet = []
-        for sF in sources:
-            print sF
-            for line in open(sF):
-                print line
-                if "#include" in line:
-                    print str(line)
 
-        for i,item in enumerate(archives):
-            source = os.path.realpath(item)
-            tempPar = source[:-1]+'par'
-            tempPar = re.sub(r'/home/'+user+r'/workspace/','/home/'+user+r'/workspace/bcache/',tempPar)
-            arFiles = readLineFlags(tempPar)
-            inBC += arFiles[3]
+        #global generateAssemblyFlags
+        #flags=[]
+        #includes=set()
+        #for filename in inObj:
+        #    with open(filename[:-2]+'line', 'rb') as inFile:
+        #        flags = pickle.load(inFile)
+        #        includes |= set(flags[5])
 
         blobBc = output + ".bc"
-        llvmLink = ["llvm-link", "-S", "-o", blobBc] + inObj + inSrc + inBC
+        #llvmLink = ["llvm-link", "-S", "-o", blobBc] + inObj + inSrc + list(inBC)
+        #llvmLink = ["llvm-link", "-o", blobBc] + inObj + inSrc + list(inBC)
+        llvmLink = ["llvm-link", "-o", blobBc] + inObj + inSrc
 
         if prDebug: sys.stderr.write (string.join(llvmLink,' ')+'\n\n')
         retCode = execBuild(llvmLink, "Linking Bitcode Files") and retCode
@@ -458,16 +495,25 @@ def buildBinFromBlobS(output, inFile):
     if retCode == 0:
         if prDebug: sys.stderr.write ("=== Build Bin From BlobS ===" +'\n\n')
 
-	user = getpass.getuser()
-        inArs = []
-        #inArs = [None] * len(archives)
 
-        #for i,item in enumerate(archives):
-            #source = os.path.realpath(item)
-            #tempBC = source[:-1]+'o'
-            #inArs[i] = re.sub(r'/home/'+user+r'/workspace/','/home/'+user+r'/workspace/bcache/',tempBC)
-
-        #addFlags = []
+        addFlags = []
+        arLibs = set()
+        for ar in archives:
+            arCache = os.path.realpath(re.sub(r'\.[ahsS]+[oO]?','.libs',str(ar)))
+            arCache = re.sub(r'/home/'+user+r'/workspace/','/home/'+user+r'/workspace/bcache/',arCache)
+            #print "AR: " + arCache
+            arLibs = set(libs)
+            try:
+                if os.path.isfile(arCache):
+                    with open(arCache, 'rb') as inF:
+                        arLibs |= pickle.load(inF)
+                with open(arCache, 'wb') as outp:
+                    pickle.dump(arLibs, outp, pickle.HIGHEST_PROTOCOL)
+            except:
+                if prDebug: sys.stderr.write ('Archive Access Error: '+ ar + '\n\n')
+        for lib in arLibs:
+            addFlags += ['-l'+lib]
+        #print "addFlags: "+ str(addFlags)
         #TODO REMOVE HACK IMPLEMENTATION
         #if 'tar' in os.getcwd():
             #addFlags += ['-lrt']
@@ -478,18 +524,22 @@ def buildBinFromBlobS(output, inFile):
         #buildBin = ['as', "-o", output, inFile]
         if (output == 'a.out'):
             #buildBin = [clangExec, inFile] + blobCompilerFlags
-            buildBin = [gccExec, inFile, '-Xlinker', '-zmuldefs'] + blobCompilerFlags
+            buildBin = [gccExec] + addFlags +[inFile, '-Xlinker', '-zmuldefs'] + blobCompilerFlags + archives
             #buildBin = [gccExec, inFile, '-Xlinker', '-zmuldefs'] + blobCompilerFlags + addFlags + archives
             #buildBin = [gccExec, inFile] + blobCompilerFlags + inArs
         else:
            ##buildBin = [clangExec] + blobCompilerFlags + ["-o", output, inFile]
-            buildBin = [gccExec] + blobCompilerFlags + ["-o", output, inFile, '-Xlinker', '-zmuldefs'] 
+            buildBin = [gccExec] + blobCompilerFlags + ["-o", output, inFile, '-Xlinker', '-zmuldefs']  + archives + addFlags
+            #buildBin = [gccExec] + blobCompilerFlags + ["-o", output, inFile] 
+            #buildBin = ['libtool', '--mode=link', gccExec] + blobCompilerFlags + ["-o", output, inFile, '-Xlinker', '-zmuldefs'] + addFlags
+            #buildBin = [gccExec] + blobCompilerFlags + ["-o", output, inFile, '-Xlinker', '-zmuldefs'] + addFlags
             #buildBin = [gccExec] + blobCompilerFlags + ["-o", output, inFile, '-Xlinker', '-zmuldefs'] + addFlags + archives
             #buildBin = [gccExec] + blobCompilerFlags + ["-o", output, inFile] + inArs
             #buildBin = [gccExec, "-o", output, inFile] + blobCompilerFlags
         #buildBin = [gccExec, "-Wa,-alh,-L", "-o", output, inFile] + blobCompilerFlags
         #buildBin = [clangExec, "-o", output, inFile] + blobCompilerFlags
 
+        #buildBin += extraFlags
         if prDebug: sys.stderr.write (string.join(buildBin,' ')+'\n\n')
         retCode = execBuild(buildBin, "Build Bin From BlobS") and retCode
         os.chmod(output, 0775)
@@ -501,6 +551,8 @@ def buildBinFromBlobS(output, inFile):
 def execBuild(cmd, mesg):
     global retCode
     if realBuild:
+        if cmd[0] == clangExec or cmd[0] == gccExec:
+            cmd += extraFlags
         process = subprocess.Popen(cmd)
         retCode = process.wait()
     return errorCatch(retCode, string.join(cmd,' '), mesg)
@@ -545,8 +597,6 @@ def errorCatch(retCode, cmd, mesg):
 
 
 def initVars(varList):
-    #mustBuildObj = ['stdc++compat.o', 
-    #                'bignum-dtoa.o', 'bignum.o', 'cached-powers.o', 'diy-fp.o', 'double-conversion.o', 'fast-dtoa.o', 'fixed-dtoa.o','strtod.o', 'HashFunctions.o', 'SHA1.o',]#... never the right idea...
 
     global rawFile
     global cachedFile
@@ -570,11 +620,18 @@ def initVars(varList):
     global MFile
     global MCacheFile
     global isAsm
+    global includeDir
+    includeDir = []
+    global libs
+    libs = []
     
     isOutput = False
     isParam = False
     isObjGen = False
+    isPIC = False
+    isObjBuild = False
     doGrabInc = False
+    doGrabLib = False
 
     for var in varList:
         #Final compile must be ordered specifically
@@ -586,7 +643,6 @@ def initVars(varList):
 
         compilerFlags += [var]
 
-        
         if isOutput:
             #if var in mustBuildObj:
             #    doBuildObj = True
@@ -594,6 +650,9 @@ def initVars(varList):
             if var[-2:] == '.o':
                 objFile = var
                 rawFile = var[:-2]
+            elif var[-3:] == '.lo':
+                objFile = var
+                rawFile = var[:-3]
             elif var[-3:] == '.so' or var[-3:] == '.la':
                 binFile = var
                 rawFile = var[:-3]
@@ -622,10 +681,18 @@ def initVars(varList):
             #assemblerFlags += [var]
             #blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
-	    MFile = var
+            MFile = var
             continue
                 
+        if doGrabLib:
+            libs += [var]
+            blobCompilerFlags += [var]
+            assemblerFlags += [var]
+            doGrabLib=False
+            continue
+
         if doGrabInc:
+            includeDir += [var]
             blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
             generateAssemblyCacheFlags += [var]
@@ -669,6 +736,7 @@ def initVars(varList):
             #blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
         elif var == '-MF' or var == '-MT' or var == '-MQ':
+            #TODO MULTIPLE FILES
             Moverride=True
             #assemblerFlags += [var]
             #blobCompilerFlags += [var]
@@ -680,11 +748,11 @@ def initVars(varList):
             generateAssemblyCacheFlags += [var]
             isObjGen = True
         elif (var == '-pthread'):
-	    assemblerFlags += [var]
-	    blobCompilerFlags += [var]
+            assemblerFlags += [var]
+            blobCompilerFlags += [var]
         elif (var == '-avoid-version'):# or var == '-module'):
-	    assemblerFlags += [var]
-	    generateAssemblyFlags += [var]
+            assemblerFlags += [var]
+            generateAssemblyFlags += [var]
             generateAssemblyCacheFlags += [var]
         elif (var[:4] == '-std'
             or var == '-pedantic'
@@ -699,6 +767,11 @@ def initVars(varList):
             blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
             generateAssemblyCacheFlags += [var]
+        elif var == '-fPIC' or var == '-DPIC':
+            blobCompilerFlags += [var]
+            generateAssemblyFlags += [var]
+            generateAssemblyCacheFlags += [var]
+            isPIC = True
         elif var[:2] == '-L':
             blobCompilerFlags += [var]
             generateAssemblyFlags += [var]
@@ -712,8 +785,9 @@ def initVars(varList):
             generateAssemblyFlags += [var]
             generateAssemblyCacheFlags += [var]
         elif var[:2] == '-I':
-	    if len(var)==2:doGrabInc=True
-            #blobCompilerFlags += [var]
+            if len(var)==2:doGrabInc=True
+            blobCompilerFlags += [var]
+            includeDir += [var[2:]]
             generateAssemblyFlags += [var]
             generateAssemblyCacheFlags += [var]
         elif var[:3] == '-Wp':
@@ -723,7 +797,7 @@ def initVars(varList):
             blobCompilerFlags += [var]
             assemblerFlags +=[var]
         elif var[:3] == '-Wl':
-            #blobCompilerFlags += [var]
+            blobCompilerFlags += [var]
             assemblerFlags +=[var]
         elif var[:2] == '-W':
             addFlagsAll(var)
@@ -733,13 +807,15 @@ def initVars(varList):
             generateAssemblyCacheFlags += [var]
         elif var[:2] == '-l':
             #compilerFlags = ['-L/usr/local/lib', '-L/lib/x86_64-linux-gnu', '-L/usr/lib/x86_64-linux-gnu'] + compilerFlags
+            if len(var)==2:doGrabLib=True
+            else:libs+=[var[2:]]
             blobCompilerFlags += [var]
             assemblerFlags += [var]
         elif var == '-o':
             isOutput = True
             continue
         elif var == '-c':
-            pass
+            isObjBuild = True
             #blobCompilerFlags += [var]
         elif var[:1] == '-':
             addFlagsAll(var)
@@ -758,11 +834,13 @@ def initVars(varList):
         elif (var[-3:] == '.pp' or var[-3:] == '.PP'):
             #FIREFOX
             blobCompilerFlags += [var]
-        elif (var[-2:] == '.a' or var[-3:] == '.so' or var[-3:] == '.SO' or var[-2:] == '.h'):
+        elif (var[-2:] == '.a' or var[-2:] == '.h'):
             archives += [var]
         elif (var[-2:] == '.s'):
             #TODO Can there ever be more than one source?
             assemblys += [var]
+        elif (var[-3:] == '.so' or var[-3:] == '.SO' or bool(re.search(r'.[sS][oO][.0-9]*$',var))):
+            archives += [var]
         elif (var[-2:] == '.o' or var[-2:] == '.O' or var[-3:] == '.lo'):
             objects += [var]
         else:
@@ -781,17 +859,17 @@ def initVars(varList):
     #compilerFlags += ['-fPIC']
     
     #not = bin?
-    if len(binFile)==0 and len(objFile)==0 and len(sources)!=0 :
-        if len(sources) == 1 :
-            objFile = re.sub(r'\.[cCsS]+[^o]?[pPxX+]*','.o',os.path.realpath(sources[0]))
-            rawFile = objFile[:-2]
+    if isObjBuild and len(objFile)==0 and len(sources)==1 :
+        objFile = os.getcwd() +'/'+ re.sub(r'\.[cCsS]+[^o]?[pPxX+]*','.o',os.path.basename(sources[0]) )
+        #print objFile
+        rawFile = objFile[:-2]
     
     if len(binFile)==0 and len(objFile)==0 :
         binFile = 'a.out'
     
     rawFile = os.path.realpath(rawFile)
-    cachedFile = re.sub(r'/home/'+getpass.getuser()+r'/workspace/','/home/'+getpass.getuser()+r'/workspace/bcache/',rawFile)
-    MCacheFile = re.sub(r'/home/'+getpass.getuser()+r'/workspace/','/home/'+getpass.getuser()+r'/workspace/bcache/',os.path.realpath(MFile))
+    cachedFile = re.sub(r'/home/'+user+r'/workspace/','/home/'+user+r'/workspace/bcache/',rawFile)
+    MCacheFile = re.sub(r'/home/'+user+r'/workspace/','/home/'+user+r'/workspace/bcache/',os.path.realpath(MFile))
 
     # make path to file if needed
     cacheDir = os.path.dirname(cachedFile)
