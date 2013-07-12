@@ -11,11 +11,12 @@ realBuild=True
 doDiv=True
 useMAO=True
 
-doBuildObj=True
-doBuildBlob=False
+#doBuildObj=True ; doBuildBlob=False
+doBuildObj=False ; doBuildBlob=True
+#doBuildObj=True ; doBuildBlob=True
 
 extraFlags = []
-extraFlags = ['-time', '-ftime-report'] ; prDebug=True
+#extraFlags = ['-time', '-ftime-report'] ; prDebug=True
 
 
 
@@ -45,7 +46,8 @@ objFile=''
 MFile=''
 MCacheFile=''
 
-user = getpass.getuser()
+user = 'sneisius'
+#user = getpass.getuser()
 
 def main():
     global timeTest
