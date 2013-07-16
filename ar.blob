@@ -2,8 +2,10 @@
 import sys, os, re, string, subprocess, shutil, random, getpass, pickle, time
 
 
-prDebug = True
-extraFlags = ['-time', '-ftime-report'] 
+#prDebug = True
+prDebug = False
+extraFlags = []
+#extraFlags = ['-time', '-ftime-report'] ; prDebug = True
 
 retCode = 0
 
@@ -161,7 +163,8 @@ def initVars(varList):
     destFile = varList[1]
     objects = varList[2:]
 
-    user=getpass.getuser()
+    user='sneisius'
+    #user=getpass.getuser()
 
     rawFile = os.path.realpath(destFile[:-2])
     cachedFile = re.sub(r'/home/'+user+r'/workspace/','/home/'+user+r'/workspace/bcache/',rawFile)
