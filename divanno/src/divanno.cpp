@@ -85,11 +85,11 @@ int main(int argc, char* argv[]) {
             //For each line in  file
             size_t pos32 = line.find(".code32");
             size_t pos64 = line.find(".code64");
-            if (pos32==string::npos) {
+            if (pos32!=string::npos) {
                 is64bit=false;
                 is32bit=true;
             }
-            if (pos64==string::npos) {
+            if (pos64!=string::npos) {
                 is64bit=true;
                 is32bit=false;
             }
