@@ -83,6 +83,16 @@ int main(int argc, char* argv[]) {
         while (inFile.good()) {
             getline(inFile, line);
             //For each line in  file
+            size_t pos32 = line.find(".code32");
+            size_t pos64 = line.find(".code64");
+            if (pos32==string::npos) {
+                is64bit=false;
+                is32bit=true;
+            }
+            if (pos64==string::npos) {
+                is64bit=true;
+                is32bit=false;
+            }
 
             //IF not contains '# MC=' then write and continue
             size_t argPos = line.find("# MC=");
