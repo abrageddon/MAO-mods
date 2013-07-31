@@ -2,6 +2,7 @@
 #include <fstream>
 #include <string>
 #include <regex>
+#include <string.h>
 
 #include "MultiCompiler/MultiCompilerOptions.h"
 #include "MultiCompiler/AESRandomNumberGenerator.h"
@@ -56,27 +57,76 @@ string movToLeaReplace(){
 }
 
 int main(int argc, char* argv[]) {
-    string inFileName(argv[1]);
 
-    size_t ext = inFileName.find(".a.s");
-    if (ext==string::npos) {
-        cerr << "Incorrect extension." <<endl;
-        return 1;
+    string inFileName;
+    string outFileName = "";
+    string seed = "";
+    string percent = "";
+
+    if (argc < 2) {
+        cout << argv[0] << "\nUsage is -f <infile> -o <outfile> -seed <seed> -percent <percent>\n";
+        cin.get();
+        exit(0);
+    } else {
+        for (int i = 1; i < argc; i++) {
+            if (i + 1 != argc){
+                if ( strcmp(argv[i], "-f") == 0 ) {
+                    inFileName = argv[i+1];
+                    i++;
+                } else if ( strcmp(argv[i], "-o") == 0 ) {
+                    outFileName = argv[i+1];
+                    i++;
+                } else if ( strcmp(argv[i], "-seed") == 0 ) {
+                    seed = argv[i+1];
+                    i++;
+                } else if ( strcmp(argv[i], "-percent") == 0 ) {
+                    percent = argv[i + 1];
+                    i++;
+                } else {
+                    cout << "Not enough or invalid arguments, please try again.\n";
+                    cout << "Error on : " << argv[i];
+                    exit(0);
+                }
+            }
+        }
     }
 
+    if (inFileName.empty()){
+        cout << "No input file.\n";
+        exit(0);
+    }
     ifstream inFile(inFileName);
-    ofstream outFile(inFileName.substr(0,ext) + ".div.s");
+    ofstream outFile;
 
-    //TODO read arch from file
+    if (outFileName.empty()){
+        size_t ext = inFileName.find(".a.s");
+        if (ext==string::npos) {
+            cerr << "Incorrect extension. Needs to be '.a.s'." <<endl;
+            return 1;
+        }
+        outFile.open(inFileName.substr(0,ext) + ".div.s");
+    }else{
+        outFile.open(outFileName);
+    }
+
     is64bit = true;
     is32bit = false;
 
-
-    //TODO read seed and percentages from cmdline
     srand (time(NULL));
-    multicompiler::MultiCompilerSeed = to_string(rand());
-    multicompiler::Random::EntropyData = to_string(rand());
-    insertPercent = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(100);
+
+    if(seed.empty()){
+        multicompiler::MultiCompilerSeed = to_string(rand());
+        multicompiler::Random::EntropyData = to_string(rand());
+    }else{
+        multicompiler::MultiCompilerSeed = seed;
+        multicompiler::Random::EntropyData = seed;
+    }
+
+    if(percent.empty()){
+        insertPercent = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(100);
+    }else{
+        insertPercent = stoi(percent);
+    }
 //    cout << insertPercent << endl;
 
     if (inFile.is_open() && outFile.is_open()) {
