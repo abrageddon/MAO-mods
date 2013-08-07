@@ -9,13 +9,13 @@
 
 using namespace std;
 
-static const char * const nop64[] = { "\tnop\n", "\tmovq\t%rbp, %rbp\n"
-        , "\tmovq\t%rsp, %rsp\n", "\tleaq\t(%rdi), %rdi\n",
-        "\tleaq\t(%rsi), %rsi\n" };
+static const char * const nop64[] = { "\tnop\t\t#NOP\n", "\tmovq\t%rbp, %rbp\t\t#NOP\n"
+        , "\tmovq\t%rsp, %rsp\t\t#NOP\n", "\tleaq\t(%rdi), %rdi\t\t#NOP\n",
+        "\tleaq\t(%rsi), %rsi\t\t#NOP\n" };
 
-static const char * const nop32[] = { "\tnop\n", "\tmovl\t%ebp, %ebp\n"
-        , "\tmovl\t%esp, %esp\n", "\tleal\t(%edi), %edi\n",
-        "\tleal\t(%esi), %esi\n" };
+static const char * const nop32[] = { "\tnop\t\t#NOP\n", "\tmovl\t%ebp, %ebp\t\t#NOP\n"
+        , "\tmovl\t%esp, %esp\t\t#NOP\n", "\tleal\t(%edi), %edi\t\t#NOP\n",
+        "\tleal\t(%esi), %esi\t\t#NOP\n" };
 
 static int insertPercent = 30;
 static int Roll;
@@ -53,7 +53,7 @@ string movToLeaReplace(){
     string rOne = line.substr(pOne, comma-pOne);
     string rTwo = line.substr(pTwo);
 
-    return "\t" + lea + "\t(" + rOne + ")," + rTwo + "\n";
+    return "\t" + lea + "\t(" + rOne + ")," + rTwo + "\t\t#MOVtoLEA\n";
 }
 
 int main(int argc, char* argv[]) {
