@@ -1,9 +1,11 @@
-CFLAGS+=-I.
+CFLAGS+=-I. -g
 DEPS = hellomake.h
 OBJ = hellomake.o hellofunc.o 
 ASS = hellomake.s hellofunc.s 
-CC = MAOclang.pyc
-CXX = MAOclang.pyc++
+#CC = MAOclang.pyc
+#CXX = MAOclang.pyc++
+CC = clang
+CXX = clang++
 
 %.c: $(DEPS)
 

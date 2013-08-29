@@ -11,8 +11,8 @@ realBuild=True
 doDiv=True
 useMAO=True
 
-#doBuildObj=True ; doBuildBlob=False
-doBuildObj=False ; doBuildBlob=True
+doBuildObj=True ; doBuildBlob=False
+#doBuildObj=False ; doBuildBlob=True
 #doBuildObj=True ; doBuildBlob=True
 
 extraFlags = []
@@ -46,8 +46,8 @@ objFile=''
 MFile=''
 MCacheFile=''
 
-user = 'sneisius'
-#user = getpass.getuser()
+#user = 'sneisius'
+user = getpass.getuser()
 
 def main():
     global timeTest
@@ -235,7 +235,7 @@ def diversify(output, inFile):
     if not doDiv:
         return retCode
     if prDebug: sys.stderr.write ("=== Diversify ===" +'\n\n')
-    diversify = ["divanno", inFile ]
+    diversify = ["divanno", "-f", inFile ]
         
     if prDebug: sys.stderr.write (string.join(diversify,' ')+'\n\n')
     return execBuild(diversify, "Diversify")
