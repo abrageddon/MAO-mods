@@ -160,22 +160,21 @@ int main(int argc, char* argv[]) {
 		size_t argPos = line.find("# MC=");
 		if (argPos==string::npos) {
 
-			size_t posSpace = line.find(".space");
-			if (posSpace!=string::npos) {//TODO subtract from space; warn if not there
-			    size_t comma = line.find(",");
+            size_t posSpace = line.find(".space");
+            if (posSpace != string::npos && doStubAdjustment) { //TODO subtract from space; warn if not there
+                size_t comma = line.find(",");
 
-			    string spaceLength = line.substr(posSpace+6, comma-(posSpace+6));
+                string spaceLength = line.substr(posSpace + 6, comma - (posSpace + 6));
 
-			    int adjustedSpaceLength = stoi( spaceLength );
-			    adjustedSpaceLength -= subFromSpace;
+                int adjustedSpaceLength = stoi(spaceLength);
+                adjustedSpaceLength -= subFromSpace;
 
-			    outFile << "\t.space\t" << adjustedSpaceLength << ", 0xCC\n";
+                outFile << "\t.space\t" << adjustedSpaceLength << ", 0xCC\n";
 
-				subFromSpace = 0;
-			}else{
+                subFromSpace = 0;
+            } else {
 				outFile << line << "\n";
 			}
-            subFromSpace = 0;//TODO delete. ignores cbstubs that dont end in size 0xCC
 			continue;
 		}
 
