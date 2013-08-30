@@ -175,6 +175,7 @@ int main(int argc, char* argv[]) {
 			}else{
 				outFile << line << "\n";
 			}
+            subFromSpace = 0;//TODO delete. ignores cbstubs that dont end in size 0xCC
 			continue;
 		}
 

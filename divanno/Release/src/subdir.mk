@@ -17,7 +17,7 @@ CPP_DEPS += \
 src/%.o: ../src/%.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C++ Compiler'
-	g++ -DMAO_MULTI_COMPILER -D__STD_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -O3 -Wall -c -fmessage-length=0 -std=c++0x -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -o "$@" "$<"
+	g++ -DMAO_MULTI_COMPILER -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -I. -I/usr/include -O3 -Wall -c -std=c++11 -fPIC -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
