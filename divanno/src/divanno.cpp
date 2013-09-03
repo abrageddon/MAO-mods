@@ -106,7 +106,7 @@ int main(int argc, char* argv[]) {
     ofstream outFile;
 
     if (outFileName.empty()){
-        size_t ext = inFileName.find(".a.s");
+        size_t ext = inFileName.find_last_of(".a.s");//TODO find LAST occurrence
         if (ext==string::npos) {
             cerr << "Incorrect extension. Needs to be '.a.s'." <<endl;
             return 1;
@@ -142,6 +142,7 @@ int main(int argc, char* argv[]) {
         cerr << "Unable to open file"<<endl;
         return 2;
     }
+
 	while (inFile.good()) {
 		getline(inFile, line);
 		//For each line in  file
@@ -160,8 +161,14 @@ int main(int argc, char* argv[]) {
 		size_t argPos = line.find("# MC=");
 		if (argPos==string::npos) {
 
+            size_t posJmp = line.find("jmp");
+            if (posJmp != string::npos && doStubAdjustment) { //TODO TESTING dont diversify jump pads
+                outFile << line << "\n";
+                continue;
+            }
+
             size_t posSpace = line.find(".space");
-            if (posSpace != string::npos && doStubAdjustment) { //TODO subtract from space; warn if not there
+            if (posSpace != string::npos && doStubAdjustment) { // subtract from space; warn if not there
                 size_t comma = line.find(",");
 
                 string spaceLength = line.substr(posSpace + 6, comma - (posSpace + 6));
