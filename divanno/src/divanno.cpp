@@ -161,11 +161,6 @@ int main(int argc, char* argv[]) {
 		size_t argPos = line.find("# MC=");
 		if (argPos==string::npos) {
 
-            size_t posJmp = line.find("jmp");
-            if (posJmp != string::npos && doStubAdjustment) { //TODO TESTING dont diversify jump pads
-                outFile << line << "\n";
-                continue;
-            }
 
             size_t posSpace = line.find(".space");
             if (posSpace != string::npos && doStubAdjustment) { // subtract from space; warn if not there
@@ -184,6 +179,12 @@ int main(int argc, char* argv[]) {
 			}
 			continue;
 		}
+
+        size_t posJmp = line.find("jmp");
+        if (posJmp != string::npos && doStubAdjustment) { //TODO TESTING dont diversify jump pads
+            outFile << line << "\n";
+            continue;
+        }
 
 		canNOP = false;
 		canMOVToLEA = false;
