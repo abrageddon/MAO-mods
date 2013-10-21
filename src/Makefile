@@ -195,7 +195,8 @@ MC_PLUGINS=MaoNOPInsertion				\
 		MaoNOPInsertionAnnotate				\
 		MaoMOVToLEAAnnotate						\
 		MaoEquivSubst           \
-		MaoSchedRand
+		MaoSchedRand 			\
+		MaoLabelAll
 MC_SRCS=$(patsubst %,$(PLUGINSRC)/%.cc,$(notdir $(MC_PLUGINS)))
 MC_OBJS=$(patsubst %,$(MC_OBJDIR)/%.o,$(notdir $(MC_PLUGINS)))
 MC_TARGETS=$(patsubst %,$(BINDIR)/%-$(TARGET).$(DYNLIBEXT),$(MC_PLUGINS))
