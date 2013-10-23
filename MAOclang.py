@@ -235,7 +235,9 @@ def diversify(output, inFile):
     if not doDiv:
         return retCode
     if prDebug: sys.stderr.write ("=== Diversify ===" +'\n\n')
-    diversify = ["divanno", "-f", inFile ]
+#TODO seed, percent
+    diversify = ["divanno", "-f", inFile , "-o", output]#, "-seed", seed, "-percent", percent]
+    #diversify = ["divanno", "-f", inFile ]
         
     if prDebug: sys.stderr.write (string.join(diversify,' ')+'\n\n')
     return execBuild(diversify, "Diversify")
@@ -249,6 +251,7 @@ def annotate(output, inFile):
     #TODO read from command line and purge after use
     tests = ""
     
+    tests += "--plugin=/usr/local/lib/MaoLabelAll-x86_64-linux.so:LABELALL:"
     #tests += "--plugin=/usr/local/lib/MaoSchedRand-x86_64-linux.so:SCHEDRAND=MultiCompilerSeed["+seed+"]+ISchedRandPercentage["+percent+"]:"
     tests += "--plugin=/usr/local/lib/MaoMOVToLEAAnnotate-x86_64-linux.so:MOVTOLEAA:"
     tests += "--plugin=/usr/local/lib/MaoNOPInsertionAnnotate-x86_64-linux.so:NOPINSERTIONA:"        

@@ -44,6 +44,9 @@ def process_file(stream, isNorm):
             #TODO if NOP label
             #TODO calc sizes
 
+            if (section.get_symbol(i).name.find(normLabel + "50") != -1):
+                print("%x" % section.get_symbol(i).entry['st_value'])
+
             if (isNorm):
                 normAddresses[section.get_symbol(i).name] = section.get_symbol(i).entry['st_value']
             else:
@@ -55,7 +58,7 @@ def calculate_sizes(sorted_list):
     sizes={}
     for key, value in sorted_list:
         #print(str(key) + ":" + str(value))
-        sizes[key] = 0
+        sizes[key] = 1
         if startAdd != 0:
             sizes[startKey] = value - startAdd
             #print(str(sizes[startKey]))
@@ -73,11 +76,14 @@ def output_file():
     normSizes = calculate_sizes(sorted_normAddresses);
     divSizes = calculate_sizes(sorted_divAddresses);
 
+    print("%x:%x" % (divAddresses[normLabel + "50"], normAddresses[normLabel + "50"]) )
+
     for key, value in sorted_normAddresses:
+        #print( str(key) + ":" + str(value) )
         output_address_map(key)
 
 def output_address_map(labelID):
-    labelID = labelID.strip()
+    #labelID = labelID.strip()
     try:
         outFile.write("%x" % divAddresses[labelID])
         outFile.write(':')
