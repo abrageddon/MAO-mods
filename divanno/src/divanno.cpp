@@ -231,7 +231,7 @@ int main(int argc, char* argv[]) {
         //IF mcArgs contains [N] then try NOP Insertion before current line
         if (canNOP) {
             Roll = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(100);
-            if (Roll <= insertPercent) {
+            if (Roll < insertPercent) {
                 Roll = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(5);
                 if (is64bit) {
                     outFile << divLabel << nopNumber++ << ":\t" << nop64[Roll] << "\t\t#NOP\n";
@@ -250,7 +250,7 @@ int main(int argc, char* argv[]) {
         //IF mcArgs contains [M] then try MOVToLEA
         if (canMOVToLEA) {
             Roll = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(100);
-            if (Roll <= insertPercent) {
+            if (Roll < insertPercent) {
                 //outFile << movToLeaReplace();
                 printWithLabel(outFile, label, movToLeaReplace());
             } else {

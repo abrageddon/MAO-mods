@@ -2214,6 +2214,18 @@ std::string &InstructionEntry::MCToString(std::string *out) const {
   }else if (canMOVToLEA_){
 	string_stream << "\t# MC=M";
   }
+  if (schedGrp_.size()>0){
+    string_stream << "\t# SCHED=";
+    bool fLine=true;
+    for(std::set<int>::iterator it=schedGrp_.begin(); it!=schedGrp_.end(); ++it){
+      if(!fLine){
+        string_stream << ",";
+      }else{
+        fLine=false;
+      }
+      string_stream << *it;
+    }
+  }
   out->append(string_stream.str());
   return *out;
 }

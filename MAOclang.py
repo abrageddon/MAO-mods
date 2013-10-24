@@ -2,8 +2,8 @@
 import sys, os, re, string, subprocess, shutil, random, getpass, pickle, time
 
 # output to std err
-#prDebug=True
-prDebug=False
+prDebug=True
+#prDebug=False
 # really make dirs, not just print
 mkdirFlag=True 
 # really build, not just print
@@ -11,8 +11,8 @@ realBuild=True
 doDiv=True
 useMAO=True
 
-doBuildObj=True ; doBuildBlob=False
-#doBuildObj=False ; doBuildBlob=True
+#doBuildObj=True ; doBuildBlob=False
+doBuildObj=False ; doBuildBlob=True
 #doBuildObj=True ; doBuildBlob=True
 
 extraFlags = []
@@ -45,6 +45,9 @@ binFile=''
 objFile=''
 MFile=''
 MCacheFile=''
+
+seed=""
+percent=0
 
 #user = 'sneisius'
 user = getpass.getuser()
@@ -235,9 +238,7 @@ def diversify(output, inFile):
     if not doDiv:
         return retCode
     if prDebug: sys.stderr.write ("=== Diversify ===" +'\n\n')
-#TODO seed, percent
-    diversify = ["divanno", "-f", inFile , "-o", output]#, "-seed", seed, "-percent", percent]
-    #diversify = ["divanno", "-f", inFile ]
+    diversify = ["divanno", "-f", inFile , "-o", output, "-seed", str(seed), "-percent", str(percent) ]
         
     if prDebug: sys.stderr.write (string.join(diversify,' ')+'\n\n')
     return execBuild(diversify, "Diversify")
@@ -268,8 +269,8 @@ def diversifyClang(output, inFile):
         #TODO read from command line and purge after use
         #seed = str(random.randint(0,100000))
         #percent = str(random.randint(10,50))
-        seed = '1234567890'
-        percent = '30'
+        #seed = '1234567890'
+        #percent = '30'
 
         tests = ["-Xclang", "-multicompiler-seed="+seed, "-Xclang", "-nop-insertion-percentage="+percent]
 
@@ -625,6 +626,8 @@ def initVars(varList):
     global MFile
     global MCacheFile
     global isAsm
+    global seed
+    global percent
     global includeDir
     includeDir = []
     global libs
@@ -716,6 +719,12 @@ def initVars(varList):
             doExcludeBuild = True
         elif var == '-S':
             doExcludeBuild = True
+        elif (var[:14] == '-frandom-seed='):
+            seed = var[14:]
+        elif (var[:26] == '-nop-insertion-percentage='):
+            percent = var[26:]
+        elif (var == '-Xclang' or var == '-nop-insertion' or var == "-mllvm"):
+            continue #TODO Do something with these eventually.....
         elif (var[:16] == '-print-prog-name'
             or var == '-print-search-dirs'
             or var == '-print-multi-os-directory'):

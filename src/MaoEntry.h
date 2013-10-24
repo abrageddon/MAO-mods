@@ -33,6 +33,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+//SNEISIUS
+#include <set>
 
 extern "C" {
   #include "as.h"
@@ -145,6 +147,7 @@ class MaoEntry {
 
 
 
+  //SNEISIUS
   bool hasChanged() const {return (has_changed_);}
   void setHasChanged() {has_changed_=true;}
 
@@ -768,6 +771,12 @@ class InstructionEntry : public MaoEntry {
                               int value);
 
   //SNEISIUS
+  void addGrp(int group) {
+    schedGrp_.insert(group);
+  }
+  std::set<int> getGrps(int group) {
+    return schedGrp_;
+  }
   void SetCanNOPInsert(bool can) {
 	canNOPInsert_ = can;
   }
@@ -798,6 +807,7 @@ class InstructionEntry : public MaoEntry {
   long execution_count_;
 
   //SNEISIUS
+  std::set<int> schedGrp_;
   bool canNOPInsert_;
   bool canMOVToLEA_;
 

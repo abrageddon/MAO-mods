@@ -10,7 +10,7 @@ from elftools.elf.elffile import ELFFile
 from elftools.elf.sections import SymbolTableSection
 
 normLabel = "__divmap_"
-divLabel = "__NOP_"
+divLabel = "__divNOP_"
 
 normFile=''
 divFile=''
@@ -19,6 +19,9 @@ normAddresses=dict()
 normSizes=dict()
 divAddresses=dict()
 divSizes=dict()
+
+outAddresses=dict()
+outSizes=dict()
 
 def process_file(stream, isNorm):
     global normAddresses
@@ -39,13 +42,8 @@ def process_file(stream, isNorm):
     if isinstance(section, SymbolTableSection):
         num_symbols = section.num_symbols()
         for i in range(0,num_symbols):
-            if (section.get_symbol(i).name.find(normLabel) == -1):
+            if (section.get_symbol(i).name.find(normLabel) == -1 and section.get_symbol(i).name.find(divLabel) == -1):
                 continue
-            #TODO if NOP label
-            #TODO calc sizes
-
-            if (section.get_symbol(i).name.find(normLabel + "50") != -1):
-                print("%x" % section.get_symbol(i).entry['st_value'])
 
             if (isNorm):
                 normAddresses[section.get_symbol(i).name] = section.get_symbol(i).entry['st_value']
@@ -56,6 +54,7 @@ def calculate_sizes(sorted_list):
     startAdd=0
     startKey=0
     sizes={}
+    #TODO calculate size without nops; combine contiguous
     for key, value in sorted_list:
         #print(str(key) + ":" + str(value))
         sizes[key] = 1
@@ -76,7 +75,7 @@ def output_file():
     normSizes = calculate_sizes(sorted_normAddresses);
     divSizes = calculate_sizes(sorted_divAddresses);
 
-    print("%x:%x" % (divAddresses[normLabel + "50"], normAddresses[normLabel + "50"]) )
+    #TODO COMBINE CONTIGUOUS SECTIONS
 
     for key, value in sorted_normAddresses:
         #print( str(key) + ":" + str(value) )
