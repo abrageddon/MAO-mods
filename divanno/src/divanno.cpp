@@ -17,8 +17,8 @@ static const char * const nop32[] = { "nop", "movl\t%ebp, %ebp", "movl\t%esp, %e
 
 static const int nopSize[] = { 1, 2, 2, 2, 2 }; //Size (32/64) matters?TODO probably
 
-static const string normLabel="__divmap_";
-static const string divLabel="__divNOP_";
+static const string normLabel = "__divmap_";
+static const string divLabel = "__divNOP_";
 
 static int nopNumber = 0;
 
@@ -30,10 +30,51 @@ static bool is64bit;
 static bool is32bit;
 static bool doStubAdjustment;
 
-static string line;
-static string label;
+static int subFromSpace; //CBSTUBS
 
-string movToLeaReplace() {
+void parseMC(const string& line) {
+    canNOP = false;
+    canMOVToLEA = false;
+    size_t argPos = line.find("# MC=");
+    string lineArgs = line.substr(argPos + 5);
+    for (unsigned int i = 0; i < lineArgs.length(); i++) {
+        if (isspace(lineArgs[i])) {
+            break;
+        } else if (lineArgs[i] == 'N') {
+            canNOP = true;
+            continue;
+        } else if (lineArgs[i] == 'M') {
+            canMOVToLEA = true;
+            continue;
+        } else {
+            cerr << "Unknown Arg: " << lineArgs[i] << endl;
+        }
+
+    }
+}
+
+void insertNopRand(ofstream outFile) {
+    //IF mcArgs contains [N] then try NOP Insertion before current line
+    if (canNOP) {
+        Roll = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(100);
+        if (Roll < insertPercent) {
+            Roll = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(5);
+            if (is64bit) {
+                outFile << divLabel << nopNumber++ << ":\t" << nop64[Roll] << "\t\t#NOP\n";
+                //printWithLabel(outFile, label, to_string(divLabel) + to_string(nopNumber) + "\t" + nop64[Roll] + "\t\t#NOP\n");
+                subFromSpace += nopSize[Roll];
+            } else if (is32bit) {
+                outFile << divLabel << nopNumber++ << ":\t" << nop32[Roll] << "\t\t#NOP\n";
+                //printWithLabel(outFile, label, to_string(divLabel) + to_string(nopNumber) + "\t" + nop32[Roll] + "\t\t#NOP\n");
+                subFromSpace += nopSize[Roll];
+            } else {
+                cerr << "Unknown Arch" << endl;
+            }
+        }
+    }
+}
+
+string movToLeaReplace(const string& line) {
     size_t movLoc = 0;
     string lea = "";
     if (is64bit) {
@@ -63,11 +104,31 @@ string movToLeaReplace() {
     return "\t" + lea + "\t(" + rOne + ")," + rTwo + "\t\t#MOVtoLEA";
 }
 
-void printWithLabel(ofstream& output, const string& lab, const string& input){
-    if( strcmp(lab.c_str(), "") != 0 ){
+void printWithLabel(ofstream& output, const string& lab, const string& input) {
+    if (strcmp(lab.c_str(), "") != 0) {
         output << lab << "\n";
     }
     output << input << "\n";
+}
+
+void movToLeaRandOrPrint(ofstream outFile, const string& label, const string& line) {
+    //IF mcArgs contains [M] then try MOVToLEA
+    if (canMOVToLEA) {
+        Roll = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(100);
+        if (Roll < insertPercent) {
+            //outFile << movToLeaReplace();
+            printWithLabel(outFile, label, movToLeaReplace(line));
+        } else {
+            //print
+            //outFile << line << "\n";
+            printWithLabel(outFile, label, line);
+        }
+    } else {
+        //print
+        //outFile << line << "\n";
+        printWithLabel(outFile, label, line);
+    }
+    return outFile;
 }
 
 int main(int argc, char* argv[]) {
@@ -155,6 +216,8 @@ int main(int argc, char* argv[]) {
         return 2;
     }
 
+    string line;
+    string label;
     while (inFile.good()) {
         label = "";
         getline(inFile, line);
@@ -169,12 +232,13 @@ int main(int argc, char* argv[]) {
             is64bit = true;
             is32bit = false;
         }
-        //if line == divmap:read again store and 
+        //if line == divmap: store and get instruction
         size_t posLabel = line.find(normLabel);
-        if (posLabel != string::npos){
-            label=line;
+        if (posLabel != string::npos) {
+            label = line;
             getline(inFile, line);
         }
+        //TODO IF line is label: end of basic block; dump remaining
 
         //IF not contains '# MC=' then write and continue
         size_t argPos = line.find("# MC=");
@@ -194,75 +258,27 @@ int main(int argc, char* argv[]) {
                 subFromSpace = 0;
             } else {
                 outFile << line << "\n";
-                //printWithLabel(outFile, label, line);
             }
             continue;
         }
 
         //TODO schedule randomization
 
-        size_t posJmp = line.find("jmp");
-        if (posJmp != string::npos && doStubAdjustment) { //TODO TESTING dont diversify jump pads
-            //outFile << line << "\n";
-            printWithLabel(outFile, label, line);
-            continue;
-        }
-
-        canNOP = false;
-        canMOVToLEA = false;
-        string lineArgs = line.substr(argPos + 5);
+//        size_t posJmp = line.find("jmp");
+//        if (posJmp != string::npos && doStubAdjustment) { //TODO TESTING dont diversify jump pads
+//            //outFile << line << "\n";
+//            printWithLabel(outFile, label, line);
+//            continue;
+//        }
 
         //Parse args
-        for (unsigned int i = 0; i < lineArgs.length(); i++) {
-            if (isspace(lineArgs[i])) {
-                break;
-            } else if (lineArgs[i] == 'N') {
-                canNOP = true;
-                continue;
-            } else if (lineArgs[i] == 'M') {
-                canMOVToLEA = true;
-                continue;
-            } else {
-                cerr << "Unknown Arg: " << lineArgs[i] << endl;
-            }
-
-        }
+        parseMC(line);
 
         //IF mcArgs contains [N] then try NOP Insertion before current line
-        if (canNOP) {
-            Roll = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(100);
-            if (Roll < insertPercent) {
-                Roll = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(5);
-                if (is64bit) {
-                    outFile << divLabel << nopNumber++ << ":\t" << nop64[Roll] << "\t\t#NOP\n";
-                    //printWithLabel(outFile, label, to_string(divLabel) + to_string(nopNumber) + "\t" + nop64[Roll] + "\t\t#NOP\n");
-                    subFromSpace += nopSize[Roll];
-                } else if (is32bit) {
-                    outFile << divLabel << nopNumber++ << ":\t" << nop32[Roll] << "\t\t#NOP\n";
-                    //printWithLabel(outFile, label, to_string(divLabel) + to_string(nopNumber) + "\t" + nop32[Roll] + "\t\t#NOP\n");
-                    subFromSpace += nopSize[Roll];
-                } else {
-                    cerr << "Unknown Arch" << endl;
-                }
-            }
-        }
+        insertNopRand(outFile, line);
 
         //IF mcArgs contains [M] then try MOVToLEA
-        if (canMOVToLEA) {
-            Roll = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(100);
-            if (Roll < insertPercent) {
-                //outFile << movToLeaReplace();
-                printWithLabel(outFile, label, movToLeaReplace());
-            } else {
-                //print
-                //outFile << line << "\n";
-                printWithLabel(outFile, label, line);
-            }
-        } else {
-            //print
-            //outFile << line << "\n";
-            printWithLabel(outFile, label, line);
-        }
+        movToLeaRandOrPrint(outFile, line);
 //            cout << line << endl;
     }
     inFile.close();
