@@ -7,7 +7,6 @@
 #include <list>
 #include <sstream>
 
-//#include "RandomScheduler.h"
 #include "SchedulableInstruction.h"
 #include "MultiCompiler/MultiCompilerOptions.h"
 #include "MultiCompiler/AESRandomNumberGenerator.h"
@@ -33,7 +32,10 @@ static int nopNumber = 0;
 static int insertPercent = 30;
 static int Roll;
 static bool canNOP;
+static bool doNOP=false;
 static bool canMOVToLEA;
+static bool doMOVToLEA=false;
+static bool doSchedRand=false;
 static bool is64bit;
 static bool is32bit;
 static bool doStubAdjustment;
@@ -58,6 +60,9 @@ void parseMC(const string& line) {
     canNOP = false;
     canMOVToLEA = false;
     size_t argPos = line.find("# MC=");
+    if (argPos == string::npos){
+      return;
+    }
     string lineArgs = line.substr(argPos + 5);
     for (unsigned int i = 0; i < lineArgs.length(); i++) {
         if (isspace(lineArgs[i])) {
@@ -79,7 +84,7 @@ std::vector<int> *parseSchedGrps(const string& line){
     std::vector<int> *grps = new std::vector<int>();
     string schArgs;
 
-    cerr << "READ: " << line << "\n";
+    //cerr << "READ: " << line << "\n";
 
     size_t schPos = line.find("# SCHED=");
     size_t startPos = line.find("[", schPos + 8);
@@ -108,12 +113,12 @@ std::vector<int> *parseSchedGrps(const string& line){
     return grps;
 }
 
-void printGroup(std::vector<int> *grps){
+/*void printGroup(std::vector<int> *grps){
     for (std::vector<int>::iterator it = grps->begin() ; it != grps->end(); ++it){
         cerr << *it << ",";
     }
     cerr << "\n";
-}
+}*/
 
 void printSchedBuffer(){
     for (std::list<SchedulableInstruction>::iterator it = schedBuffer.begin()
@@ -146,7 +151,7 @@ void addToScheduler(const string& label, const string& line){
 
 void insertNopRand(ofstream& outFile) {
     //IF mcArgs contains [N] then try NOP Insertion before current line
-    if (canNOP) {
+    if (doNOP && canNOP) {
         Roll = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(100);
         if (Roll < insertPercent) {
             Roll = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(5);
@@ -206,7 +211,7 @@ void printWithLabel(ofstream& output, const string& label, const string& input) 
 
 void movToLeaRandOrPrint(ofstream& outFile, const string& label, const string& line) {
     //IF mcArgs contains [M] then try MOVToLEA
-    if (canMOVToLEA) {
+    if (doMOVToLEA && canMOVToLEA) {
         Roll = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(100);
         if (Roll < insertPercent) {
             //outFile << movToLeaReplace();
@@ -239,33 +244,33 @@ void scheduleAllInstructions(ofstream& outFile){
         SchedulableInstruction ins = schedBuffer.front();
         schedBuffer.pop_front();
 
-        cerr << "Candidate" << ins.instruction.at(0) << "\n";
-        printSchedBuffer();//DEBUG
+        //cerr << "Candidate" << ins.instruction.at(0) << "\n";
+        //printSchedBuffer();//DEBUG
 
-        if ( schedBuffer.size() > 0 ) {
+        if ( schedBuffer.size() > 1 ) {
             //For schedBuffer that unions of groups is not null
             std::list<SchedulableInstruction>::iterator next = schedBuffer.begin();
             std::vector<int> interSet;
             std::set_intersection(
                     ins.groups.begin(), ins.groups.end(), next->groups.begin(), next->groups.end(), std::back_inserter(interSet));
 
-            cerr << "INTER: " << interSet.size() << "\n" ;
+            //cerr << "INTER: " << interSet.size() << "\n" ;
             bool changed = false;
             if (interSet.size() > 0 ){
-                cerr << "CAN INSERT AFTER\n";
+                //cerr << "CAN INSERT AFTER\n";
                 while ( next != schedBuffer.end() && multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(2) ) {
-                    cerr << "ROLLED!\n";
+                    //cerr << "ROLLED!\n";
                     interSet.clear();
                     changed = true;
                     next++;
                     std::set_intersection(
                             ins.groups.begin(), ins.groups.end(), next->groups.begin(), next->groups.end(), std::back_inserter(interSet));
 
-                    cerr << "INTER: " << interSet.size() << "\n" ;
+                    //cerr << "INTER: " << interSet.size() << "\n" ;
                     if(interSet.size() <= 0){
                         break;
                     }
-                    cerr << "CAN INSERT AFTER\n";
+                    //cerr << "CAN INSERT AFTER\n";
                 }
                 if (changed){
                     schedBuffer.emplace( next, ins);//TODO place after end? even worth the effort?
@@ -292,14 +297,24 @@ int main(int argc, char* argv[]) {
 
     if (argc < 2) {
         cout << argv[0]
-                << "\nUsage is -f <infile> -o <outfile> -seed <seed> -percent <percent>\n\t--cbstubs\tEnable cbstubs 0xCC space adjustment\n";
+                << "\nUsage is -f <infile> -o <outfile> -seed <seed> -percent <percent>\n"
+                << "\t-cbstubs\tEnable cbstubs 0xCC space adjustment\n"
+                << "\t-nop-insertion\tEnable NOP insertion\n"
+                << "\t-mov-to-lea\tEnable MOV to LEA transformation\n"
+                << "\t-sched-randomize\tRandomize schedules\n";
 //        cin.get();
         exit(0);
     } else {
         for (int i = 1; i < argc; i++) {
             if (i != argc) {
-                if (strcmp(argv[i], "--cbstubs") == 0) {
+                if (strcmp(argv[i], "-cbstubs") == 0) {
                     doStubAdjustment = true;
+                } else if (strcmp(argv[i], "-sched-randomize") == 0) {
+                    doSchedRand = true;
+                } else if (strcmp(argv[i], "-nop-insertion") == 0) {
+                    doNOP = true;
+                } else if (strcmp(argv[i], "-mov-to-lea") == 0) {
+                    doMOVToLEA = true;
                 } else if (i + 1 != argc) {
                     if (strcmp(argv[i], "-f") == 0) {
                         inFileName = argv[i + 1];
@@ -386,13 +401,14 @@ int main(int argc, char* argv[]) {
         }
         //TODO IF line is label: end of basic block; dump remaining
 
-
-        size_t schPos = line.find("# SCHED=");
-        if (schPos != string::npos) {
+        if (doSchedRand){
+          size_t schPos = line.find("# SCHED=");
+          if (schPos != string::npos) {
             addToScheduler(label, line);
             continue;
+          }
+          scheduleAllInstructions(outFile);
         }
-        scheduleAllInstructions(outFile);
 
         //IF not contains '# MC=' then write and continue
         size_t argPos = line.find("# MC=");

@@ -27,7 +27,9 @@ PLUGIN_VERSION
 
 #define LCD_HEIGHT_ADJUSTMENT 10
 #define HOT_REGISTER_BONUS 1
-
+ 
+//SNEISIUS
+static unsigned int grpNum=0;
 // --------------------------------------------------------------------
 // Options
 // --------------------------------------------------------------------
@@ -205,12 +207,20 @@ class SchedAnnotatePass : public MaoFunctionPass {
       }
       return *out_str;
     }
-    //SNEISIUS TODO Add Scheduler Annotation Group
+    //SNEISIUS Add Scheduler Annotation Group
     void addGrp(int grp) {
       for (MaoEntry *entry = first; entry != last->next();
           entry = entry->next()) {
-        InstructionEntry *ins = entry->AsInstruction();
-        ins->addGrp(grp);
+        if (entry->IsInstruction()){
+          InstructionEntry *ins = entry->AsInstruction();
+          ins->addGrp(grp);
+          if (entry = first){
+            ins->SetGroupStart(true);
+          }
+          if (entry = last){
+            ins->SetGroupEnd(true);
+          }
+        }
       }
     }
   };
@@ -223,7 +233,7 @@ class SchedAnnotatePass : public MaoFunctionPass {
 
       Trace(1, "SchedAnnotate!");
 
-      grpNum=0;//SNEISIUS
+      //grpNum=0;//SNEISIUS
 
       profitable_ = IsProfitable(func);
       rsp_pointer_ = GetRegFromName("rsp");
@@ -336,7 +346,7 @@ class SchedAnnotatePass : public MaoFunctionPass {
   const reg_entry *cfa_reg_;
 
   //SNEISIUS
-  int grpNum;
+  //int grpNum;
 
   BitString GetSrcRegisters(SchedulerNode *node);
   BitString GetDestRegisters(SchedulerNode *node);
@@ -407,17 +417,12 @@ MaoEntry* SchedAnnotatePass::Schedule(DependenceDag *dag,
   for (int i = 0; i < dag->NodeCount(); i++)
     num_predecessors[i] = dag->NumPredecessors(i);
 
-  int readyInt = 0;
   while (!ready->empty()) {
-	//SNEISIUS inserting annotation here
-    for (std::list<int>::iterator setItem = ready->begin();
-         setItem != ready->end(); ++setItem) {
-        std::string *insStr = dag->GetInstructionStrings();
-        Trace(1, "READY%d: %d : %s", readyInt++, *setItem, insStr[*setItem].c_str());
-    }
-    //SNEISIUS TODO write schedule annotations
+    //SNEISIUS write schedule annotations
     for (std::list<int>::iterator node_index = ready->begin();
          node_index != ready->end(); ++node_index){
+      std::string *insStr = dag->GetInstructionStrings();
+      Trace(1, "READY: %d : %s", *node_index, insStr[*node_index].c_str());
       SchedulerNode *node = entries_[*node_index];
       node->addGrp(grpNum);
     }

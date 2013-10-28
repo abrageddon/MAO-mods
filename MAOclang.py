@@ -33,6 +33,8 @@ blobCompilerFlags = []
 assemblerFlags = []
 generateAssemblyFlags = []
 generateAssemblyCacheFlags = []
+divannoFlags = []
+
 sources = []
 assemblys = []
 objects = []
@@ -238,7 +240,7 @@ def diversify(output, inFile):
     if not doDiv:
         return retCode
     if prDebug: sys.stderr.write ("=== Diversify ===" +'\n\n')
-    diversify = ["divanno", "-f", inFile , "-o", output, "-seed", str(seed), "-percent", str(percent) ]
+    diversify = ["divanno", "-f", inFile , "-o", output, "-seed", str(seed), "-percent", str(percent) ] + divannoFlags
         
     if prDebug: sys.stderr.write (string.join(diversify,' ')+'\n\n')
     return execBuild(diversify, "Diversify")
@@ -252,10 +254,11 @@ def annotate(output, inFile):
     #TODO read from command line and purge after use
     tests = ""
     
-    tests += "--plugin=/usr/local/lib/MaoLabelAll-x86_64-linux.so:LABELALL:"
+    tests += "--plugin=/usr/local/lib/MaoSchedAnnotate-x86_64-linux.so:SCHEDA:"
     #tests += "--plugin=/usr/local/lib/MaoSchedRand-x86_64-linux.so:SCHEDRAND=MultiCompilerSeed["+seed+"]+ISchedRandPercentage["+percent+"]:"
     tests += "--plugin=/usr/local/lib/MaoMOVToLEAAnnotate-x86_64-linux.so:MOVTOLEAA:"
     tests += "--plugin=/usr/local/lib/MaoNOPInsertionAnnotate-x86_64-linux.so:NOPINSERTIONA:"        
+    tests += "--plugin=/usr/local/lib/MaoLabelAll-x86_64-linux.so:LABELALL:"
     
     annotate = ["mao", "--mao="+tests+"ASM=o["+output+"]", inFile ]
         
@@ -592,6 +595,7 @@ def errorCatch(retCode, cmd, mesg):
         sys.stderr.write( 'generateAssemblyFlags: ' + str(generateAssemblyFlags) +'\n\n')
         sys.stderr.write( 'assemblerFlags: ' + str(assemblerFlags) +'\n\n')
         sys.stderr.write( 'blobCompilerFlags: ' + str(blobCompilerFlags) +'\n\n')
+        sys.stderr.write( 'divannoFlags: ' + str(divannoFlags) +'\n\n')
         
         sys.stderr.write( 'sources: ' + str(sources) +'\n')
         sys.stderr.write( 'assemblys: ' + str(assemblys) +'\n')
@@ -615,6 +619,8 @@ def initVars(varList):
     global assemblerFlags
     global generateAssemblyFlags
     global generateAssemblyCacheFlags
+    global divannoFlags
+ 
     global sources
     global assemblys
     global objects
@@ -723,7 +729,9 @@ def initVars(varList):
             seed = var[14:]
         elif (var[:26] == '-nop-insertion-percentage='):
             percent = var[26:]
-        elif (var == '-Xclang' or var == '-nop-insertion' or var == "-mllvm"):
+        elif (var == '-nop-insertion' or var == "-mov-to-lea" or var == "-sched-randomize"):
+            divannoFlags += [var]
+        elif (var == '-Xclang' or var == "-mllvm"):
             continue #TODO Do something with these eventually.....
         elif (var[:16] == '-print-prog-name'
             or var == '-print-search-dirs'

@@ -1037,7 +1037,7 @@ InstructionEntry::InstructionEntry(i386_insn *instruction,
                                    const char* line_verbatim,
                                    MaoUnit *maounit) :
     MaoEntry(line_number, line_verbatim, maounit), code_flag_(code_flag),
-    execution_count_valid_(false), execution_count_(0), canNOPInsert_(false), canMOVToLEA_(false) {
+    execution_count_valid_(false), execution_count_(0), canNOPInsert_(false), canMOVToLEA_(false), grpStart_(false), grpEnd_(false) {
   op_ = GetOpcode(instruction->tm.name);
   MAO_ASSERT(op_ != OP_invalid);
   MAO_ASSERT(instruction);
@@ -2205,6 +2205,7 @@ std::string &InstructionEntry::ProfileToString(std::string *out) const {
   return *out;
 }
 
+//SNEISIUS
 std::string &InstructionEntry::MCToString(std::string *out) const {
   std::ostringstream string_stream;
   if (canNOPInsert_){
@@ -2216,6 +2217,7 @@ std::string &InstructionEntry::MCToString(std::string *out) const {
   }
   if (schedGrp_.size()>0){
     string_stream << "\t# SCHED=";
+    if (grpStart_){string_stream << "[";}
     bool fLine=true;
     for(std::set<int>::iterator it=schedGrp_.begin(); it!=schedGrp_.end(); ++it){
       if(!fLine){
@@ -2225,6 +2227,7 @@ std::string &InstructionEntry::MCToString(std::string *out) const {
       }
       string_stream << *it;
     }
+    if (grpEnd_){string_stream << "]";}
   }
   out->append(string_stream.str());
   return *out;

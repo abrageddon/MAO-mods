@@ -777,6 +777,12 @@ class InstructionEntry : public MaoEntry {
   std::set<int> getGrps(int group) {
     return schedGrp_;
   }
+  void SetGroupStart(bool start) {
+	grpStart_=start;
+  }
+  void SetGroupEnd(bool end) {
+	grpEnd_=end;
+  }
   void SetCanNOPInsert(bool can) {
 	canNOPInsert_ = can;
   }
@@ -808,6 +814,8 @@ class InstructionEntry : public MaoEntry {
 
   //SNEISIUS
   std::set<int> schedGrp_;
+  bool grpStart_;
+  bool grpEnd_;
   bool canNOPInsert_;
   bool canMOVToLEA_;
 
