@@ -249,22 +249,28 @@ void scheduleAllInstructions(ofstream& outFile){
             std::set_intersection(
                     ins.groups.begin(), ins.groups.end(), next->groups.begin(), next->groups.end(), std::back_inserter(interSet));
 
-//            cerr << interSet.size() << "\n";
-            if (interSet.size() > 0 && multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(100) < insertPercent ){
-                while (interSet.size() > 0 && next != schedBuffer.end() ) {
-                    cerr << "CAN INSERT AFTER\n";
-                    if (multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(2) ){
-                        break;
-                    }
-                    interSet.clear();
+            cerr << "INTER: " << interSet.size() << "\n" ;
+            bool changed = false;
+            if (interSet.size() > 0 ){
+                cerr << "CAN INSERT AFTER\n";
+                while ( next != schedBuffer.end() && multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(2) ) {
                     cerr << "ROLLED!\n";
+                    interSet.clear();
+                    changed = true;
                     next++;
                     std::set_intersection(
                             ins.groups.begin(), ins.groups.end(), next->groups.begin(), next->groups.end(), std::back_inserter(interSet));
 
+                    cerr << "INTER: " << interSet.size() << "\n" ;
+                    if(interSet.size() <= 0){
+                        break;
+                    }
+                    cerr << "CAN INSERT AFTER\n";
                 }
-                schedBuffer.emplace( next, ins);
-                continue;
+                if (changed){
+                    schedBuffer.emplace( next, ins);//TODO place after end? even worth the effort?
+                    continue;
+                }
             }
         }
 
