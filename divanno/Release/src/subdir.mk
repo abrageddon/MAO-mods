@@ -4,12 +4,15 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
+../src/SchedulableInstruction.cpp \
 ../src/divanno.cpp 
 
 OBJS += \
+./src/SchedulableInstruction.o \
 ./src/divanno.o 
 
 CPP_DEPS += \
+./src/SchedulableInstruction.d \
 ./src/divanno.d 
 
 

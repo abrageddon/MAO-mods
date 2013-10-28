@@ -1,9 +1,14 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <sstream>
 #include <regex>
 #include <string.h>
+#include <list>
+#include <sstream>
 
+//#include "RandomScheduler.h"
+#include "SchedulableInstruction.h"
 #include "MultiCompiler/MultiCompilerOptions.h"
 #include "MultiCompiler/AESRandomNumberGenerator.h"
 
@@ -20,6 +25,9 @@ static const int nopSize[] = { 1, 2, 2, 2, 2 }; //Size (32/64) matters?TODO prob
 static const string normLabel = "__divmap_";
 static const string divLabel = "__divNOP_";
 
+std::list<SchedulableInstruction> schedBuffer;
+//static int currentGroup=0;
+
 static int nopNumber = 0;
 
 static int insertPercent = 30;
@@ -31,6 +39,20 @@ static bool is32bit;
 static bool doStubAdjustment;
 
 static int subFromSpace; //CBSTUBS
+
+void readLineAndLabel(ifstream& inFile, string& label, string& line) {
+    label = "";
+    getline(inFile, line);
+
+    //if line == divmap: store and get instruction
+    size_t posLabel = line.find(normLabel);
+    if (posLabel != string::npos) {
+        label = line;
+        getline(inFile, line);
+    }
+
+    //TODO if other kind of label; then empty schedBuffer
+}
 
 void parseMC(const string& line) {
     canNOP = false;
@@ -48,12 +70,81 @@ void parseMC(const string& line) {
             continue;
         } else {
             cerr << "Unknown Arg: " << lineArgs[i] << endl;
+            break;
         }
-
     }
 }
 
-void insertNopRand(ofstream outFile) {
+std::vector<int> *parseSchedGrps(const string& line){
+    std::vector<int> *grps = new std::vector<int>();
+    string schArgs;
+
+    cerr << "READ: " << line << "\n";
+
+    size_t schPos = line.find("# SCHED=");
+    size_t startPos = line.find("[", schPos + 8);
+
+    //Find CSV start
+    if (startPos != string::npos){
+        schArgs = line.substr(schPos + 9);
+    }else{
+        schArgs = line.substr(schPos + 8);
+    }
+    //Find CSV end
+    size_t endPos = schArgs.find("]");
+    if (endPos != string::npos){
+        schArgs = schArgs.substr(0,endPos);
+    }
+
+//    cerr << schArgs << "\n";
+    std::istringstream ss(schArgs);
+    std::string group;
+
+    while(std::getline(ss, group, ',')) {
+//        cerr << group << "\n";
+        grps->push_back(stoi(group));
+    }
+
+    return grps;
+}
+
+void printGroup(std::vector<int> *grps){
+    for (std::vector<int>::iterator it = grps->begin() ; it != grps->end(); ++it){
+        cerr << *it << ",";
+    }
+    cerr << "\n";
+}
+
+void printSchedBuffer(){
+    for (std::list<SchedulableInstruction>::iterator it = schedBuffer.begin()
+            ; it != schedBuffer.end(); ++it){
+        cerr << "***" << it->instruction.front() << "\n";
+    }
+}
+
+
+void addToScheduler(const string& label, const string& line){
+    //TODO "# SCHED="
+    SchedulableInstruction ins;
+    std::vector<int> *grps = parseSchedGrps(line);
+
+    ins.label.push_back(label);
+    ins.instruction.push_back(line);
+    ins.groups = *grps;
+
+
+    size_t schPos = line.find("# SCHED=");
+    size_t endPos = line.find("]", schPos + 8);
+    //TODO while not ] then keep reading lines
+    if (endPos == string::npos){
+        //Read next line and add until ] or non-schedulable
+    }
+
+    schedBuffer.push_back(ins);
+
+}
+
+void insertNopRand(ofstream& outFile) {
     //IF mcArgs contains [N] then try NOP Insertion before current line
     if (canNOP) {
         Roll = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(100);
@@ -104,14 +195,16 @@ string movToLeaReplace(const string& line) {
     return "\t" + lea + "\t(" + rOne + ")," + rTwo + "\t\t#MOVtoLEA";
 }
 
-void printWithLabel(ofstream& output, const string& lab, const string& input) {
-    if (strcmp(lab.c_str(), "") != 0) {
-        output << lab << "\n";
+
+void printWithLabel(ofstream& output, const string& label, const string& input) {
+    if (label.size() > 1) {
+        output << label << "\n";
     }
     output << input << "\n";
+//    cerr << input << "\n";
 }
 
-void movToLeaRandOrPrint(ofstream outFile, const string& label, const string& line) {
+void movToLeaRandOrPrint(ofstream& outFile, const string& label, const string& line) {
     //IF mcArgs contains [M] then try MOVToLEA
     if (canMOVToLEA) {
         Roll = multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(100);
@@ -128,7 +221,60 @@ void movToLeaRandOrPrint(ofstream outFile, const string& label, const string& li
         //outFile << line << "\n";
         printWithLabel(outFile, label, line);
     }
-    return outFile;
+}
+
+void emitInstruction(ofstream& outFile, const string& label, const string& line) {
+    parseMC(line);
+    //IF mcArgs contains [N] then try NOP Insertion before current line
+    insertNopRand(outFile);
+    //IF mcArgs contains [M] then try MOVToLEA
+    movToLeaRandOrPrint(outFile, label, line);
+}
+
+void scheduleAllInstructions(ofstream& outFile){
+    string line;
+    string label;
+
+    while (!schedBuffer.empty()){
+        SchedulableInstruction ins = schedBuffer.front();
+        schedBuffer.pop_front();
+
+        cerr << "Candidate" << ins.instruction.at(0) << "\n";
+        printSchedBuffer();//DEBUG
+
+        if ( schedBuffer.size() > 0 ) {
+            //For schedBuffer that unions of groups is not null
+            std::list<SchedulableInstruction>::iterator next = schedBuffer.begin();
+            std::vector<int> interSet;
+            std::set_intersection(
+                    ins.groups.begin(), ins.groups.end(), next->groups.begin(), next->groups.end(), std::back_inserter(interSet));
+
+//            cerr << interSet.size() << "\n";
+            if (interSet.size() > 0 && multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(100) < insertPercent ){
+                while (interSet.size() > 0 && next != schedBuffer.end() ) {
+                    cerr << "CAN INSERT AFTER\n";
+                    if (multicompiler::Random::AESRandomNumberGenerator::Generator().randnext(2) ){
+                        break;
+                    }
+                    interSet.clear();
+                    cerr << "ROLLED!\n";
+                    next++;
+                    std::set_intersection(
+                            ins.groups.begin(), ins.groups.end(), next->groups.begin(), next->groups.end(), std::back_inserter(interSet));
+
+                }
+                schedBuffer.emplace( next, ins);
+                continue;
+            }
+        }
+
+        for(unsigned int i = 0; i < ins.instruction.size(); i++){
+            label=ins.label.at(i);
+            line=ins.instruction.at(i);
+
+            emitInstruction(outFile, label, line);
+        }
+    }
 }
 
 int main(int argc, char* argv[]) {
@@ -219,8 +365,8 @@ int main(int argc, char* argv[]) {
     string line;
     string label;
     while (inFile.good()) {
-        label = "";
-        getline(inFile, line);
+        readLineAndLabel(inFile, label, line);
+
         //For each line in  file
         size_t pos32 = line.find(".code32");
         if (pos32 != string::npos) {
@@ -232,13 +378,15 @@ int main(int argc, char* argv[]) {
             is64bit = true;
             is32bit = false;
         }
-        //if line == divmap: store and get instruction
-        size_t posLabel = line.find(normLabel);
-        if (posLabel != string::npos) {
-            label = line;
-            getline(inFile, line);
-        }
         //TODO IF line is label: end of basic block; dump remaining
+
+
+        size_t schPos = line.find("# SCHED=");
+        if (schPos != string::npos) {
+            addToScheduler(label, line);
+            continue;
+        }
+        scheduleAllInstructions(outFile);
 
         //IF not contains '# MC=' then write and continue
         size_t argPos = line.find("# MC=");
@@ -257,12 +405,12 @@ int main(int argc, char* argv[]) {
 
                 subFromSpace = 0;
             } else {
-                outFile << line << "\n";
+                //outFile << line << "\n";
+                printWithLabel(outFile, label, line);
+//                scheduleAllInstructions(outFile);
             }
             continue;
         }
-
-        //TODO schedule randomization
 
 //        size_t posJmp = line.find("jmp");
 //        if (posJmp != string::npos && doStubAdjustment) { //TODO TESTING dont diversify jump pads
@@ -271,16 +419,9 @@ int main(int argc, char* argv[]) {
 //            continue;
 //        }
 
-        //Parse args
-        parseMC(line);
-
-        //IF mcArgs contains [N] then try NOP Insertion before current line
-        insertNopRand(outFile, line);
-
-        //IF mcArgs contains [M] then try MOVToLEA
-        movToLeaRandOrPrint(outFile, line);
-//            cout << line << endl;
+        emitInstruction(outFile, label, line);
     }
+    scheduleAllInstructions(outFile);
     inFile.close();
     outFile.close();
 
