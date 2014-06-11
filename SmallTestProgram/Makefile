@@ -1,11 +1,13 @@
-CFLAGS+=-I. #-g
+CFLAGS+=-I. -mllvm -sched-randomize -mllvm -sched-randomize-percentage=90 #-g
 DEPS = hellomake.h
 OBJ = hellomake.o hellofunc.o 
 ASS = hellomake.s hellofunc.s 
 #CC = MAOclang.pyc
 #CXX = MAOclang.pyc++
-CC = clang
-CXX = clang++
+#CC = clang
+#CXX = clang++
+CC = multiclang.py
+CXX = multiclang.py++
 
 %.c: $(DEPS)
 

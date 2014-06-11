@@ -9,10 +9,10 @@ mkdirFlag=True
 # really build, not just print
 realBuild=True
 doDiv=True
-useMAO=True
+useMAO=False
 
-#doBuildObj=True ; doBuildBlob=False
-doBuildObj=False ; doBuildBlob=True
+doBuildObj=True ; doBuildBlob=False
+#doBuildObj=False ; doBuildBlob=True
 #doBuildObj=True ; doBuildBlob=True
 
 extraFlags = []
